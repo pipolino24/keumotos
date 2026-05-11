@@ -51,7 +51,7 @@ type MotoForm = {
   caucao: number | "";
   tipo: "venda" | "aluguel" | "ambos";
   status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
-  loja: "multimarcas" | "loca" | "pecas";
+  setor: "multimarcas" | "loca" | "pecas";
   vendedorResponsavel: string;
   fornecedor: string;
   dataEntrada: string;
@@ -89,7 +89,7 @@ const initial: MotoForm = {
   caucao: "",
   tipo: "venda",
   status: "disponivel",
-  loja: "multimarcas",
+  setor: "multimarcas",
   vendedorResponsavel: "",
   fornecedor: "",
   dataEntrada: new Date().toISOString().slice(0, 10),
@@ -706,16 +706,16 @@ export default function NovoMotoPage() {
               </div>
 
               <div>
-                <Label htmlFor="loja" required>Loja responsável</Label>
+                <Label htmlFor="setor" required>Setor responsável</Label>
                 <Select
-                  id="loja"
-                  value={form.loja}
+                  id="setor"
+                  value={form.setor}
                   onChange={(e) =>
-                    set("loja", e.target.value as MotoForm["loja"])
+                    set("setor", e.target.value as MotoForm["setor"])
                   }
                 >
-                  <option value="multimarcas">KEU Multimarcas</option>
-                  <option value="loca">KEU Loca Motos</option>
+                  <option value="multimarcas">KEU Multimarcas (Venda)</option>
+                  <option value="loca">KEU Loca Motos (Aluguel)</option>
                   <option value="pecas">KEU Moto Peças</option>
                 </Select>
               </div>

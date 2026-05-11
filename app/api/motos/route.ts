@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const tipo = searchParams.get("tipo");
     const status = searchParams.get("status");
-    const loja = searchParams.get("loja");
+    const setor = searchParams.get("setor");
     const search = searchParams.get("q");
 
     const query: Record<string, unknown> = {};
     if (tipo) query.tipo = tipo;
     if (status) query.status = status;
-    if (loja) query.loja = loja;
+    if (setor) query.setor = setor;
     if (search) {
       query.$or = [
         { marca: { $regex: search, $options: "i" } },

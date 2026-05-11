@@ -34,8 +34,29 @@ export interface IMotoDoc {
   observacoes?: string;
   dataEntrada: Date;
   vendedorResponsavel?: string;
-  fornecedor?: string;
-  loja: "multimarcas" | "loca" | "pecas";
+
+  // Origem / aquisição
+  origem: "propria" | "comprada" | "repasse";
+  proprietarioId?: mongoose.Types.ObjectId;
+  proprietarioNome?: string;
+  compra?: {
+    valorPago: number;
+    formaPagamento: "pix" | "dinheiro" | "transferencia" | "troca" | "cheque";
+    numeroNotaFiscal?: string;
+    dataAquisicao: Date;
+  };
+  repasse?: {
+    valorCombinadoDono: number;
+    tipoComissao: "percentual" | "fixo";
+    comissaoPercentual?: number;
+    comissaoFixa?: number;
+    prazoConsignacao: number;
+    dataInicioConsignacao: Date;
+    contratoAssinado: boolean;
+    observacoesAcordo?: string;
+  };
+
+  setor: "multimarcas" | "loca" | "pecas";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,8 +115,37 @@ const MotoSchema = new Schema<IMotoDoc>(
     observacoes: String,
     dataEntrada: { type: Date, required: true, default: Date.now },
     vendedorResponsavel: String,
-    fornecedor: String,
-    loja: {
+
+    origem: {
+      type: String,
+      enum: ["propria", "comprada", "repasse"],
+      required: true,
+      default: "comprada",
+      index: true,
+    },
+    proprietarioId: { type: Schema.Types.ObjectId, ref: "Proprietario" },
+    proprietarioNome: String,
+    compra: {
+      valorPago: Number,
+      formaPagamento: {
+        type: String,
+        enum: ["pix", "dinheiro", "transferencia", "troca", "cheque"],
+      },
+      numeroNotaFiscal: String,
+      dataAquisicao: Date,
+    },
+    repasse: {
+      valorCombinadoDono: Number,
+      tipoComissao: { type: String, enum: ["percentual", "fixo"] },
+      comissaoPercentual: Number,
+      comissaoFixa: Number,
+      prazoConsignacao: Number,
+      dataInicioConsignacao: Date,
+      contratoAssinado: { type: Boolean, default: false },
+      observacoesAcordo: String,
+    },
+
+    setor: {
       type: String,
       enum: ["multimarcas", "loca", "pecas"],
       required: true,

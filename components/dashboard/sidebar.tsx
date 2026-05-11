@@ -15,6 +15,7 @@ import {
   Handshake,
   Shield,
   Crown,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -30,6 +31,7 @@ const navItems = [
 
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
+  { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Aquisições" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];

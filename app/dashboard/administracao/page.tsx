@@ -70,12 +70,24 @@ export default function AdministracaoPage() {
     (a, b) => (b.vendasRealizadas ?? 0) - (a.vendasRealizadas ?? 0)
   );
 
-  // LOJAS
-  const porLoja = {
-    multimarcas: mockMotos.filter((m) => m.loja === "multimarcas"),
-    loca: mockMotos.filter((m) => m.loja === "loca"),
-    pecas: mockMotos.filter((m) => m.loja === "pecas"),
+  // SETORES (uma loja, três setores)
+  const porSetor = {
+    multimarcas: mockMotos.filter((m) => m.setor === "multimarcas"),
+    loca: mockMotos.filter((m) => m.setor === "loca"),
+    pecas: mockMotos.filter((m) => m.setor === "pecas"),
   };
+
+  // ORIGEM DAS MOTOS (capital próprio vs repasse)
+  const motosCompradas = mockMotos.filter((m) => m.origem === "comprada");
+  const motosRepasse = mockMotos.filter((m) => m.origem === "repasse");
+  const totalInvestidoCompra = motosCompradas.reduce(
+    (s, m) => s + (m.compra?.valorPago ?? m.valorCompra),
+    0
+  );
+  const compromissoRepasse = motosRepasse.reduce(
+    (s, m) => s + (m.repasse?.valorCombinadoDono ?? 0),
+    0
+  );
 
   // CONVERSÃO LEADS
   const totalLeads = mockContatos.length;
@@ -322,23 +334,74 @@ export default function AdministracaoPage() {
         </div>
       </div>
 
-      {/* P&L POR LOJA */}
+      {/* ORIGEM DAS MOTOS — compra vs repasse */}
       <Card className="mb-6">
         <div className="p-6 border-b border-keu-black/5">
-          <h2 className="font-bold text-lg">Performance por loja</h2>
+          <h2 className="font-bold text-lg">Aquisição de estoque</h2>
           <p className="text-sm text-keu-black/60">
-            Distribuição de estoque e operação por unidade
+            Motos compradas (capital próprio) vs em repasse (consignação)
+          </p>
+        </div>
+        <div className="p-6 grid sm:grid-cols-2 gap-4">
+          <Card className="p-5 bg-gradient-to-br from-keu-red to-keu-red-dark text-white border-0">
+            <div className="text-xs uppercase tracking-wider text-white/80 mb-1">
+              Compradas
+            </div>
+            <h4 className="font-bold mb-3">{motosCompradas.length} motos</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-white/80">Capital investido:</span>
+                <span className="font-bold">
+                  {formatCurrency(totalInvestidoCompra)}
+                </span>
+              </div>
+              <div className="text-xs text-white/70 pt-1 border-t border-white/20">
+                Lucro líquido fica integral para a KEU
+              </div>
+            </div>
+          </Card>
+          <Card className="p-5 bg-gradient-to-br from-purple-500 to-purple-700 text-white border-0">
+            <div className="text-xs uppercase tracking-wider text-white/80 mb-1">
+              Em repasse / Consignação
+            </div>
+            <h4 className="font-bold mb-3">{motosRepasse.length} motos</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-white/80">Compromisso com donos:</span>
+                <span className="font-bold">
+                  {formatCurrency(compromissoRepasse)}
+                </span>
+              </div>
+              <div className="text-xs text-white/70 pt-1 border-t border-white/20">
+                Valor a repassar aos proprietários quando vender
+              </div>
+            </div>
+          </Card>
+        </div>
+      </Card>
+
+      {/* P&L POR SETOR */}
+      <Card className="mb-6">
+        <div className="p-6 border-b border-keu-black/5">
+          <h2 className="font-bold text-lg">Performance por setor</h2>
+          <p className="text-sm text-keu-black/60">
+            Distribuição de estoque entre os três setores da KEU
           </p>
         </div>
         <div className="p-6 grid sm:grid-cols-3 gap-4">
-          {(["multimarcas", "loca", "pecas"] as const).map((loja) => {
-            const motos = porLoja[loja];
+          {(["multimarcas", "loca", "pecas"] as const).map((setor) => {
+            const motos = porSetor[setor];
             const investido = motos.reduce((s, m) => s + m.valorCompra, 0);
             const potencial = motos.reduce((s, m) => s + m.valorAnunciado, 0);
             const nomes = {
               multimarcas: "KEU Multimarcas",
               loca: "KEU Loca Motos",
               pecas: "KEU Moto Peças",
+            };
+            const subtitulos = {
+              multimarcas: "Compra • Vende • Troca",
+              loca: "Aluguel — Realizando Sonhos",
+              pecas: "Peças e Borracharia",
             };
             const cores = {
               multimarcas: "from-keu-red to-keu-red-dark",
@@ -347,12 +410,12 @@ export default function AdministracaoPage() {
             };
             return (
               <Card
-                key={loja}
-                className={`p-5 bg-gradient-to-br ${cores[loja]} text-white border-0`}
+                key={setor}
+                className={`p-5 bg-gradient-to-br ${cores[setor]} text-white border-0`}
               >
-                <h4 className="font-bold mb-1">{nomes[loja]}</h4>
+                <h4 className="font-bold">{nomes[setor]}</h4>
                 <div className="text-xs text-white/70 mb-4">
-                  {motos.length} motos
+                  {subtitulos[setor]} · {motos.length} motos
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">

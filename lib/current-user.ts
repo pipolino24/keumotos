@@ -12,7 +12,7 @@ export interface CurrentUser {
   role: UserRole;
   cargoId?: string;
   permissoes: string[];
-  loja: "multimarcas" | "loca" | "pecas";
+  setor: "multimarcas" | "loca" | "pecas";
 }
 
 // Mock para desenvolvimento. Em produção: lookup da sessão.
@@ -22,7 +22,7 @@ const MOCK_USER: CurrentUser = {
   email: "marcos@keumotos.com.br",
   role: "vendedor",
   permissoes: [],
-  loja: "multimarcas",
+  setor: "multimarcas",
 };
 
 // Toggle pra simular login como admin durante desenvolvimento.
@@ -35,7 +35,7 @@ const MOCK_ADMIN: CurrentUser = {
   email: "keu.admin@keumotos.com.br",
   role: "admin",
   permissoes: [],
-  loja: "multimarcas",
+  setor: "multimarcas",
 };
 
 export function getCurrentUser(): CurrentUser {

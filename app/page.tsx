@@ -41,7 +41,7 @@ export default function HomePage() {
 
           <nav className="hidden md:flex items-center gap-8">
             <a href="#unidades" className="text-sm font-medium hover:text-keu-red transition">
-              Unidades
+              Setores
             </a>
             <a href="#servicos" className="text-sm font-medium hover:text-keu-red transition">
               Serviços
@@ -94,8 +94,9 @@ export default function HomePage() {
                 <span className="text-keu-red text-shadow-keu inline-block">KEU</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 max-w-xl">
-                Três unidades pra realizar seu sonho sobre duas rodas: compra,
-                venda, troca, aluguel e peças. Tudo em um só lugar.
+                Uma loja com três setores pra realizar seu sonho sobre duas
+                rodas: compra, venda, troca, aluguel e peças. Tudo em um só
+                lugar.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link href="#destaques">
@@ -117,7 +118,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-wrap gap-8 pt-6 border-t border-white/10">
-                <Stat number="3" label="Unidades" />
+                <Stat number="3" label="Setores" />
                 <Stat number="500+" label="Motos vendidas" />
                 <Stat number="10+" label="Anos no mercado" />
               </div>
@@ -153,13 +154,13 @@ export default function HomePage() {
       <section id="unidades" className="py-20 md:py-28 bg-keu-gray-light">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <Badge variant="outline">Nossas Unidades</Badge>
+            <Badge variant="outline">Nossos Setores</Badge>
             <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4">
-              Três marcas, <span className="text-keu-red">uma família</span>
+              Uma loja, <span className="text-keu-red">três setores</span>
             </h2>
             <p className="text-keu-black/60 text-lg max-w-2xl mx-auto">
-              Cada unidade especializada para te atender melhor — venda,
-              aluguel e peças em pontos estratégicos.
+              Cada setor especializado para te atender melhor — venda,
+              aluguel e peças em um só endereço.
             </p>
           </div>
 
@@ -460,11 +461,11 @@ export default function HomePage() {
             <div>
               <KeuLogo size="md" />
               <p className="text-sm text-white/60 mt-4">
-                Três unidades, uma família. Compra, venda, troca, aluguel e peças.
+                Uma loja, três setores. Compra, venda, troca, aluguel e peças.
               </p>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Unidades</h4>
+              <h4 className="font-bold mb-4">Setores</h4>
               <ul className="space-y-2 text-sm text-white/60">
                 <li>KEU Moto Peças</li>
                 <li>KEU Loca Motos</li>
