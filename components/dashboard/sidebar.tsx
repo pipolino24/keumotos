@@ -179,7 +179,7 @@ export function Sidebar() {
   const userIsAdmin = isAdmin(user);
 
   return (
-    <aside className="hidden lg:flex w-64 bg-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
+    <aside className="hidden lg:flex w-64 bg-gradient-to-b from-keu-gray via-keu-black to-keu-gray text-white flex-col fixed inset-y-0 left-0 z-40 shadow-2xl">
       <SidebarContent
         pathname={pathname}
         userIsAdmin={userIsAdmin}
@@ -203,7 +203,7 @@ export function MobileTopbar() {
 
   return (
     <>
-      <div className="lg:hidden sticky top-0 z-30 bg-keu-black text-white border-b border-white/10">
+      <div className="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-keu-gray to-keu-black text-white border-b border-white/10">
         <div className="flex items-center justify-between p-4">
           <button
             onClick={() => setOpen(true)}
@@ -233,7 +233,7 @@ export function MobileTopbar() {
           onClick={() => setOpen(false)}
         >
           <aside
-            className="absolute left-0 inset-y-0 w-72 bg-keu-black text-white flex flex-col animate-slide-in"
+            className="absolute left-0 inset-y-0 w-72 bg-gradient-to-b from-keu-gray via-keu-black to-keu-gray text-white flex flex-col animate-slide-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button

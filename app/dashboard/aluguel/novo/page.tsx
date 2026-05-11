@@ -646,7 +646,7 @@ export default function NovoAluguelPage() {
             {motoSelecionada && (
               <div className="mt-4 p-4 bg-keu-gray-light rounded-xl">
                 <div className="flex gap-4">
-                  <div className="w-24 h-24 bg-gradient-to-br from-keu-black to-keu-gray rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <div className="w-24 h-24 bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
                     {motoSelecionada.fotos &&
                     motoSelecionada.fotos.length > 0 ? (
                       // eslint-disable-next-line @next/next/no-img-element

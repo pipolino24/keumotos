@@ -285,7 +285,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-keu-red via-keu-red-dark to-keu-black overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-keu-red via-keu-red-dark to-keu-gray overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 bg-grid opacity-10" />
 
         <div className="relative z-10 text-white max-w-md">

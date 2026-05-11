@@ -148,7 +148,7 @@ export default function AfiliadoPublicPage({
       </header>
 
       {/* HERO AFILIADO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-keu-black via-keu-gray to-keu-black text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-keu-gray-light to-white text-white">
         <div className="absolute inset-0 bg-grid opacity-10" />
         <div
           className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-30"
@@ -264,7 +264,7 @@ export default function AfiliadoPublicPage({
                   key={moto._id}
                   className="overflow-hidden group hover:shadow-2xl transition-all hover:-translate-y-1"
                 >
-                  <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+                  <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
                     {moto.fotos?.[0] ? (
                       <Image
                         src={moto.fotos[0]}
@@ -326,7 +326,7 @@ export default function AfiliadoPublicPage({
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-keu-black text-white py-10">
+      <footer className="bg-gradient-to-br from-keu-gray to-keu-black text-white py-10">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -378,7 +378,7 @@ function InactivePage({
           </Link>
         </Card>
       </main>
-      <footer className="bg-keu-black text-white py-6 text-center text-xs text-white/40">
+      <footer className="bg-gradient-to-br from-keu-gray to-keu-black text-white py-6 text-center text-xs text-white/40">
         © 2026 KEU Empreendimentos
       </footer>
     </div>

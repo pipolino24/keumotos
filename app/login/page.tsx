@@ -234,7 +234,7 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT - Visual */}
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-keu-black via-keu-gray to-keu-black overflow-hidden items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-keu-gray via-keu-black to-keu-red-dark overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 bg-grid opacity-10" />
         <div
           className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-40"

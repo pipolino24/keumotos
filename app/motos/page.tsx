@@ -176,10 +176,10 @@ export default async function MotosPage({
       </header>
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-keu-black via-keu-gray to-keu-black text-white">
-        <div className="absolute inset-0 bg-grid opacity-10" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-keu-gray-light to-white text-keu-black">
+        <div className="absolute inset-0 bg-grid opacity-30" />
         <div
-          className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-30"
+          className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-15"
           style={{ background: "var(--keu-red)" }}
         />
         <div className="relative container mx-auto px-4 py-14 md:py-20 max-w-5xl">
@@ -188,7 +188,7 @@ export default async function MotosPage({
             <h1 className="text-4xl md:text-6xl font-black leading-[1] tracking-tight">
               Motos <span className="text-keu-red">KEU Multimarcas</span>
             </h1>
-            <p className="text-white/70 text-lg max-w-2xl mx-auto">
+            <p className="text-keu-black/70 text-lg max-w-2xl mx-auto">
               Encontre a moto perfeita pra você. FIPE garantida, documentação em
               dia e os melhores preços do Cariri.
             </p>
@@ -408,7 +408,7 @@ export default async function MotosPage({
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-keu-black text-white py-12">
+      <footer className="bg-gradient-to-br from-keu-gray to-keu-black text-white py-12">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -480,7 +480,7 @@ function MotoCard({ moto }: { moto: Moto }) {
   return (
     <Link href={`/motos/${moto._id}`} className="group block">
       <Card className="overflow-hidden h-full hover:shadow-2xl transition-all hover:-translate-y-1">
-        <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+        <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
           {moto.fotos?.[0] ? (
             <Image
               src={moto.fotos[0]}

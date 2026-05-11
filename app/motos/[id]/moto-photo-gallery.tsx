@@ -21,7 +21,7 @@ export function MotoPhotoGallery({ fotos, alt, destaque, tipo, ano }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+      <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
         {current ? (
           <Image
             src={current}

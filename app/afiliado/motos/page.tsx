@@ -186,7 +186,7 @@ function MotoCardAfiliado({ moto }: { moto: Moto }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all">
-      <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative">
+      <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative">
         {moto.fotos[0] ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img

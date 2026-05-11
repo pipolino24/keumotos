@@ -212,7 +212,7 @@ export default function AfiliadoDashboardPage() {
                 key={i}
                 className="overflow-hidden hover:shadow-lg transition"
               >
-                <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative">
+                <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Bike className="h-12 w-12 text-keu-red/30" />
                   </div>

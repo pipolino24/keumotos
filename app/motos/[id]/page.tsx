@@ -325,7 +325,7 @@ export default async function MotoDetailPage({
           )}
 
           {/* SOBRE A KEU */}
-          <Card className="p-6 md:p-8 mt-10 bg-keu-black text-white border-keu-black/20">
+          <Card className="p-6 md:p-8 mt-10 bg-gradient-to-br from-keu-gray to-keu-black text-white border-keu-black/20">
             <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center">
               <div>
                 <Badge variant="default">Sobre nós</Badge>
@@ -379,7 +379,7 @@ export default async function MotoDetailPage({
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-keu-black text-white py-12">
+      <footer className="bg-gradient-to-br from-keu-gray to-keu-black text-white py-12">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>

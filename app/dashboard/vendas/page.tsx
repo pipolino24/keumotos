@@ -203,7 +203,7 @@ export default function VendasPage() {
                 key={m._id}
                 className="overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all"
               >
-                <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative">
+                <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Bike className="h-16 w-16 text-keu-red/30" />
                   </div>

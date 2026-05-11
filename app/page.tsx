@@ -70,14 +70,14 @@ export default function HomePage() {
       </header>
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-keu-black via-keu-gray to-keu-black text-white">
-        <div className="absolute inset-0 bg-grid opacity-10" />
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-keu-gray-light to-white text-keu-black">
+        <div className="absolute inset-0 bg-grid opacity-30" />
         <div
-          className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-30"
+          className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-20"
           style={{ background: "var(--keu-red)" }}
         />
         <div
-          className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20"
+          className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full blur-3xl opacity-10"
           style={{ background: "var(--keu-red)" }}
         />
 
@@ -93,7 +93,7 @@ export default function HomePage() {
                 aqui na{" "}
                 <span className="text-keu-red text-shadow-keu inline-block">KEU</span>
               </h1>
-              <p className="text-lg md:text-xl text-white/70 max-w-xl">
+              <p className="text-lg md:text-xl text-keu-black/70 max-w-xl">
                 Uma loja com três setores pra realizar seu sonho sobre duas
                 rodas: compra, venda, troca, aluguel e peças. Tudo em um só
                 lugar.
@@ -106,18 +106,14 @@ export default function HomePage() {
                   </Button>
                 </Link>
                 <a href="https://wa.me/5588998505859" target="_blank" rel="noopener">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="border-white text-white hover:bg-white hover:text-keu-black"
-                  >
+                  <Button variant="dark" size="lg">
                     <Phone className="h-4 w-4" />
                     Fale Conosco
                   </Button>
                 </a>
               </div>
 
-              <div className="flex flex-wrap gap-8 pt-6 border-t border-white/10">
+              <div className="flex flex-wrap gap-8 pt-6 border-t border-keu-black/10">
                 <Stat number="3" label="Setores" />
                 <Stat number="500+" label="Motos vendidas" />
                 <Stat number="10+" label="Anos no mercado" />
@@ -126,10 +122,10 @@ export default function HomePage() {
 
             <div className="relative hidden md:flex justify-center items-center">
               <div className="relative w-full max-w-md aspect-square">
-                <div className="absolute inset-0 bg-keu-red/30 rounded-full blur-3xl" />
-                <div className="relative bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 p-8 h-full flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-keu-red/15 rounded-full blur-3xl" />
+                <div className="relative h-full flex items-center justify-center overflow-hidden">
                   <Image
-                    src="/logos/moto-rider-1.webp"
+                    src="/logos/moto-rider-2.webp"
                     alt="KEU Motos"
                     width={500}
                     height={400}
@@ -140,7 +136,7 @@ export default function HomePage() {
                 <div className="absolute -top-4 -right-4 bg-keu-red rounded-2xl p-4 shadow-2xl rotate-12 animate-fade-in">
                   <Award className="h-8 w-8 text-white" />
                 </div>
-                <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-3 shadow-2xl -rotate-6">
+                <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-3 shadow-xl -rotate-6 border border-keu-black/5">
                   <div className="text-xs font-bold text-keu-black/60">FIPE</div>
                   <div className="text-keu-red font-black">Garantido</div>
                 </div>
@@ -283,7 +279,7 @@ export default function HomePage() {
             ].map((m, i) => (
               <Link href="/motos" key={i} className="group block">
                 <Card className="overflow-hidden h-full hover:shadow-2xl transition-all hover:-translate-y-1">
-                  <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+                  <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-60 transition-opacity group-hover:scale-110 duration-500">
                       <Image
                         src={`/logos/moto-rider-${(i % 3) + 1}.webp`}
@@ -328,8 +324,8 @@ export default function HomePage() {
       </section>
 
       {/* WHY US */}
-      <section className="py-20 md:py-28 bg-keu-black text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-5" />
+      <section className="py-20 md:py-28 bg-gradient-to-br from-keu-gray-light via-white to-keu-gray-light relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-30" />
         <div className="relative container mx-auto px-4 max-w-7xl">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -339,7 +335,7 @@ export default function HomePage() {
                 <br />
                 <span className="text-keu-red">rodando junto com você</span>
               </h2>
-              <p className="text-white/70 text-lg mb-8">
+              <p className="text-keu-black/70 text-lg mb-8">
                 Somos referência em motos no Cariri. Vendemos, alugamos, trocamos
                 e oferecemos peças com o compromisso da família KEU.
               </p>
@@ -376,12 +372,12 @@ export default function HomePage() {
                 ].map((s, i) => (
                   <div
                     key={i}
-                    className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 hover:bg-keu-red/10 hover:border-keu-red transition-all"
+                    className="bg-white border border-keu-black/5 rounded-2xl p-6 hover:shadow-xl hover:border-keu-red transition-all shadow-sm"
                   >
                     <div className="text-4xl font-black text-keu-red mb-1">
                       {s.n}
                     </div>
-                    <div className="text-sm text-white/70">{s.l}</div>
+                    <div className="text-sm text-keu-black/70">{s.l}</div>
                   </div>
                 ))}
               </div>
@@ -454,7 +450,7 @@ export default function HomePage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-keu-black text-white py-12">
+      <footer className="bg-gradient-to-br from-keu-gray to-keu-black text-white py-12">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -514,7 +510,9 @@ function Stat({ number, label }: { number: string; label: string }) {
   return (
     <div>
       <div className="text-3xl font-black text-keu-red">{number}</div>
-      <div className="text-xs text-white/60 uppercase tracking-wider">{label}</div>
+      <div className="text-xs text-keu-black/60 uppercase tracking-wider">
+        {label}
+      </div>
     </div>
   );
 }
@@ -607,7 +605,7 @@ function WhyItem({
       </div>
       <div>
         <div className="font-bold mb-0.5">{title}</div>
-        <div className="text-sm text-white/60">{desc}</div>
+        <div className="text-sm text-keu-black/60">{desc}</div>
       </div>
     </div>
   );
