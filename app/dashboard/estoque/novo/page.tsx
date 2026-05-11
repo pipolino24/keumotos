@@ -10,33 +10,134 @@ import {
   Wrench,
   DollarSign,
   KeyRound,
-  Image as ImageIcon,
   Save,
   Info,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/components/ui/image-upload";
+
+type MotoForm = {
+  marca: string;
+  modelo: string;
+  versao: string;
+  anoFabricacao: number | "";
+  anoModelo: number | "";
+  cor: string;
+  placa: string;
+  chassi: string;
+  renavam: string;
+  numeroMotor: string;
+  cilindrada: number | "";
+  potencia: string;
+  km: number | "";
+  combustivel: "" | "gasolina" | "flex" | "eletrica";
+  cambio: "" | "manual" | "automatico" | "semi-automatico" | "cvt";
+  partida: "" | "eletrica" | "pedal" | "ambas";
+  valorFipe: number | "";
+  valorCompra: number | "";
+  valorAnunciado: number | "";
+  valorMinimo: number | "";
+  comissao: number | "";
+  valorDiaria: number | "";
+  valorSemanal: number | "";
+  valorMensal: number | "";
+  caucao: number | "";
+  tipo: "venda" | "aluguel" | "ambos";
+  status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
+  loja: "multimarcas" | "loca" | "pecas";
+  vendedorResponsavel: string;
+  fornecedor: string;
+  dataEntrada: string;
+  destaque: boolean;
+  descricao: string;
+  observacoes: string;
+  fotos: string[];
+};
+
+const initial: MotoForm = {
+  marca: "",
+  modelo: "",
+  versao: "",
+  anoFabricacao: "",
+  anoModelo: "",
+  cor: "",
+  placa: "",
+  chassi: "",
+  renavam: "",
+  numeroMotor: "",
+  cilindrada: "",
+  potencia: "",
+  km: "",
+  combustivel: "",
+  cambio: "",
+  partida: "",
+  valorFipe: "",
+  valorCompra: "",
+  valorAnunciado: "",
+  valorMinimo: "",
+  comissao: "",
+  valorDiaria: "",
+  valorSemanal: "",
+  valorMensal: "",
+  caucao: "",
+  tipo: "venda",
+  status: "disponivel",
+  loja: "multimarcas",
+  vendedorResponsavel: "",
+  fornecedor: "",
+  dataEntrada: new Date().toISOString().slice(0, 10),
+  destaque: false,
+  descricao: "",
+  observacoes: "",
+  fotos: [],
+};
 
 export default function NovoMotoPage() {
   const router = useRouter();
-  const [tipo, setTipo] = useState<"venda" | "aluguel" | "ambos">("venda");
-  const [valorFipe, setValorFipe] = useState<number>(0);
-  const [valorCompra, setValorCompra] = useState<number>(0);
-  const [valorAnunciado, setValorAnunciado] = useState<number>(0);
-  const [valorMinimo, setValorMinimo] = useState<number>(0);
+  const [form, setForm] = useState<MotoForm>(initial);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const margemBruta = valorAnunciado - valorCompra;
-  const margemMinima = valorMinimo - valorCompra;
-  const percentualFipe = valorFipe
-    ? ((valorAnunciado / valorFipe - 1) * 100).toFixed(1)
+  function set<K extends keyof MotoForm>(key: K, value: MotoForm[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const valorCompraN = typeof form.valorCompra === "number" ? form.valorCompra : 0;
+  const valorAnunciadoN =
+    typeof form.valorAnunciado === "number" ? form.valorAnunciado : 0;
+  const valorMinimoN = typeof form.valorMinimo === "number" ? form.valorMinimo : 0;
+  const valorFipeN = typeof form.valorFipe === "number" ? form.valorFipe : 0;
+
+  const margemBruta = valorAnunciadoN - valorCompraN;
+  const margemMinima = valorMinimoN - valorCompraN;
+  const percentualFipe = valorFipeN
+    ? ((valorAnunciadoN / valorFipeN - 1) * 100).toFixed(1)
     : "0";
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/dashboard/estoque");
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/motos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Erro ao salvar");
+      router.push("/dashboard/estoque");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      setError(message);
+      setSaving(false);
+    }
   }
 
   return (
@@ -52,13 +153,28 @@ export default function NovoMotoPage() {
         title="Cadastrar Moto"
         description="Adicione uma nova moto ao estoque"
       >
-        <Button type="button" variant="outline">
+        <Button type="button" variant="outline" disabled={saving}>
           Cancelar
         </Button>
-        <Button type="submit">
-          <Save className="h-4 w-4" /> Salvar moto
+        <Button type="submit" disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" /> Salvar moto
+            </>
+          )}
         </Button>
       </PageHeader>
+
+      {error && (
+        <div className="mb-6 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-sm font-medium">{error}</span>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -79,7 +195,12 @@ export default function NovoMotoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="marca" required>Marca</Label>
-                <Select id="marca" required>
+                <Select
+                  id="marca"
+                  required
+                  value={form.marca}
+                  onChange={(e) => set("marca", e.target.value)}
+                >
                   <option value="">Selecione...</option>
                   <option>Honda</option>
                   <option>Yamaha</option>
@@ -97,15 +218,32 @@ export default function NovoMotoPage() {
               </div>
               <div>
                 <Label htmlFor="modelo" required>Modelo</Label>
-                <Input id="modelo" placeholder="Ex: CG 160 Titan" required />
+                <Input
+                  id="modelo"
+                  placeholder="Ex: CG 160 Titan"
+                  required
+                  value={form.modelo}
+                  onChange={(e) => set("modelo", e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="versao">Versão / Trim</Label>
-                <Input id="versao" placeholder="Ex: Start, ABS, Sport" />
+                <Input
+                  id="versao"
+                  placeholder="Ex: Start, ABS, Sport"
+                  value={form.versao}
+                  onChange={(e) => set("versao", e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="cor" required>Cor</Label>
-                <Input id="cor" placeholder="Ex: Vermelha" required />
+                <Input
+                  id="cor"
+                  placeholder="Ex: Vermelha"
+                  required
+                  value={form.cor}
+                  onChange={(e) => set("cor", e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="anoFab" required>Ano fabricação</Label>
@@ -116,6 +254,10 @@ export default function NovoMotoPage() {
                   max="2030"
                   placeholder="2024"
                   required
+                  value={form.anoFabricacao}
+                  onChange={(e) =>
+                    set("anoFabricacao", e.target.value ? Number(e.target.value) : "")
+                  }
                 />
               </div>
               <div>
@@ -127,6 +269,10 @@ export default function NovoMotoPage() {
                   max="2030"
                   placeholder="2025"
                   required
+                  value={form.anoModelo}
+                  onChange={(e) =>
+                    set("anoModelo", e.target.value ? Number(e.target.value) : "")
+                  }
                 />
               </div>
             </div>
@@ -154,6 +300,8 @@ export default function NovoMotoPage() {
                   placeholder="ABC-1D23"
                   className="font-mono uppercase"
                   maxLength={8}
+                  value={form.placa}
+                  onChange={(e) => set("placa", e.target.value.toUpperCase())}
                 />
               </div>
               <div>
@@ -163,6 +311,8 @@ export default function NovoMotoPage() {
                   placeholder="00000000000"
                   className="font-mono"
                   maxLength={11}
+                  value={form.renavam}
+                  onChange={(e) => set("renavam", e.target.value)}
                 />
               </div>
               <div>
@@ -172,11 +322,19 @@ export default function NovoMotoPage() {
                   placeholder="9C2KC2200PR000000"
                   className="font-mono uppercase"
                   maxLength={17}
+                  value={form.chassi}
+                  onChange={(e) => set("chassi", e.target.value.toUpperCase())}
                 />
               </div>
               <div>
                 <Label htmlFor="motor">Número do motor</Label>
-                <Input id="motor" placeholder="KC22E0000000" className="font-mono" />
+                <Input
+                  id="motor"
+                  placeholder="KC22E0000000"
+                  className="font-mono"
+                  value={form.numeroMotor}
+                  onChange={(e) => set("numeroMotor", e.target.value)}
+                />
               </div>
             </div>
           </Card>
@@ -203,11 +361,20 @@ export default function NovoMotoPage() {
                   type="number"
                   placeholder="160"
                   required
+                  value={form.cilindrada}
+                  onChange={(e) =>
+                    set("cilindrada", e.target.value ? Number(e.target.value) : "")
+                  }
                 />
               </div>
               <div>
                 <Label htmlFor="potencia">Potência</Label>
-                <Input id="potencia" placeholder="Ex: 14.7 cv" />
+                <Input
+                  id="potencia"
+                  placeholder="Ex: 14.7 cv"
+                  value={form.potencia}
+                  onChange={(e) => set("potencia", e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="km" required>Quilometragem</Label>
@@ -217,11 +384,22 @@ export default function NovoMotoPage() {
                   min="0"
                   placeholder="0"
                   required
+                  value={form.km}
+                  onChange={(e) =>
+                    set("km", e.target.value ? Number(e.target.value) : "")
+                  }
                 />
               </div>
               <div>
                 <Label htmlFor="combustivel" required>Combustível</Label>
-                <Select id="combustivel" required>
+                <Select
+                  id="combustivel"
+                  required
+                  value={form.combustivel}
+                  onChange={(e) =>
+                    set("combustivel", e.target.value as MotoForm["combustivel"])
+                  }
+                >
                   <option value="">Selecione...</option>
                   <option value="flex">Flex</option>
                   <option value="gasolina">Gasolina</option>
@@ -230,7 +408,14 @@ export default function NovoMotoPage() {
               </div>
               <div>
                 <Label htmlFor="cambio" required>Câmbio</Label>
-                <Select id="cambio" required>
+                <Select
+                  id="cambio"
+                  required
+                  value={form.cambio}
+                  onChange={(e) =>
+                    set("cambio", e.target.value as MotoForm["cambio"])
+                  }
+                >
                   <option value="">Selecione...</option>
                   <option value="manual">Manual</option>
                   <option value="automatico">Automático</option>
@@ -240,7 +425,13 @@ export default function NovoMotoPage() {
               </div>
               <div>
                 <Label htmlFor="partida">Partida</Label>
-                <Select id="partida">
+                <Select
+                  id="partida"
+                  value={form.partida}
+                  onChange={(e) =>
+                    set("partida", e.target.value as MotoForm["partida"])
+                  }
+                >
                   <option value="">Selecione...</option>
                   <option value="eletrica">Elétrica</option>
                   <option value="pedal">Pedal</option>
@@ -265,122 +456,48 @@ export default function NovoMotoPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <Label htmlFor="valorFipe" required>
-                  Valor FIPE
-                  <span className="text-xs text-keu-black/50 ml-1 font-normal">
-                    (referência)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    id="valorFipe"
-                    type="number"
-                    min="0"
-                    step="100"
-                    placeholder="0,00"
-                    className="pl-9"
-                    value={valorFipe || ""}
-                    onChange={(e) => setValorFipe(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="valorCompra" required>
-                  Valor de compra
-                  <span className="text-xs text-keu-black/50 ml-1 font-normal">
-                    (custo)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    id="valorCompra"
-                    type="number"
-                    min="0"
-                    step="100"
-                    placeholder="0,00"
-                    className="pl-9"
-                    value={valorCompra || ""}
-                    onChange={(e) => setValorCompra(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="valorAnunciado" required>
-                  Valor anunciado
-                  <span className="text-xs text-keu-red ml-1 font-normal">
-                    (público)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-red">
-                    R$
-                  </span>
-                  <Input
-                    id="valorAnunciado"
-                    type="number"
-                    min="0"
-                    step="100"
-                    placeholder="0,00"
-                    className="pl-9 border-keu-red/30 focus:border-keu-red"
-                    value={valorAnunciado || ""}
-                    onChange={(e) => setValorAnunciado(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="valorMinimo" required>
-                  Valor mínimo
-                  <span className="text-xs text-keu-black/50 ml-1 font-normal">
-                    (não vender abaixo)
-                  </span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    id="valorMinimo"
-                    type="number"
-                    min="0"
-                    step="100"
-                    placeholder="0,00"
-                    className="pl-9"
-                    value={valorMinimo || ""}
-                    onChange={(e) => setValorMinimo(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="comissao">Comissão do vendedor</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    id="comissao"
-                    type="number"
-                    min="0"
-                    step="50"
-                    placeholder="0,00"
-                    className="pl-9"
-                  />
-                </div>
-              </div>
+              <ValueInput
+                id="valorFipe"
+                label="Valor FIPE"
+                hint="(referência)"
+                required
+                value={form.valorFipe}
+                onChange={(v) => set("valorFipe", v)}
+              />
+              <ValueInput
+                id="valorCompra"
+                label="Valor de compra"
+                hint="(custo)"
+                required
+                value={form.valorCompra}
+                onChange={(v) => set("valorCompra", v)}
+              />
+              <ValueInput
+                id="valorAnunciado"
+                label="Valor anunciado"
+                hint="(público)"
+                required
+                highlight
+                value={form.valorAnunciado}
+                onChange={(v) => set("valorAnunciado", v)}
+              />
+              <ValueInput
+                id="valorMinimo"
+                label="Valor mínimo"
+                hint="(não vender abaixo)"
+                required
+                value={form.valorMinimo}
+                onChange={(v) => set("valorMinimo", v)}
+              />
+              <ValueInput
+                id="comissao"
+                label="Comissão do vendedor"
+                value={form.comissao}
+                onChange={(v) => set("comissao", v)}
+              />
             </div>
 
-            {/* PREVIEW DE MARGEM */}
-            {(valorCompra > 0 || valorAnunciado > 0) && (
+            {(valorCompraN > 0 || valorAnunciadoN > 0) && (
               <div className="bg-gradient-to-br from-keu-gray-light to-white border border-keu-black/5 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-keu-black/60 uppercase tracking-wider">
                   <Info className="h-3 w-3" /> Análise financeira
@@ -411,9 +528,7 @@ export default function NovoMotoPage() {
                     </div>
                   </div>
                   <div className="bg-white p-3 rounded-lg">
-                    <div className="text-xs text-keu-black/60 mb-1">
-                      vs FIPE
-                    </div>
+                    <div className="text-xs text-keu-black/60 mb-1">vs FIPE</div>
                     <div
                       className={`font-black ${
                         Number(percentualFipe) > 0
@@ -431,7 +546,7 @@ export default function NovoMotoPage() {
           </Card>
 
           {/* ALUGUEL */}
-          {(tipo === "aluguel" || tipo === "ambos") && (
+          {(form.tipo === "aluguel" || form.tipo === "ambos") && (
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-black/5">
                 <div className="bg-purple-500/10 text-purple-600 w-10 h-10 rounded-lg flex items-center justify-center">
@@ -446,42 +561,30 @@ export default function NovoMotoPage() {
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="diaria">Diária</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                      R$
-                    </span>
-                    <Input id="diaria" type="number" min="0" className="pl-9" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="semanal">Semanal</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                      R$
-                    </span>
-                    <Input id="semanal" type="number" min="0" className="pl-9" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="mensal">Mensal</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                      R$
-                    </span>
-                    <Input id="mensal" type="number" min="0" className="pl-9" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="caucao">Caução</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                      R$
-                    </span>
-                    <Input id="caucao" type="number" min="0" className="pl-9" />
-                  </div>
-                </div>
+                <ValueInput
+                  id="diaria"
+                  label="Diária"
+                  value={form.valorDiaria}
+                  onChange={(v) => set("valorDiaria", v)}
+                />
+                <ValueInput
+                  id="semanal"
+                  label="Semanal"
+                  value={form.valorSemanal}
+                  onChange={(v) => set("valorSemanal", v)}
+                />
+                <ValueInput
+                  id="mensal"
+                  label="Mensal"
+                  value={form.valorMensal}
+                  onChange={(v) => set("valorMensal", v)}
+                />
+                <ValueInput
+                  id="caucao"
+                  label="Caução"
+                  value={form.caucao}
+                  onChange={(v) => set("caucao", v)}
+                />
               </div>
             </Card>
           )}
@@ -507,6 +610,8 @@ export default function NovoMotoPage() {
                   id="descricao"
                   placeholder="Moto em ótimo estado, única dona, todas revisões em dia..."
                   rows={4}
+                  value={form.descricao}
+                  onChange={(e) => set("descricao", e.target.value)}
                 />
               </div>
               <div>
@@ -515,6 +620,8 @@ export default function NovoMotoPage() {
                   id="observacoes"
                   placeholder="Informações internas (não visíveis ao cliente)"
                   rows={3}
+                  value={form.observacoes}
+                  onChange={(e) => set("observacoes", e.target.value)}
                 />
               </div>
             </div>
@@ -523,7 +630,6 @@ export default function NovoMotoPage() {
 
         {/* SIDEBAR */}
         <div className="space-y-6">
-          {/* TIPO E STATUS */}
           <Card className="p-6">
             <h3 className="font-bold mb-4">Configuração</h3>
 
@@ -535,9 +641,9 @@ export default function NovoMotoPage() {
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setTipo(t)}
+                      onClick={() => set("tipo", t)}
                       className={`px-3 py-2 text-sm font-semibold rounded-lg border-2 capitalize transition ${
-                        tipo === t
+                        form.tipo === t
                           ? "border-keu-red bg-keu-red/5 text-keu-red"
                           : "border-keu-black/10 hover:border-keu-black/30 text-keu-black/60"
                       }`}
@@ -550,7 +656,13 @@ export default function NovoMotoPage() {
 
               <div>
                 <Label htmlFor="status" required>Status</Label>
-                <Select id="status" defaultValue="disponivel">
+                <Select
+                  id="status"
+                  value={form.status}
+                  onChange={(e) =>
+                    set("status", e.target.value as MotoForm["status"])
+                  }
+                >
                   <option value="disponivel">Disponível</option>
                   <option value="reservada">Reservada</option>
                   <option value="vendida">Vendida</option>
@@ -561,7 +673,13 @@ export default function NovoMotoPage() {
 
               <div>
                 <Label htmlFor="loja" required>Loja responsável</Label>
-                <Select id="loja" defaultValue="multimarcas">
+                <Select
+                  id="loja"
+                  value={form.loja}
+                  onChange={(e) =>
+                    set("loja", e.target.value as MotoForm["loja"])
+                  }
+                >
                   <option value="multimarcas">KEU Multimarcas</option>
                   <option value="loca">KEU Loca Motos</option>
                   <option value="pecas">KEU Moto Peças</option>
@@ -570,17 +688,20 @@ export default function NovoMotoPage() {
 
               <div>
                 <Label htmlFor="vendedor">Vendedor responsável</Label>
-                <Select id="vendedor">
-                  <option value="">Selecione...</option>
-                  <option>Marcos Vinícius Lima</option>
-                  <option>Patrícia Souza Oliveira</option>
-                </Select>
+                <Input
+                  id="vendedor"
+                  placeholder="Nome do vendedor"
+                  value={form.vendedorResponsavel}
+                  onChange={(e) => set("vendedorResponsavel", e.target.value)}
+                />
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium pt-2 cursor-pointer">
                 <input
                   type="checkbox"
                   className="rounded border-keu-black/20 text-keu-red focus:ring-keu-red"
+                  checked={form.destaque}
+                  onChange={(e) => set("destaque", e.target.checked)}
                 />
                 <span>Marcar como destaque</span>
                 <Badge variant="default" className="ml-auto">★</Badge>
@@ -588,40 +709,46 @@ export default function NovoMotoPage() {
             </div>
           </Card>
 
-          {/* FOTOS */}
+          {/* FOTOS COM COMPRESSÃO */}
           <Card className="p-6">
-            <h3 className="font-bold mb-4">Fotos da moto</h3>
-            <button
-              type="button"
-              className="w-full border-2 border-dashed border-keu-black/15 rounded-xl p-8 text-center hover:border-keu-red hover:bg-keu-red/5 transition cursor-pointer"
-            >
-              <ImageIcon className="h-8 w-8 text-keu-black/30 mx-auto mb-2" />
-              <div className="text-sm font-semibold mb-1">
-                Clique para adicionar fotos
-              </div>
-              <div className="text-xs text-keu-black/50">
-                JPG, PNG até 5MB cada
-              </div>
-            </button>
-            <p className="text-xs text-keu-black/60 mt-3">
-              Recomendamos pelo menos 4 fotos: frente, lateral, traseira e painel.
+            <h3 className="font-bold mb-1">Fotos da moto</h3>
+            <p className="text-xs text-keu-black/60 mb-4">
+              Imagens são comprimidas automaticamente antes de salvar (~200KB)
+            </p>
+            <ImageUpload
+              value={form.fotos}
+              onChange={(fotos) => set("fotos", fotos)}
+              max={8}
+              maxSizeKB={250}
+              maxWidth={1400}
+              quality={0.78}
+              hint="JPG, PNG, HEIC. Comprime automaticamente para WebP ~250KB"
+            />
+            <p className="text-xs text-keu-black/50 mt-3">
+              Recomendamos pelo menos 4 fotos: frente, lateral, traseira e
+              painel.
             </p>
           </Card>
 
-          {/* ORIGEM */}
           <Card className="p-6">
             <h3 className="font-bold mb-4">Origem</h3>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="fornecedor">Fornecedor / Antigo dono</Label>
-                <Input id="fornecedor" placeholder="Nome do fornecedor" />
+                <Input
+                  id="fornecedor"
+                  placeholder="Nome do fornecedor"
+                  value={form.fornecedor}
+                  onChange={(e) => set("fornecedor", e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="entrada">Data de entrada</Label>
                 <Input
                   id="entrada"
                   type="date"
-                  defaultValue={new Date().toISOString().slice(0, 10)}
+                  value={form.dataEntrada}
+                  onChange={(e) => set("dataEntrada", e.target.value)}
                 />
               </div>
             </div>
@@ -630,16 +757,80 @@ export default function NovoMotoPage() {
       </div>
 
       <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-keu-black/5">
-        <Button type="button" variant="outline">
+        <Button type="button" variant="outline" disabled={saving}>
           Cancelar
         </Button>
-        <Button type="button" variant="dark">
-          Salvar como rascunho
-        </Button>
-        <Button type="submit" size="lg">
-          <Save className="h-4 w-4" /> Cadastrar moto
+        <Button type="submit" size="lg" disabled={saving}>
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" /> Cadastrar moto
+            </>
+          )}
         </Button>
       </div>
     </form>
+  );
+}
+
+function ValueInput({
+  id,
+  label,
+  hint,
+  required,
+  highlight,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
+  highlight?: boolean;
+  value: number | "";
+  onChange: (v: number | "") => void;
+}) {
+  return (
+    <div>
+      <Label htmlFor={id} required={required}>
+        {label}
+        {hint && (
+          <span
+            className={`text-xs ml-1 font-normal ${
+              highlight ? "text-keu-red" : "text-keu-black/50"
+            }`}
+          >
+            {hint}
+          </span>
+        )}
+      </Label>
+      <div className="relative">
+        <span
+          className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm ${
+            highlight ? "text-keu-red" : "text-keu-black/40"
+          }`}
+        >
+          R$
+        </span>
+        <Input
+          id={id}
+          type="number"
+          min="0"
+          step="100"
+          placeholder="0,00"
+          className={`pl-9 ${
+            highlight ? "border-keu-red/30 focus:border-keu-red" : ""
+          }`}
+          required={required}
+          value={value}
+          onChange={(e) =>
+            onChange(e.target.value ? Number(e.target.value) : "")
+          }
+        />
+      </div>
+    </div>
   );
 }
