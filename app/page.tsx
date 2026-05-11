@@ -15,7 +15,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Instagram } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,6 +24,7 @@ import {
   KeuLocaMotos,
   KeuMultimarcas,
 } from "@/components/keu-logo";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   return (
@@ -40,7 +41,7 @@ export default function HomePage() {
 
           <nav className="hidden md:flex items-center gap-8">
             <a href="#unidades" className="text-sm font-medium hover:text-keu-red transition">
-              Setores
+              Unidades
             </a>
             <a href="#servicos" className="text-sm font-medium hover:text-keu-red transition">
               Serviços
@@ -54,15 +55,11 @@ export default function HomePage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                Entrar
-              </Button>
+            <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Entrar
             </Link>
-            <Link href="/register">
-              <Button size="sm" className="hidden sm:inline-flex">
-                Cadastre-se
-              </Button>
+            <Link href="/register" className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")}>
+              Cadastre-se
             </Link>
           </div>
         </div>
@@ -93,16 +90,13 @@ export default function HomePage() {
                 <span className="text-keu-red text-shadow-keu inline-block">KEU</span>
               </h1>
               <p className="text-lg md:text-xl text-keu-black/70 max-w-xl">
-                Uma loja com três setores pra realizar seu sonho sobre duas
-                rodas: compra, venda, troca, aluguel e peças. Tudo em um só
-                lugar.
+                Compra, venda, troca, aluguel e peças — tudo num só lugar
+                pra realizar seu sonho sobre duas rodas.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <Link href="/motos">
-                  <Button size="lg">
-                    Ver Motos Disponíveis
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+                <Link href="/motos" className={buttonVariants({ size: "lg" })}>
+                  Ver Motos Disponíveis
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a href="https://wa.me/5588998505859" target="_blank" rel="noopener">
                   <Button variant="dark" size="lg">
@@ -113,7 +107,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-wrap gap-8 pt-6 border-t border-keu-black/10">
-                <Stat number="3" label="Setores" />
+                <Stat number="3" label="Unidades" />
                 <Stat number="500+" label="Motos vendidas" />
                 <Stat number="10+" label="Anos no mercado" />
               </div>
@@ -145,12 +139,12 @@ export default function HomePage() {
       <section id="unidades" className="py-20 md:py-28 bg-keu-gray-light">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <Badge variant="outline">Nossos Setores</Badge>
+            <Badge variant="outline">Nossas Unidades</Badge>
             <h2 className="text-4xl md:text-5xl font-black mt-4 mb-4">
-              Uma loja, <span className="text-keu-red">três setores</span>
+              Tudo pra sua <span className="text-keu-red">moto</span>
             </h2>
             <p className="text-keu-black/60 text-lg max-w-2xl mx-auto">
-              Cada setor especializado para te atender melhor — venda,
+              Cada unidade especializada para te atender melhor — venda,
               aluguel e peças em um só endereço.
             </p>
           </div>
@@ -232,10 +226,8 @@ export default function HomePage() {
                 Selecionadas pelos nossos especialistas
               </p>
             </div>
-            <Link href="/motos">
-              <Button variant="outline">
-                Ver todas <ArrowRight className="h-4 w-4" />
-              </Button>
+            <Link href="/motos" className={buttonVariants({ variant: "outline" })}>
+              Ver todas <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -445,11 +437,11 @@ export default function HomePage() {
             <div>
               <KeuLogo size="md" />
               <p className="text-sm text-white/60 mt-4">
-                Uma loja, três setores. Compra, venda, troca, aluguel e peças.
+                Compra, venda, troca, aluguel e peças. Tudo num só lugar.
               </p>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Setores</h4>
+              <h4 className="font-bold mb-4">Unidades</h4>
               <ul className="space-y-2 text-sm text-white/60">
                 <li>KEU Moto Peças</li>
                 <li>KEU Loca Motos</li>

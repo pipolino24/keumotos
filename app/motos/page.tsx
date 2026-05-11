@@ -414,11 +414,11 @@ export default async function MotosPage({
             <div>
               <KeuLogo size="md" />
               <p className="text-sm text-white/60 mt-4">
-                Uma loja, três setores. Compra, venda, troca, aluguel e peças.
+                Compra, venda, troca, aluguel e peças. Tudo num só lugar.
               </p>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Setores</h4>
+              <h4 className="font-bold mb-4">Unidades</h4>
               <ul className="space-y-2 text-sm text-white/60">
                 <li>KEU Moto Peças</li>
                 <li>KEU Loca Motos</li>
