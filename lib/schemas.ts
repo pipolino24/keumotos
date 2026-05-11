@@ -153,9 +153,77 @@ export const roleCreateSchema = z.object({
   ativo: z.boolean().default(true),
 });
 
+export const vendaCreateSchema = z.object({
+  motoId: z.string().min(1, "Moto obrigatória"),
+  motoModelo: z.string().min(1),
+  motoMarca: z.string().optional(),
+  motoAno: z.number().int().optional(),
+  motoValorAnunciado: z.number().min(0).optional(),
+  motoValorMinimo: z.number().min(0).optional(),
+
+  clienteId: z.string().optional(),
+  clienteNome: z.string().min(1, "Cliente obrigatório"),
+  clienteTelefone: z.string().optional(),
+  clienteEmail: z.string().optional(),
+  clienteCpf: z.string().optional(),
+
+  vendedorId: z.string().min(1, "Vendedor obrigatório"),
+  vendedorNome: z.string().min(1),
+
+  valorVendido: z.number().min(0, "Valor inválido"),
+  formaPagamento: z.enum([
+    "a-vista",
+    "financiado",
+    "cartao",
+    "consorcio",
+    "troca",
+  ]),
+  parcelas: z.number().int().min(1).optional(),
+  comissao: z.number().min(0).default(0),
+
+  status: z.enum(["pendente", "concluida", "cancelada"]).optional(),
+  data: z.union([z.string(), z.date()]).optional(),
+  observacoes: z.string().optional(),
+});
+
+export const aluguelCreateSchema = z.object({
+  motoId: z.string().min(1, "Moto obrigatória"),
+  motoModelo: z.string().min(1),
+  motoMarca: z.string().optional(),
+  motoAno: z.number().int().optional(),
+
+  clienteId: z.string().optional(),
+  clienteNome: z.string().min(1, "Cliente obrigatório"),
+  clienteTelefone: z.string().optional(),
+  clienteEmail: z.string().optional(),
+  clienteCpf: z.string().optional(),
+
+  vendedorId: z.string().optional(),
+  vendedorNome: z.string().optional(),
+
+  dataInicio: z.union([z.string(), z.date()]),
+  dataFim: z.union([z.string(), z.date()]),
+
+  valorDiariaUsada: z.number().min(0).optional(),
+  valorSemanalUsada: z.number().min(0).optional(),
+  valorMensalUsada: z.number().min(0).optional(),
+  modalidadeAplicada: z.enum(["diaria", "semanal", "mensal"]).optional(),
+  diasContratados: z.number().int().min(1),
+  valorTotal: z.number().min(0),
+  caucao: z.number().min(0).default(0),
+
+  km_inicial: z.number().min(0),
+  km_final: z.number().min(0).optional(),
+
+  status: z.enum(["ativo", "concluido", "atrasado", "cancelado"]).optional(),
+  observacoes: z.string().optional(),
+});
+
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type MotoCreateInput = z.infer<typeof motoCreateSchema>;
 export type ProprietarioCreateInput = z.infer<typeof proprietarioCreateSchema>;
 export type AfiliadoCreateInput = z.infer<typeof afiliadoCreateSchema>;
 export type ContatoCreateInput = z.infer<typeof contatoCreateSchema>;
 export type RoleCreateInput = z.infer<typeof roleCreateSchema>;
+export type VendaCreateInput = z.infer<typeof vendaCreateSchema>;
+export type AluguelCreateInput = z.infer<typeof aluguelCreateSchema>;

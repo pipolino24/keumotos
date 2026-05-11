@@ -1,0 +1,93 @@
+import mongoose, { Schema, Model } from "mongoose";
+
+export interface IAluguelDoc {
+  motoId: mongoose.Types.ObjectId;
+  motoModelo: string;
+  motoMarca?: string;
+  motoAno?: number;
+
+  clienteId?: mongoose.Types.ObjectId;
+  clienteNome: string;
+  clienteTelefone?: string;
+  clienteEmail?: string;
+  clienteCpf?: string;
+
+  vendedorId?: string;
+  vendedorNome?: string;
+
+  dataInicio: Date;
+  dataFim: Date;
+  dataDevolucao?: Date;
+
+  valorDiariaUsada?: number;
+  valorSemanalUsada?: number;
+  valorMensalUsada?: number;
+  modalidadeAplicada?: "diaria" | "semanal" | "mensal";
+  diasContratados: number;
+  valorTotal: number;
+  caucao: number;
+
+  km_inicial: number;
+  km_final?: number;
+
+  status: "ativo" | "concluido" | "atrasado" | "cancelado";
+  observacoes?: string;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const AluguelSchema = new Schema<IAluguelDoc>(
+  {
+    motoId: {
+      type: Schema.Types.ObjectId,
+      ref: "Moto",
+      required: true,
+      index: true,
+    },
+    motoModelo: { type: String, required: true },
+    motoMarca: String,
+    motoAno: Number,
+
+    clienteId: { type: Schema.Types.ObjectId, ref: "User" },
+    clienteNome: { type: String, required: true },
+    clienteTelefone: String,
+    clienteEmail: String,
+    clienteCpf: String,
+
+    vendedorId: String,
+    vendedorNome: String,
+
+    dataInicio: { type: Date, required: true, index: true },
+    dataFim: { type: Date, required: true },
+    dataDevolucao: Date,
+
+    valorDiariaUsada: Number,
+    valorSemanalUsada: Number,
+    valorMensalUsada: Number,
+    modalidadeAplicada: {
+      type: String,
+      enum: ["diaria", "semanal", "mensal"],
+    },
+    diasContratados: { type: Number, required: true, min: 1 },
+    valorTotal: { type: Number, required: true, min: 0 },
+    caucao: { type: Number, required: true, min: 0, default: 0 },
+
+    km_inicial: { type: Number, required: true, min: 0 },
+    km_final: { type: Number, min: 0 },
+
+    status: {
+      type: String,
+      enum: ["ativo", "concluido", "atrasado", "cancelado"],
+      required: true,
+      default: "ativo",
+      index: true,
+    },
+    observacoes: String,
+  },
+  { timestamps: true }
+);
+
+export const Aluguel: Model<IAluguelDoc> =
+  mongoose.models.Aluguel ||
+  mongoose.model<IAluguelDoc>("Aluguel", AluguelSchema);
