@@ -10,6 +10,7 @@ import {
   Download,
   Bike,
   ArrowRight,
+  Lock,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,25 +19,40 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { mockVendas, mockMotos } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { getCurrentUser, canSeeFinancialData } from "@/lib/current-user";
 
 export default function VendasPage() {
+  const me = getCurrentUser();
+  const verTudo = canSeeFinancialData(me);
+
+  // Vendedor vê só as próprias vendas. Admin vê todas.
+  const vendasVisiveis = verTudo
+    ? mockVendas
+    : mockVendas.filter((v) => v.vendedorId === me.id);
+
   const motosVenda = mockMotos.filter(
     (m) => m.tipo === "venda" || m.tipo === "ambos"
   );
-  const totalVendas = mockVendas.length;
-  const totalFaturado = mockVendas
+  const totalVendas = vendasVisiveis.length;
+  const totalFaturado = vendasVisiveis
     .filter((v) => v.status === "concluida")
     .reduce((acc, v) => acc + v.valorVendido, 0);
-  const totalComissao = mockVendas
+  const totalComissao = vendasVisiveis
     .filter((v) => v.status === "concluida")
     .reduce((acc, v) => acc + v.comissao, 0);
-  const vendasPendentes = mockVendas.filter((v) => v.status === "pendente").length;
+  const vendasPendentes = vendasVisiveis.filter(
+    (v) => v.status === "pendente"
+  ).length;
 
   return (
     <div>
       <PageHeader
-        title="Venda de Motos"
-        description="Catálogo, propostas e histórico de vendas"
+        title={verTudo ? "Vendas — Todas" : "Minhas Vendas"}
+        description={
+          verTudo
+            ? "Catálogo, histórico completo e indicadores agregados"
+            : "Suas próprias vendas e comissões"
+        }
       >
         <Button variant="outline" size="default">
           <Download className="h-4 w-4" /> Exportar
@@ -48,23 +64,42 @@ export default function VendasPage() {
         </Link>
       </PageHeader>
 
+      {!verTudo && (
+        <Card className="mb-6 p-4 bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-2 text-sm text-blue-900">
+            <Lock className="h-4 w-4 flex-shrink-0" />
+            <span>
+              <strong>Visão pessoal:</strong> esta tela mostra apenas suas
+              vendas. O faturamento total da operação fica em{" "}
+              <Link
+                href="/dashboard/administracao"
+                className="font-semibold underline"
+              >
+                Administração
+              </Link>
+              .
+            </span>
+          </div>
+        </Card>
+      )}
+
       {/* STATS */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatBox
           icon={<DollarSign />}
-          label="Faturamento mês"
+          label={verTudo ? "Faturamento mês" : "Minhas vendas (R$)"}
           value={formatCurrency(totalFaturado)}
           color="from-emerald-500 to-emerald-600"
         />
         <StatBox
           icon={<ShoppingCart />}
-          label="Vendas realizadas"
+          label={verTudo ? "Vendas realizadas" : "Minhas vendas"}
           value={totalVendas.toString()}
           color="from-keu-red to-keu-red-dark"
         />
         <StatBox
           icon={<TrendingUp />}
-          label="Comissões pagas"
+          label={verTudo ? "Comissões pagas" : "Minha comissão"}
           value={formatCurrency(totalComissao)}
           color="from-blue-500 to-blue-600"
         />
@@ -192,7 +227,7 @@ export default function VendasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-keu-black/5">
-              {mockVendas.map((v) => (
+              {vendasVisiveis.map((v) => (
                 <tr key={v.id} className="hover:bg-keu-gray-light transition">
                   <td className="p-4 font-semibold">{v.motoModelo}</td>
                   <td className="p-4">{v.clienteNome}</td>

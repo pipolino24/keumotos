@@ -6,11 +6,9 @@ import {
   Filter,
   Download,
   Bike,
-  AlertTriangle,
-  TrendingUp,
   Edit,
   Eye,
-  DollarSign,
+  Lock,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,22 +17,20 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { mockMotos } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { canSeeFinancialData } from "@/lib/current-user";
 
 export default function EstoquePage() {
+  const verFinanceiro = canSeeFinancialData();
   const total = mockMotos.length;
   const disponiveis = mockMotos.filter((m) => m.status === "disponivel").length;
-  const valorEstoque = mockMotos.reduce((acc, m) => acc + m.valorCompra, 0);
-  const valorPotencial = mockMotos.reduce(
-    (acc, m) => acc + m.valorAnunciado,
-    0
-  );
-  const margemPotencial = valorPotencial - valorEstoque;
+  const reservadas = mockMotos.filter((m) => m.status === "reservada").length;
+  const alugadas = mockMotos.filter((m) => m.status === "alugada").length;
 
   return (
     <div>
       <PageHeader
         title="Estoque"
-        description="Controle completo do inventário de motos"
+        description="Catálogo de motos disponíveis"
       >
         <Button variant="outline">
           <Download className="h-4 w-4" /> Exportar
@@ -46,7 +42,7 @@ export default function EstoquePage() {
         </Link>
       </PageHeader>
 
-      {/* STATS */}
+      {/* STATS — sem dados financeiros para vendedor */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-3">
@@ -59,64 +55,75 @@ export default function EstoquePage() {
           </div>
           <div className="text-3xl font-black">{total}</div>
           <div className="text-xs text-keu-black/60 mt-1">
-            {disponiveis} disponíveis para venda
+            motos cadastradas
           </div>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-emerald-500/10 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
-              <DollarSign className="h-5 w-5" />
+              <Bike className="h-5 w-5" />
             </div>
             <span className="text-sm font-medium text-keu-black/60">
-              Valor investido
+              Disponíveis
             </span>
           </div>
-          <div className="text-3xl font-black">{formatCurrency(valorEstoque)}</div>
-          <div className="text-xs text-keu-black/60 mt-1">
-            Custo total das motos
+          <div className="text-3xl font-black text-emerald-600">{disponiveis}</div>
+          <div className="text-xs text-keu-black/60 mt-1">prontas para venda</div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="bg-amber-500/10 text-amber-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <Bike className="h-5 w-5" />
+            </div>
+            <span className="text-sm font-medium text-keu-black/60">
+              Reservadas
+            </span>
           </div>
+          <div className="text-3xl font-black text-amber-600">{reservadas}</div>
+          <div className="text-xs text-keu-black/60 mt-1">aguardando fechamento</div>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="bg-blue-500/10 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-5 w-5" />
+              <Bike className="h-5 w-5" />
             </div>
             <span className="text-sm font-medium text-keu-black/60">
-              Receita potencial
+              Alugadas
             </span>
           </div>
-          <div className="text-3xl font-black">{formatCurrency(valorPotencial)}</div>
-          <div className="text-xs text-keu-black/60 mt-1">
-            Se tudo vender pelo anunciado
-          </div>
-        </Card>
-
-        <Card className="p-6 bg-gradient-to-br from-keu-black to-keu-gray text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <span className="text-sm font-medium text-white/70">
-              Margem bruta
-            </span>
-          </div>
-          <div className="text-3xl font-black text-keu-red">
-            {formatCurrency(margemPotencial)}
-          </div>
-          <div className="text-xs text-white/60 mt-1">
-            Lucro potencial estimado
-          </div>
+          <div className="text-3xl font-black text-blue-600">{alugadas}</div>
+          <div className="text-xs text-keu-black/60 mt-1">em locação</div>
         </Card>
       </div>
+
+      {!verFinanceiro && (
+        <Card className="mb-6 p-4 bg-amber-50 border-amber-200">
+          <div className="flex items-center gap-2 text-sm text-amber-900">
+            <Lock className="h-4 w-4 flex-shrink-0" />
+            <span>
+              <strong>Visão do vendedor:</strong> custos de compra, margem e
+              receita potencial estão visíveis apenas em{" "}
+              <Link
+                href="/dashboard/administracao"
+                className="font-semibold underline"
+              >
+                Administração
+              </Link>
+              .
+            </span>
+          </div>
+        </Card>
+      )}
 
       {/* TABELA */}
       <Card>
         <div className="p-6 border-b border-keu-black/5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-bold text-lg">Catálogo completo</h2>
+              <h2 className="font-bold text-lg">Catálogo</h2>
               <p className="text-sm text-keu-black/60">
                 {total} motos cadastradas no sistema
               </p>
@@ -138,10 +145,8 @@ export default function EstoquePage() {
             <Badge variant="default">Todas</Badge>
             <Badge variant="outline">Venda</Badge>
             <Badge variant="outline">Aluguel</Badge>
-            <Badge variant="outline">Ambos</Badge>
             <Badge variant="outline">Disponíveis</Badge>
             <Badge variant="outline">Reservadas</Badge>
-            <Badge variant="outline">Vendidas</Badge>
             <Badge variant="outline">Manutenção</Badge>
           </div>
         </div>
@@ -154,9 +159,21 @@ export default function EstoquePage() {
                 <th className="text-left p-4">Documentação</th>
                 <th className="text-left p-4">Técnico</th>
                 <th className="text-right p-4">FIPE</th>
-                <th className="text-right p-4">Compra</th>
+                {verFinanceiro && (
+                  <th className="text-right p-4 bg-keu-red/5">
+                    <span className="flex items-center gap-1 justify-end">
+                      <Lock className="h-3 w-3" /> Compra
+                    </span>
+                  </th>
+                )}
                 <th className="text-right p-4">Anunciado</th>
-                <th className="text-right p-4">Mínimo</th>
+                {verFinanceiro && (
+                  <th className="text-right p-4 bg-keu-red/5">
+                    <span className="flex items-center gap-1 justify-end">
+                      <Lock className="h-3 w-3" /> Mínimo
+                    </span>
+                  </th>
+                )}
                 <th className="text-left p-4">Tipo</th>
                 <th className="text-left p-4">Status</th>
                 <th className="text-left p-4">Entrada</th>
@@ -179,43 +196,55 @@ export default function EstoquePage() {
                           {m.modelo} {m.versao}
                         </div>
                         <div className="text-xs text-keu-black/60">
-                          {m.anoFabricacao}/{m.anoModelo} • {m.cor}
+                          {m.anoFabricacao}/{m.anoModelo} · {m.cor}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="p-4 text-xs">
-                    {m.placa && <div className="font-mono font-bold">{m.placa}</div>}
+                    {m.placa && (
+                      <div className="font-mono font-bold">{m.placa}</div>
+                    )}
                     {m.chassi && (
                       <div className="text-keu-black/60 font-mono">
                         {m.chassi.slice(0, 10)}...
                       </div>
                     )}
                     {m.renavam && (
-                      <div className="text-keu-black/60">RV: {m.renavam.slice(0, 8)}...</div>
+                      <div className="text-keu-black/60">
+                        RV: {m.renavam.slice(0, 8)}...
+                      </div>
                     )}
                   </td>
                   <td className="p-4 text-xs">
-                    <div>{m.cilindrada}cc · {m.cambio}</div>
+                    <div>
+                      {m.cilindrada}cc · {m.cambio}
+                    </div>
                     <div className="text-keu-black/60">
                       {m.km.toLocaleString("pt-BR")} km
                     </div>
-                    <div className="text-keu-black/60 capitalize">{m.combustivel}</div>
+                    <div className="text-keu-black/60 capitalize">
+                      {m.combustivel}
+                    </div>
                   </td>
                   <td className="p-4 text-right text-sm">
                     {formatCurrency(m.valorFipe)}
                   </td>
-                  <td className="p-4 text-right text-sm text-keu-black/60">
-                    {formatCurrency(m.valorCompra)}
-                  </td>
+                  {verFinanceiro && (
+                    <td className="p-4 text-right text-sm text-keu-black/60 bg-keu-red/5">
+                      {formatCurrency(m.valorCompra)}
+                    </td>
+                  )}
                   <td className="p-4 text-right">
                     <div className="font-black text-keu-red">
                       {formatCurrency(m.valorAnunciado)}
                     </div>
                   </td>
-                  <td className="p-4 text-right text-xs text-keu-black/50">
-                    {formatCurrency(m.valorMinimo)}
-                  </td>
+                  {verFinanceiro && (
+                    <td className="p-4 text-right text-xs text-keu-black/50 bg-keu-red/5">
+                      {formatCurrency(m.valorMinimo)}
+                    </td>
+                  )}
                   <td className="p-4">
                     <TipoBadge tipo={m.tipo} />
                   </td>

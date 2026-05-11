@@ -13,22 +13,31 @@ import {
   Settings,
   Bike,
   Handshake,
+  Shield,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
+import { getCurrentUser, isAdmin } from "@/lib/current-user";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Visão Geral" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
   { href: "/dashboard/vendas", icon: ShoppingCart, label: "Vendas" },
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
   { href: "/dashboard/contatos", icon: Phone, label: "Contatos" },
+];
+
+const adminNavItems = [
+  { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const user = getCurrentUser();
+  const userIsAdmin = isAdmin(user);
 
   return (
     <aside className="hidden lg:flex w-64 bg-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
@@ -65,6 +74,38 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Seção admin — só renderiza para admins */}
+        {userIsAdmin && (
+          <>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 px-3 mb-2 mt-6">
+              <Shield className="h-3 w-3" />
+              Restrito Admin
+            </div>
+            {adminNavItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-amber-500 text-white shadow-lg"
+                      : "text-amber-300/80 hover:bg-amber-500/10 hover:text-amber-200"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  {isActive && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-white/10 space-y-1">
@@ -82,14 +123,29 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <div className="p-4 bg-keu-red/10 border-t border-keu-red/20 m-4 rounded-xl">
+      <div
+        className={cn(
+          "p-4 border-t m-4 rounded-xl",
+          userIsAdmin
+            ? "bg-amber-500/10 border-amber-500/30"
+            : "bg-keu-red/10 border-keu-red/20"
+        )}
+      >
         <div className="flex items-center gap-3">
-          <div className="bg-keu-red w-10 h-10 rounded-full flex items-center justify-center font-bold">
-            M
+          <div
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold",
+              userIsAdmin ? "bg-amber-500" : "bg-keu-red"
+            )}
+          >
+            {user.nome.charAt(0)}
           </div>
-          <div className="text-xs">
-            <div className="font-semibold">Marcos V. Lima</div>
-            <div className="text-white/50">Vendedor</div>
+          <div className="text-xs flex-1 min-w-0">
+            <div className="font-semibold truncate">{user.nome}</div>
+            <div className="text-white/50 capitalize flex items-center gap-1">
+              {userIsAdmin && <Crown className="h-3 w-3" />}
+              {user.role}
+            </div>
           </div>
         </div>
       </div>
