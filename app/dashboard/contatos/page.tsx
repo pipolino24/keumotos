@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   Phone,
   Mail,
@@ -11,6 +14,7 @@ import {
   XCircle,
   Globe,
   Users as UsersIcon,
+  Loader2,
 } from "lucide-react";
 import { Instagram } from "@/components/icons";
 import { Card } from "@/components/ui/card";
@@ -18,16 +22,43 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { mockContatos } from "@/lib/mock-data";
 import { formatDate } from "@/lib/utils";
+import { useApi } from "@/lib/hooks/use-api";
+
+interface ContatoApi {
+  _id: string;
+  nome: string;
+  telefone: string;
+  email?: string;
+  origem: string;
+  interesse: string;
+  motoInteresse?: string;
+  observacoes?: string;
+  status: string;
+  vendedorResponsavel?: string;
+  createdAt: string;
+}
 
 export default function ContatosPage() {
-  const totalContatos = mockContatos.length;
-  const novosLeads = mockContatos.filter((c) => c.status === "novo").length;
-  const emAtendimento = mockContatos.filter(
+  const [search, setSearch] = useState("");
+  const [filtroOrigem, setFiltroOrigem] = useState("");
+
+  const params = new URLSearchParams();
+  if (filtroOrigem) params.set("origem", filtroOrigem);
+  if (search) params.set("q", search);
+  const url = `/api/contatos${params.toString() ? `?${params}` : ""}`;
+  const { data, loading, error } = useApi<{ contatos: ContatoApi[] }>(url, [
+    filtroOrigem,
+    search,
+  ]);
+
+  const contatos = data?.contatos ?? [];
+  const totalContatos = contatos.length;
+  const novosLeads = contatos.filter((c) => c.status === "novo").length;
+  const emAtendimento = contatos.filter(
     (c) => c.status === "em-atendimento"
   ).length;
-  const convertidos = mockContatos.filter(
+  const convertidos = contatos.filter(
     (c) => c.status === "convertido"
   ).length;
   const taxaConversao = totalContatos
@@ -80,31 +111,31 @@ export default function ContatosPage() {
       <div className="grid lg:grid-cols-4 gap-4 mb-8">
         <PipelineCol
           title="Novos"
-          count={mockContatos.filter((c) => c.status === "novo").length}
+          count={contatos.filter((c) => c.status === "novo").length}
           color="border-blue-500 bg-blue-50/50"
           dotColor="bg-blue-500"
-          contatos={mockContatos.filter((c) => c.status === "novo")}
+          contatos={contatos.filter((c) => c.status === "novo")}
         />
         <PipelineCol
           title="Em atendimento"
-          count={mockContatos.filter((c) => c.status === "em-atendimento").length}
+          count={contatos.filter((c) => c.status === "em-atendimento").length}
           color="border-amber-500 bg-amber-50/50"
           dotColor="bg-amber-500"
-          contatos={mockContatos.filter((c) => c.status === "em-atendimento")}
+          contatos={contatos.filter((c) => c.status === "em-atendimento")}
         />
         <PipelineCol
           title="Convertidos"
-          count={mockContatos.filter((c) => c.status === "convertido").length}
+          count={contatos.filter((c) => c.status === "convertido").length}
           color="border-emerald-500 bg-emerald-50/50"
           dotColor="bg-emerald-500"
-          contatos={mockContatos.filter((c) => c.status === "convertido")}
+          contatos={contatos.filter((c) => c.status === "convertido")}
         />
         <PipelineCol
           title="Perdidos"
-          count={mockContatos.filter((c) => c.status === "perdido").length}
+          count={contatos.filter((c) => c.status === "perdido").length}
           color="border-red-300 bg-red-50/50"
           dotColor="bg-red-300"
-          contatos={mockContatos.filter((c) => c.status === "perdido")}
+          contatos={contatos.filter((c) => c.status === "perdido")}
         />
       </div>
 
@@ -115,7 +146,7 @@ export default function ContatosPage() {
             <div>
               <h2 className="font-bold text-lg">Todos os contatos</h2>
               <p className="text-sm text-keu-black/60">
-                {totalContatos} contatos registrados
+                {loading ? "Carregando..." : `${totalContatos} contatos registrados`}
               </p>
             </div>
             <div className="flex gap-2">
@@ -124,6 +155,8 @@ export default function ContatosPage() {
                 <Input
                   placeholder="Nome, telefone ou email..."
                   className="pl-9 w-64"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <Button variant="outline">
@@ -132,98 +165,141 @@ export default function ContatosPage() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Badge variant="default">Todas as origens</Badge>
-            <Badge variant="outline">
-              <Globe className="h-3 w-3" /> Site
-            </Badge>
-            <Badge variant="outline">
-              <Instagram className="h-3 w-3" /> Instagram
-            </Badge>
-            <Badge variant="outline">
-              <MessageCircle className="h-3 w-3" /> WhatsApp
-            </Badge>
-            <Badge variant="outline">Presencial</Badge>
-            <Badge variant="outline">Indicação</Badge>
+            <OrigemPill
+              label="Todas as origens"
+              active={!filtroOrigem}
+              onClick={() => setFiltroOrigem("")}
+            />
+            <OrigemPill
+              label="Site"
+              icon={<Globe className="h-3 w-3" />}
+              active={filtroOrigem === "site"}
+              onClick={() => setFiltroOrigem("site")}
+            />
+            <OrigemPill
+              label="Instagram"
+              icon={<Instagram className="h-3 w-3" />}
+              active={filtroOrigem === "instagram"}
+              onClick={() => setFiltroOrigem("instagram")}
+            />
+            <OrigemPill
+              label="WhatsApp"
+              icon={<MessageCircle className="h-3 w-3" />}
+              active={filtroOrigem === "whatsapp"}
+              onClick={() => setFiltroOrigem("whatsapp")}
+            />
+            <OrigemPill
+              label="Presencial"
+              active={filtroOrigem === "presencial"}
+              onClick={() => setFiltroOrigem("presencial")}
+            />
+            <OrigemPill
+              label="Indicação"
+              active={filtroOrigem === "indicacao"}
+              onClick={() => setFiltroOrigem("indicacao")}
+            />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
-              <tr>
-                <th className="text-left p-4">Contato</th>
-                <th className="text-left p-4">Origem</th>
-                <th className="text-left p-4">Interesse</th>
-                <th className="text-left p-4">Moto / Observação</th>
-                <th className="text-left p-4">Vendedor</th>
-                <th className="text-left p-4">Status</th>
-                <th className="text-left p-4">Cadastrado</th>
-                <th className="text-right p-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-keu-black/5">
-              {mockContatos.map((c) => (
-                <tr key={c.id} className="hover:bg-keu-gray-light transition">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-keu-red text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm">
-                        {c.nome.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{c.nome}</div>
-                        <div className="text-xs text-keu-black/60 flex items-center gap-2">
-                          <Phone className="h-3 w-3" /> {c.telefone}
-                        </div>
-                        {c.email && (
-                          <div className="text-xs text-keu-black/60 flex items-center gap-2">
-                            <Mail className="h-3 w-3" /> {c.email}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <OrigemBadge origem={c.origem} />
-                  </td>
-                  <td className="p-4">
-                    <InteresseBadge interesse={c.interesse} />
-                  </td>
-                  <td className="p-4 max-w-xs">
-                    {c.motoInteresse && (
-                      <div className="text-sm font-medium">{c.motoInteresse}</div>
-                    )}
-                    {c.observacoes && (
-                      <div className="text-xs text-keu-black/60 truncate">
-                        {c.observacoes}
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-4 text-sm">
-                    {c.vendedorResponsavel ?? (
-                      <span className="text-keu-black/40">—</span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    <StatusBadge status={c.status} />
-                  </td>
-                  <td className="p-4 text-xs text-keu-black/60">
-                    {formatDate(c.criadoEm)}
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="p-16 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
+            <div className="text-sm text-keu-black/60">Carregando contatos...</div>
+          </div>
+        ) : error ? (
+          <div className="p-16 text-center text-red-600 text-sm">{error}</div>
+        ) : contatos.length === 0 ? (
+          <div className="p-16 text-center">
+            <UsersIcon className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
+            <h3 className="font-bold mb-1">Nenhum contato encontrado</h3>
+            <p className="text-sm text-keu-black/60 mb-4">
+              {search || filtroOrigem
+                ? "Tente outro filtro."
+                : "Comece cadastrando o primeiro contato."}
+            </p>
+            <Button>
+              <UserPlus className="h-4 w-4" /> Novo contato
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
+                <tr>
+                  <th className="text-left p-4">Contato</th>
+                  <th className="text-left p-4">Origem</th>
+                  <th className="text-left p-4">Interesse</th>
+                  <th className="text-left p-4">Moto / Observação</th>
+                  <th className="text-left p-4">Vendedor</th>
+                  <th className="text-left p-4">Status</th>
+                  <th className="text-left p-4">Cadastrado</th>
+                  <th className="text-right p-4">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-keu-black/5">
+                {contatos.map((c) => (
+                  <tr key={c._id} className="hover:bg-keu-gray-light transition">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-keu-red text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm">
+                          {c.nome.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-semibold">{c.nome}</div>
+                          <div className="text-xs text-keu-black/60 flex items-center gap-2">
+                            <Phone className="h-3 w-3" /> {c.telefone}
+                          </div>
+                          {c.email && (
+                            <div className="text-xs text-keu-black/60 flex items-center gap-2">
+                              <Mail className="h-3 w-3" /> {c.email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <OrigemBadge origem={c.origem} />
+                    </td>
+                    <td className="p-4">
+                      <InteresseBadge interesse={c.interesse} />
+                    </td>
+                    <td className="p-4 max-w-xs">
+                      {c.motoInteresse && (
+                        <div className="text-sm font-medium">{c.motoInteresse}</div>
+                      )}
+                      {c.observacoes && (
+                        <div className="text-xs text-keu-black/60 truncate">
+                          {c.observacoes}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4 text-sm">
+                      {c.vendedorResponsavel ?? (
+                        <span className="text-keu-black/40">—</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td className="p-4 text-xs text-keu-black/60">
+                      {formatDate(c.createdAt)}
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon">
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                          <Phone className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -262,7 +338,7 @@ function PipelineCol({
   count: number;
   color: string;
   dotColor: string;
-  contatos: typeof mockContatos;
+  contatos: ContatoApi[];
 }) {
   return (
     <Card className={`border-t-4 ${color} p-4`}>
@@ -283,7 +359,7 @@ function PipelineCol({
         ) : (
           contatos.map((c) => (
             <div
-              key={c.id}
+              key={c._id}
               className="bg-white p-3 rounded-lg border border-keu-black/5 hover:border-keu-red/20 transition cursor-pointer"
             >
               <div className="font-semibold text-sm truncate">{c.nome}</div>
@@ -295,6 +371,33 @@ function PipelineCol({
         )}
       </div>
     </Card>
+  );
+}
+
+function OrigemPill({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1 rounded-full text-xs font-semibold transition inline-flex items-center gap-1 ${
+        active
+          ? "bg-keu-red text-white"
+          : "border border-keu-black/20 text-keu-black hover:bg-keu-gray-light"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 

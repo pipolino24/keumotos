@@ -1,11 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import {
   Shield,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   Crown,
-  Bike,
   AlertTriangle,
   Trophy,
   Target,
@@ -14,23 +14,87 @@ import {
   Receipt,
   PiggyBank,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
-import {
-  mockMotos,
-  mockVendas,
-  mockAlugueis,
-  mockUsers,
-  mockContatos,
-} from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/utils";
+import { useApi } from "@/lib/hooks/use-api";
+
+interface MotoApi {
+  _id: string;
+  status: string;
+  km: number;
+  valorCompra: number;
+  valorAnunciado: number;
+  origem: string;
+  setor?: "multimarcas" | "loca" | "pecas";
+  compra?: { valorPago?: number };
+  repasse?: { valorCombinadoDono?: number };
+}
+
+interface UserApi {
+  _id: string;
+  nome: string;
+  email: string;
+  role: string;
+  vendasRealizadas?: number;
+  comissaoTotal?: number;
+}
+
+interface ContatoApi {
+  _id: string;
+  status: string;
+}
+
+// TODO: endpoints /api/vendas e /api/alugueis ainda não existem — usar arrays vazios por enquanto.
+interface VendaApi {
+  _id: string;
+  status: string;
+  valorVendido: number;
+  comissao: number;
+  motoModelo: string;
+  vendedorNome: string;
+  formaPagamento: string;
+  parcelas?: number;
+}
+interface AluguelApi {
+  _id: string;
+  valorTotal: number;
+}
 
 export default function AdministracaoPage() {
+  const {
+    data: motosData,
+    loading: loadingMotos,
+    error: errorMotos,
+  } = useApi<{ motos: MotoApi[] }>("/api/motos");
+  const {
+    data: usersData,
+    loading: loadingUsers,
+    error: errorUsers,
+  } = useApi<{ users: UserApi[] }>("/api/users?role=vendedor");
+  const {
+    data: contatosData,
+    loading: loadingContatos,
+    error: errorContatos,
+  } = useApi<{ contatos: ContatoApi[] }>("/api/contatos");
+
+  const loading = loadingMotos || loadingUsers || loadingContatos;
+  const error = errorMotos || errorUsers || errorContatos;
+
+  const motos: MotoApi[] = motosData?.motos ?? [];
+  const vendedores: UserApi[] = usersData?.users ?? [];
+  const contatos: ContatoApi[] = contatosData?.contatos ?? [];
+
+  // TODO: endpoints /api/vendas e /api/alugueis ainda não existem.
+  const vendas: VendaApi[] = [];
+  const alugueis: AluguelApi[] = [];
+
   // FATURAMENTO
-  const vendasConcluidas = mockVendas.filter((v) => v.status === "concluida");
+  const vendasConcluidas = vendas.filter((v) => v.status === "concluida");
   const faturamentoTotal = vendasConcluidas.reduce(
     (s, v) => s + v.valorVendido,
     0
@@ -45,10 +109,10 @@ export default function AdministracaoPage() {
   );
 
   // ESTOQUE
-  const investidoEstoque = mockMotos
+  const investidoEstoque = motos
     .filter((m) => m.status !== "vendida")
     .reduce((s, m) => s + m.valorCompra, 0);
-  const receitaPotencial = mockMotos
+  const receitaPotencial = motos
     .filter((m) => m.status !== "vendida")
     .reduce((s, m) => s + m.valorAnunciado, 0);
   const margemPotencial = receitaPotencial - investidoEstoque;
@@ -58,28 +122,27 @@ export default function AdministracaoPage() {
       : "0";
 
   // ALUGUEL
-  const receitaAluguel = mockAlugueis.reduce((s, a) => s + a.valorTotal, 0);
+  const receitaAluguel = alugueis.reduce((s, a) => s + a.valorTotal, 0);
 
   // RESULTADO LÍQUIDO
   const resultadoBruto = faturamentoTotal + receitaAluguel;
   const resultadoLiquido = resultadoBruto - comissoesPagas;
 
   // VENDEDORES
-  const vendedores = mockUsers.filter((u) => u.role === "vendedor");
   const rankingVendedores = [...vendedores].sort(
     (a, b) => (b.vendasRealizadas ?? 0) - (a.vendasRealizadas ?? 0)
   );
 
   // SETORES (uma loja, três setores)
   const porSetor = {
-    multimarcas: mockMotos.filter((m) => m.setor === "multimarcas"),
-    loca: mockMotos.filter((m) => m.setor === "loca"),
-    pecas: mockMotos.filter((m) => m.setor === "pecas"),
+    multimarcas: motos.filter((m) => m.setor === "multimarcas"),
+    loca: motos.filter((m) => m.setor === "loca"),
+    pecas: motos.filter((m) => m.setor === "pecas"),
   };
 
   // ORIGEM DAS MOTOS (capital próprio vs repasse)
-  const motosCompradas = mockMotos.filter((m) => m.origem === "comprada");
-  const motosRepasse = mockMotos.filter((m) => m.origem === "repasse");
+  const motosCompradas = motos.filter((m) => m.origem === "comprada");
+  const motosRepasse = motos.filter((m) => m.origem === "repasse");
   const totalInvestidoCompra = motosCompradas.reduce(
     (s, m) => s + (m.compra?.valorPago ?? m.valorCompra),
     0
@@ -90,12 +153,55 @@ export default function AdministracaoPage() {
   );
 
   // CONVERSÃO LEADS
-  const totalLeads = mockContatos.length;
-  const convertidos = mockContatos.filter(
+  const totalLeads = contatos.length;
+  const convertidos = contatos.filter(
     (c) => c.status === "convertido"
   ).length;
   const taxaConversao =
     totalLeads > 0 ? ((convertidos / totalLeads) * 100).toFixed(1) : "0";
+
+  if (loading) {
+    return (
+      <div>
+        <PageHeader
+          title={
+            <span className="flex items-center gap-3">
+              Administração
+              <Badge variant="dark" className="text-[10px]">
+                <Crown className="h-3 w-3" /> Admin
+              </Badge>
+            </span>
+          }
+          description="Visão executiva: faturamento, margem, P&L e desempenho da operação"
+        />
+        <Card className="p-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
+          <div className="text-sm text-keu-black/60">
+            Carregando indicadores...
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <PageHeader
+          title={
+            <span className="flex items-center gap-3">
+              Administração
+              <Badge variant="dark" className="text-[10px]">
+                <Crown className="h-3 w-3" /> Admin
+              </Badge>
+            </span>
+          }
+          description="Visão executiva: faturamento, margem, P&L e desempenho da operação"
+        />
+        <Card className="p-16 text-center text-red-600 text-sm">{error}</Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -136,7 +242,7 @@ export default function AdministracaoPage() {
           icon={<DollarSign />}
           label="Faturamento bruto"
           value={formatCurrency(resultadoBruto)}
-          subtitle={`${vendasConcluidas.length} vendas + ${mockAlugueis.length} aluguéis`}
+          subtitle={`${vendasConcluidas.length} vendas + ${alugueis.length} aluguéis`}
           color="from-emerald-500 to-emerald-600"
         />
         <StatCard
@@ -242,7 +348,7 @@ export default function AdministracaoPage() {
               ];
               return (
                 <div
-                  key={v.id}
+                  key={v._id}
                   className="p-4 flex items-center gap-4 hover:bg-keu-gray-light transition"
                 >
                   <div
@@ -261,7 +367,7 @@ export default function AdministracaoPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-black text-keu-red">
-                      {v.vendasRealizadas} vendas
+                      {v.vendasRealizadas ?? 0} vendas
                     </div>
                     <div className="text-xs text-keu-black/60">
                       Comissão:{" "}
@@ -294,7 +400,7 @@ export default function AdministracaoPage() {
               <FunilBar
                 label="Em atendimento"
                 value={
-                  mockContatos.filter((c) => c.status === "em-atendimento")
+                  contatos.filter((c) => c.status === "em-atendimento")
                     .length
                 }
                 max={totalLeads}
@@ -323,7 +429,7 @@ export default function AdministracaoPage() {
             </div>
             <h3 className="font-bold mb-2">Atenção</h3>
             <p className="text-sm text-white/90 mb-4">
-              {mockMotos.filter((m) => m.km > 20000 && m.status === "disponivel")
+              {motos.filter((m) => m.km > 20000 && m.status === "disponivel")
                 .length}{" "}
               motos com +20k km no estoque há mais de 60 dias
             </p>
@@ -390,9 +496,15 @@ export default function AdministracaoPage() {
         </div>
         <div className="p-6 grid sm:grid-cols-3 gap-4">
           {(["multimarcas", "loca", "pecas"] as const).map((setor) => {
-            const motos = porSetor[setor];
-            const investido = motos.reduce((s, m) => s + m.valorCompra, 0);
-            const potencial = motos.reduce((s, m) => s + m.valorAnunciado, 0);
+            const motosSetor = porSetor[setor];
+            const investido = motosSetor.reduce(
+              (s, m) => s + m.valorCompra,
+              0
+            );
+            const potencial = motosSetor.reduce(
+              (s, m) => s + m.valorAnunciado,
+              0
+            );
             const nomes = {
               multimarcas: "KEU Multimarcas",
               loca: "KEU Loca Motos",
@@ -415,7 +527,7 @@ export default function AdministracaoPage() {
               >
                 <h4 className="font-bold">{nomes[setor]}</h4>
                 <div className="text-xs text-white/70 mb-4">
-                  {subtitulos[setor]} · {motos.length} motos
+                  {subtitulos[setor]} · {motosSetor.length} motos
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -465,7 +577,7 @@ export default function AdministracaoPage() {
             </thead>
             <tbody className="divide-y divide-keu-black/5">
               {vendasConcluidas.map((v) => (
-                <tr key={v.id} className="hover:bg-keu-gray-light transition">
+                <tr key={v._id} className="hover:bg-keu-gray-light transition">
                   <td className="p-4 font-semibold">{v.motoModelo}</td>
                   <td className="p-4 text-sm">{v.vendedorNome}</td>
                   <td className="p-4 text-right font-bold">
@@ -483,6 +595,16 @@ export default function AdministracaoPage() {
                   </td>
                 </tr>
               ))}
+              {vendasConcluidas.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="p-12 text-center text-keu-black/60 text-sm"
+                  >
+                    Nenhuma venda concluída registrada
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

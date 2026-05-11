@@ -13,23 +13,69 @@ import {
   CheckCircle2,
   AlertTriangle,
   Calendar,
-  DollarSign,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { mockMotos, mockProprietarios } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { useApi } from "@/lib/hooks/use-api";
+
+interface MotoApi {
+  _id: string;
+  marca: string;
+  modelo: string;
+  anoModelo: number;
+  cor: string;
+  placa?: string;
+  valorCompra: number;
+  valorAnunciado: number;
+  origem: string;
+  proprietarioNome?: string;
+  compra?: {
+    valorPago?: number;
+    dataAquisicao?: string;
+  };
+  repasse?: {
+    valorCombinadoDono?: number;
+    dataInicioConsignacao?: string;
+    contratoAssinado?: boolean;
+    tipoComissao?: "percentual" | "fixo";
+    comissaoPercentual?: number;
+    comissaoFixa?: number;
+  };
+}
+
+interface ProprietarioApi {
+  _id: string;
+}
 
 export default function AquisicoesPage() {
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState<"todas" | "comprada" | "repasse">("todas");
 
+  const {
+    data: motosData,
+    loading: loadingMotos,
+    error: errorMotos,
+  } = useApi<{ motos: MotoApi[] }>("/api/motos");
+  const {
+    data: propData,
+    loading: loadingProp,
+    error: errorProp,
+  } = useApi<{ proprietarios: ProprietarioApi[] }>("/api/proprietarios");
+
+  const loading = loadingMotos || loadingProp;
+  const error = errorMotos || errorProp;
+
+  const todasMotos = motosData?.motos ?? [];
+  const proprietarios = propData?.proprietarios ?? [];
+
   // Motos compradas (capital próprio) e em repasse
-  const comprasERepasses = mockMotos.filter(
+  const comprasERepasses = todasMotos.filter(
     (m) => m.origem === "comprada" || m.origem === "repasse"
   );
 
@@ -146,7 +192,7 @@ export default function AquisicoesPage() {
           <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
             <User className="h-5 w-5" />
           </div>
-          <div className="text-3xl font-black">{mockProprietarios.length}</div>
+          <div className="text-3xl font-black">{proprietarios.length}</div>
           <div className="text-sm text-white/90">Proprietários</div>
           <div className="text-xs text-white/70 mt-1">cadastrados</div>
         </Card>
@@ -159,7 +205,7 @@ export default function AquisicoesPage() {
             <div>
               <h2 className="font-bold text-lg">Aquisições registradas</h2>
               <p className="text-sm text-keu-black/60">
-                {filtered.length} motos
+                {loading ? "Carregando..." : `${filtered.length} motos`}
               </p>
             </div>
             <div className="relative">
@@ -193,38 +239,60 @@ export default function AquisicoesPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
-              <tr>
-                <th className="text-left p-4">Moto</th>
-                <th className="text-left p-4">Origem</th>
-                <th className="text-left p-4">Proprietário</th>
-                <th className="text-right p-4">Valor pago / Combinado</th>
-                <th className="text-right p-4">Anunciado</th>
-                <th className="text-right p-4">Margem / Comissão</th>
-                <th className="text-left p-4">Data</th>
-                <th className="text-left p-4">Status</th>
-                <th className="text-right p-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-keu-black/5">
-              {filtered.map((m) => (
-                <AquisicaoRow key={m.id} moto={m} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {loading ? (
+          <div className="p-16 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
+            <div className="text-sm text-keu-black/60">
+              Carregando aquisições...
+            </div>
+          </div>
+        ) : error ? (
+          <div className="p-16 text-center text-red-600 text-sm">{error}</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center">
+            <Bike className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
+            <h3 className="font-bold mb-1">Nenhuma aquisição encontrada</h3>
+            <p className="text-sm text-keu-black/60 mb-4">
+              {search || filtro !== "todas"
+                ? "Tente outro filtro."
+                : "Comece registrando a primeira aquisição."}
+            </p>
+            <Link href="/dashboard/aquisicoes/nova">
+              <Button>
+                <Plus className="h-4 w-4" /> Nova aquisição
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
+                <tr>
+                  <th className="text-left p-4">Moto</th>
+                  <th className="text-left p-4">Origem</th>
+                  <th className="text-left p-4">Proprietário</th>
+                  <th className="text-right p-4">Valor pago / Combinado</th>
+                  <th className="text-right p-4">Anunciado</th>
+                  <th className="text-right p-4">Margem / Comissão</th>
+                  <th className="text-left p-4">Data</th>
+                  <th className="text-left p-4">Status</th>
+                  <th className="text-right p-4">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-keu-black/5">
+                {filtered.map((m) => (
+                  <AquisicaoRow key={m._id} moto={m} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );
 }
 
-function AquisicaoRow({
-  moto,
-}: {
-  moto: (typeof mockMotos)[number];
-}) {
+function AquisicaoRow({ moto }: { moto: MotoApi }) {
   const isRepasse = moto.origem === "repasse";
   const valorAcordo = isRepasse
     ? moto.repasse?.valorCombinadoDono ?? 0
