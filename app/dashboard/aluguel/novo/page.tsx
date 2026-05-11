@@ -19,12 +19,14 @@ import {
   Calendar,
   Gauge,
   FileText,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/current-user";
@@ -75,6 +77,9 @@ type AluguelForm = {
   caucao: number | "";
   km_inicial: number | "";
   observacoes: string;
+
+  fotosInicio: string[];
+  observacoesInicio: string;
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -99,6 +104,8 @@ const initial: AluguelForm = {
   caucao: "",
   km_inicial: "",
   observacoes: "",
+  fotosInicio: [],
+  observacoesInicio: "",
 };
 
 interface CalculoValor {
@@ -379,6 +386,9 @@ export default function NovoAluguelPage() {
 
         status: "ativo" as const,
         observacoes: form.observacoes || undefined,
+
+        fotosInicio: form.fotosInicio,
+        observacoesInicio: form.observacoesInicio || undefined,
       };
 
       const res = await apiPost<{ aluguel: { _id: string } }>(
@@ -844,6 +854,50 @@ export default function NovoAluguelPage() {
                   placeholder="Condições especiais, acessórios entregues, estado da moto..."
                   value={form.observacoes}
                   onChange={(e) => set("observacoes", e.target.value)}
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* VISTORIA DE RETIRADA */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-black/5">
+              <div className="bg-amber-500/10 text-amber-600 w-10 h-10 rounded-lg flex items-center justify-center">
+                <Camera className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold">Vistoria de retirada</h2>
+                <p className="text-sm text-keu-black/60">
+                  Fotos e estado da moto no momento da entrega ao cliente
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Fotos da moto na retirada</Label>
+                <ImageUpload
+                  value={form.fotosInicio}
+                  onChange={(imgs) => set("fotosInicio", imgs)}
+                  max={8}
+                  maxSizeKB={250}
+                  maxWidth={1400}
+                  hint="Até 8 fotos · documente riscos, painel, acessórios e estado geral"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="observacoesInicio">
+                  <span className="inline-flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5" /> Observações da retirada
+                  </span>
+                </Label>
+                <Textarea
+                  id="observacoesInicio"
+                  rows={4}
+                  placeholder="Descreva como a moto está sendo entregue: riscos, peças, nível de combustível, acessórios incluídos (capacete, baú, etc.)..."
+                  value={form.observacoesInicio}
+                  onChange={(e) => set("observacoesInicio", e.target.value)}
                 />
               </div>
             </div>

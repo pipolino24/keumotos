@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const vendedorId = searchParams.get("vendedorId");
     const status = searchParams.get("status");
     const clienteId = searchParams.get("clienteId");
+    const motoId = searchParams.get("motoId");
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
 
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
     if (vendedorId) query.vendedorId = vendedorId;
     if (status) query.status = status;
     if (clienteId) query.clienteId = clienteId;
+    if (motoId) query.motoId = motoId;
     if (dataInicio || dataFim) {
       const range: Record<string, Date> = {};
       if (dataInicio) range.$gte = new Date(dataInicio);

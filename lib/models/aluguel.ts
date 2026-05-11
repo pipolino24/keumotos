@@ -1,5 +1,15 @@
 import mongoose, { Schema, Model } from "mongoose";
 
+export interface IAvariaDoc {
+  descricao: string;
+  fotos: string[];
+  custoEstimado?: number;
+  cobradoCaucao?: boolean;
+  reparado?: boolean;
+  dataReparo?: Date;
+  registradoEm: Date;
+}
+
 export interface IAluguelDoc {
   motoId: mongoose.Types.ObjectId;
   motoModelo: string;
@@ -30,12 +40,37 @@ export interface IAluguelDoc {
   km_inicial: number;
   km_final?: number;
 
+  // Vistoria visual
+  fotosInicio: string[]; // fotos no momento da retirada
+  fotosFim: string[]; // fotos na devolução
+  observacoesInicio?: string; // estado da moto na entrega
+  observacoesFim?: string; // observações na devolução
+
+  // Ocorrências durante o aluguel
+  avarias: IAvariaDoc[];
+  custoTotalAvarias?: number;
+  valorAReceberCaucao?: number; // caução − descontos
+  multaAtraso?: number;
+
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
   observacoes?: string;
 
   createdAt: Date;
   updatedAt: Date;
 }
+
+const AvariaSchema = new Schema<IAvariaDoc>(
+  {
+    descricao: { type: String, required: true },
+    fotos: { type: [String], default: [] },
+    custoEstimado: { type: Number, min: 0 },
+    cobradoCaucao: { type: Boolean, default: false },
+    reparado: { type: Boolean, default: false },
+    dataReparo: Date,
+    registradoEm: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
 
 const AluguelSchema = new Schema<IAluguelDoc>(
   {
@@ -75,6 +110,16 @@ const AluguelSchema = new Schema<IAluguelDoc>(
 
     km_inicial: { type: Number, required: true, min: 0 },
     km_final: { type: Number, min: 0 },
+
+    fotosInicio: { type: [String], default: [] },
+    fotosFim: { type: [String], default: [] },
+    observacoesInicio: String,
+    observacoesFim: String,
+
+    avarias: { type: [AvariaSchema], default: [] },
+    custoTotalAvarias: Number,
+    valorAReceberCaucao: Number,
+    multaAtraso: Number,
 
     status: {
       type: String,

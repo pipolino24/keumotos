@@ -18,6 +18,17 @@ import {
   ShoppingCart,
   Info,
   ShieldAlert,
+  Plus,
+  Trash2,
+  Banknote,
+  Smartphone,
+  Building2,
+  Repeat,
+  ArrowLeftRight,
+  ScrollText,
+  Landmark,
+  Wallet,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,11 +69,37 @@ interface ClienteApi {
 }
 
 type FormaPagamento =
-  | "a-vista"
-  | "financiado"
-  | "cartao"
-  | "consorcio"
-  | "troca";
+  | "dinheiro"
+  | "pix"
+  | "transferencia"
+  | "cartao-debito"
+  | "cartao-credito"
+  | "financiamento-banco"
+  | "parcelado-loja"
+  | "troca"
+  | "cheque"
+  | "consorcio";
+
+type Pagamento = {
+  uid: string;
+  forma: FormaPagamento;
+  valor: number | "";
+  // cartão crédito
+  parcelasCartao?: number | "";
+  // financiamento banco
+  banco?: string;
+  numeroContratoBanco?: string;
+  parcelasContrato?: number | "";
+  // parcelado loja
+  parcelasLoja?: number | "";
+  parcelasPagasLoja?: number | "";
+  valorParcelaLoja?: number | "";
+  primeiraParcelaEm?: string;
+  // troca
+  itemRecebido?: string;
+  // geral
+  observacao?: string;
+};
 
 type VendaForm = {
   // Cliente
@@ -78,12 +115,116 @@ type VendaForm = {
 
   // Negociação
   valorVendido: number | "";
-  formaPagamento: FormaPagamento;
-  parcelas: number | "";
   comissao: number | "";
+  pagamentos: Pagamento[];
 
   observacoes: string;
 };
+
+const FORMA_META: Record<
+  FormaPagamento,
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    headerBg: string;
+    headerText: string;
+    cardBg: string;
+    cardBorder: string;
+  }
+> = {
+  dinheiro: {
+    label: "Dinheiro",
+    icon: Banknote,
+    headerBg: "bg-emerald-100",
+    headerText: "text-emerald-700",
+    cardBg: "bg-emerald-50/40",
+    cardBorder: "border-emerald-200",
+  },
+  pix: {
+    label: "PIX",
+    icon: Smartphone,
+    headerBg: "bg-green-100",
+    headerText: "text-green-700",
+    cardBg: "bg-green-50/50",
+    cardBorder: "border-green-200",
+  },
+  transferencia: {
+    label: "Transferência",
+    icon: Landmark,
+    headerBg: "bg-teal-100",
+    headerText: "text-teal-700",
+    cardBg: "bg-teal-50/40",
+    cardBorder: "border-teal-200",
+  },
+  "cartao-debito": {
+    label: "Cartão débito",
+    icon: CreditCard,
+    headerBg: "bg-sky-100",
+    headerText: "text-sky-700",
+    cardBg: "bg-sky-50/50",
+    cardBorder: "border-sky-200",
+  },
+  "cartao-credito": {
+    label: "Cartão crédito",
+    icon: CreditCard,
+    headerBg: "bg-blue-100",
+    headerText: "text-blue-700",
+    cardBg: "bg-blue-50/50",
+    cardBorder: "border-blue-200",
+  },
+  "financiamento-banco": {
+    label: "Financiamento (banco)",
+    icon: Building2,
+    headerBg: "bg-indigo-100",
+    headerText: "text-indigo-700",
+    cardBg: "bg-indigo-50/50",
+    cardBorder: "border-indigo-200",
+  },
+  "parcelado-loja": {
+    label: "Parcelado da loja",
+    icon: CalendarClock,
+    headerBg: "bg-red-100",
+    headerText: "text-red-700",
+    cardBg: "bg-red-50/60",
+    cardBorder: "border-red-200",
+  },
+  troca: {
+    label: "Troca",
+    icon: ArrowLeftRight,
+    headerBg: "bg-amber-100",
+    headerText: "text-amber-700",
+    cardBg: "bg-amber-50/50",
+    cardBorder: "border-amber-200",
+  },
+  cheque: {
+    label: "Cheque",
+    icon: ScrollText,
+    headerBg: "bg-stone-100",
+    headerText: "text-stone-700",
+    cardBg: "bg-stone-50/60",
+    cardBorder: "border-stone-200",
+  },
+  consorcio: {
+    label: "Consórcio",
+    icon: Repeat,
+    headerBg: "bg-purple-100",
+    headerText: "text-purple-700",
+    cardBg: "bg-purple-50/50",
+    cardBorder: "border-purple-200",
+  },
+};
+
+function genUid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function novoPagamento(forma: FormaPagamento = "pix"): Pagamento {
+  const base: Pagamento = { uid: genUid(), forma, valor: "" };
+  if (forma === "parcelado-loja") {
+    base.parcelasPagasLoja = 0;
+  }
+  return base;
+}
 
 const initial: VendaForm = {
   clienteMode: "existente",
@@ -94,11 +235,12 @@ const initial: VendaForm = {
   novoCliCpf: "",
   motoId: "",
   valorVendido: "",
-  formaPagamento: "a-vista",
-  parcelas: "",
   comissao: "",
+  pagamentos: [novoPagamento("pix")],
   observacoes: "",
 };
+
+const TOLERANCIA = 0.01;
 
 export default function NovaVendaPage() {
   const router = useRouter();
@@ -109,7 +251,6 @@ export default function NovaVendaPage() {
   const [error, setError] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState("");
 
-  // Carrega clientes e motos
   const { data: clientesData, loading: loadingClientes } = useApi<{
     users: ClienteApi[];
   }>("/api/users?role=cliente");
@@ -118,7 +259,6 @@ export default function NovaVendaPage() {
     motos: MotoApi[];
   }>("/api/motos?tipo=venda&status=disponivel");
 
-  // Inclui motos do tipo "ambos" (também elegíveis pra venda)
   const { data: motosAmbosData } = useApi<{ motos: MotoApi[] }>(
     "/api/motos?tipo=ambos&status=disponivel"
   );
@@ -156,7 +296,6 @@ export default function NovaVendaPage() {
     setForm((p) => ({ ...p, [key]: value }));
   }
 
-  // Auto-preenche sugestões quando uma moto é selecionada
   function handleMotoChange(motoId: string) {
     const moto = todasMotos.find((m) => m._id === motoId) ?? null;
     setForm((p) => ({
@@ -168,25 +307,119 @@ export default function NovaVendaPage() {
     }));
   }
 
-  // ---- Validações ----
+  // ---- Pagamentos helpers ----
+  function addPagamento() {
+    setForm((p) => ({ ...p, pagamentos: [...p.pagamentos, novoPagamento()] }));
+  }
+
+  function removePagamento(uid: string) {
+    setForm((p) => ({
+      ...p,
+      pagamentos:
+        p.pagamentos.length > 1
+          ? p.pagamentos.filter((x) => x.uid !== uid)
+          : p.pagamentos,
+    }));
+  }
+
+  function updatePagamento(uid: string, patch: Partial<Pagamento>) {
+    setForm((p) => ({
+      ...p,
+      pagamentos: p.pagamentos.map((pg) => {
+        if (pg.uid !== uid) return pg;
+        const next: Pagamento = { ...pg, ...patch };
+
+        // se forma mudou, limpa campos não relevantes
+        if (patch.forma && patch.forma !== pg.forma) {
+          const v = next.valor;
+          const reset: Pagamento = {
+            uid: pg.uid,
+            forma: patch.forma,
+            valor: v,
+            observacao: pg.observacao,
+          };
+          if (patch.forma === "parcelado-loja") reset.parcelasPagasLoja = 0;
+          return reset;
+        }
+
+        // recalcula valorParcelaLoja se relevante e não foi setado manualmente nesta atualização
+        if (
+          next.forma === "parcelado-loja" &&
+          patch.valorParcelaLoja === undefined &&
+          (patch.valor !== undefined || patch.parcelasLoja !== undefined)
+        ) {
+          const valorNum = typeof next.valor === "number" ? next.valor : 0;
+          const parcelas =
+            typeof next.parcelasLoja === "number" ? next.parcelasLoja : 0;
+          if (parcelas > 0 && valorNum > 0) {
+            next.valorParcelaLoja =
+              Math.round((valorNum / parcelas) * 100) / 100;
+          }
+        }
+        return next;
+      }),
+    }));
+  }
+
+  // ---- Totais ----
   const valorVendidoNum =
     typeof form.valorVendido === "number" ? form.valorVendido : 0;
+  const totalPagamentos = useMemo(
+    () =>
+      form.pagamentos.reduce(
+        (s, p) => s + (typeof p.valor === "number" ? p.valor : 0),
+        0
+      ),
+    [form.pagamentos]
+  );
+  const diferenca = valorVendidoNum - totalPagamentos;
+  const bate = Math.abs(diferenca) < TOLERANCIA && valorVendidoNum > 0;
+
   const valorMinimoMoto = motoSelecionada?.valorMinimo ?? 0;
   const abaixoMinimo =
-    motoSelecionada !== null && valorVendidoNum > 0 && valorVendidoNum < valorMinimoMoto;
-
-  const exigeParcelas =
-    form.formaPagamento === "financiado" || form.formaPagamento === "cartao";
+    motoSelecionada !== null &&
+    valorVendidoNum > 0 &&
+    valorVendidoNum < valorMinimoMoto;
 
   function clienteSelecionado(): ClienteApi | undefined {
     return clientesData?.users.find((u) => u._id === form.clienteId);
+  }
+
+  function validarPagamentos(): string | null {
+    for (const pg of form.pagamentos) {
+      if (pg.valor === "" || (typeof pg.valor === "number" && pg.valor <= 0)) {
+        return `Informe o valor do pagamento em ${FORMA_META[pg.forma].label}.`;
+      }
+      if (pg.forma === "cartao-credito") {
+        if (!pg.parcelasCartao || Number(pg.parcelasCartao) < 1) {
+          return "Informe as parcelas do cartão de crédito.";
+        }
+      }
+      if (pg.forma === "financiamento-banco") {
+        if (!pg.banco?.trim()) return "Informe o banco do financiamento.";
+        if (!pg.parcelasContrato || Number(pg.parcelasContrato) < 1) {
+          return "Informe as parcelas do financiamento.";
+        }
+      }
+      if (pg.forma === "parcelado-loja") {
+        if (!pg.parcelasLoja || Number(pg.parcelasLoja) < 1) {
+          return "Informe o total de parcelas da loja.";
+        }
+        if (!pg.primeiraParcelaEm) {
+          return "Informe a data da primeira parcela da loja.";
+        }
+      }
+      if (pg.forma === "troca" && !pg.itemRecebido?.trim()) {
+        return "Descreva o item recebido na troca.";
+      }
+    }
+    return null;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    // Validações de fluxo
     if (!form.motoId) {
       const m = "Selecione uma moto.";
       setError(m);
@@ -217,8 +450,17 @@ export default function NovaVendaPage() {
       toast.error(m);
       return;
     }
-    if (exigeParcelas && (!form.parcelas || Number(form.parcelas) < 1)) {
-      const m = "Informe o número de parcelas.";
+    const pagErr = validarPagamentos();
+    if (pagErr) {
+      setError(pagErr);
+      toast.error(pagErr);
+      return;
+    }
+    if (!bate) {
+      const m =
+        diferenca > 0
+          ? `Faltam ${formatCurrency(diferenca)} para fechar a venda.`
+          : `Sobram ${formatCurrency(-diferenca)} nos pagamentos.`;
       setError(m);
       toast.error(m);
       return;
@@ -233,7 +475,6 @@ export default function NovaVendaPage() {
       let clienteCpf: string | undefined;
 
       if (form.clienteMode === "novo") {
-        // Cria novo cliente
         const senha = Math.random().toString(36).slice(2, 10);
         const novoCliRes = await apiPost<{ user: ClienteApi }>("/api/users", {
           nome: form.novoCliNome,
@@ -267,6 +508,34 @@ export default function NovaVendaPage() {
 
       if (!motoSelecionada) throw new Error("Moto não encontrada");
 
+      const pagamentosPayload = form.pagamentos.map((p) => {
+        const base: Record<string, unknown> = {
+          forma: p.forma,
+          valor: Number(p.valor),
+        };
+        if (p.forma === "cartao-credito" && p.parcelasCartao)
+          base.parcelasCartao = Number(p.parcelasCartao);
+        if (p.forma === "financiamento-banco") {
+          if (p.banco) base.banco = p.banco;
+          if (p.numeroContratoBanco)
+            base.numeroContratoBanco = p.numeroContratoBanco;
+          if (p.parcelasContrato)
+            base.parcelasContrato = Number(p.parcelasContrato);
+        }
+        if (p.forma === "parcelado-loja") {
+          if (p.parcelasLoja) base.parcelasLoja = Number(p.parcelasLoja);
+          base.parcelasPagasLoja = Number(p.parcelasPagasLoja ?? 0);
+          if (p.valorParcelaLoja)
+            base.valorParcelaLoja = Number(p.valorParcelaLoja);
+          if (p.primeiraParcelaEm)
+            base.primeiraParcelaEm = p.primeiraParcelaEm;
+        }
+        if (p.forma === "troca" && p.itemRecebido)
+          base.itemRecebido = p.itemRecebido;
+        if (p.observacao) base.observacao = p.observacao;
+        return base;
+      });
+
       const payload = {
         motoId: motoSelecionada._id,
         motoModelo: `${motoSelecionada.marca} ${motoSelecionada.modelo} ${motoSelecionada.anoModelo}`,
@@ -285,8 +554,7 @@ export default function NovaVendaPage() {
         vendedorNome: me.nome,
 
         valorVendido: valorVendidoNum,
-        formaPagamento: form.formaPagamento,
-        parcelas: exigeParcelas ? Number(form.parcelas) : undefined,
+        pagamentos: pagamentosPayload,
         comissao: typeof form.comissao === "number" ? form.comissao : 0,
 
         status: "concluida" as const,
@@ -300,12 +568,10 @@ export default function NovaVendaPage() {
       );
       if (vendaRes.error) throw new Error(vendaRes.error);
 
-      // Atualiza status da moto pra "vendida"
       const motoUpd = await apiPatch(`/api/motos/${motoSelecionada._id}`, {
         status: "vendida",
       });
       if (motoUpd.error) {
-        // Não bloqueia o fluxo, só avisa
         toast.warning("Venda salva, mas falhou ao atualizar status da moto");
       }
 
@@ -318,6 +584,8 @@ export default function NovaVendaPage() {
       setSaving(false);
     }
   }
+
+  const confirmDesabilitado = saving || !bate;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -337,14 +605,14 @@ export default function NovaVendaPage() {
             Cancelar
           </Button>
         </Link>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={confirmDesabilitado}>
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
             </>
           ) : (
             <>
-              <ShoppingCart className="h-4 w-4" /> Registrar Venda
+              <ShoppingCart className="h-4 w-4" /> Confirmar venda
             </>
           )}
         </Button>
@@ -356,6 +624,62 @@ export default function NovaVendaPage() {
           <span className="text-sm font-medium">{error}</span>
         </div>
       )}
+
+      {/* RESUMO AO VIVO */}
+      <Card
+        className={`p-5 mb-6 border-2 ${
+          valorVendidoNum <= 0
+            ? "border-keu-black/10"
+            : bate
+              ? "border-emerald-300 bg-emerald-50/40"
+              : "border-amber-300 bg-amber-50/40"
+        }`}
+      >
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase text-keu-black/60 flex items-center gap-1">
+              <DollarSign className="h-3 w-3" /> Total venda
+            </div>
+            <div className="text-xl font-bold text-keu-black mt-1">
+              {formatCurrency(valorVendidoNum)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase text-keu-black/60 flex items-center gap-1">
+              <Wallet className="h-3 w-3" /> Total recebido
+            </div>
+            <div className="text-xl font-bold text-keu-black mt-1">
+              {formatCurrency(totalPagamentos)}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase text-keu-black/60 flex items-center gap-1">
+              <Info className="h-3 w-3" /> Saldo
+            </div>
+            <div className="mt-1">
+              {valorVendidoNum <= 0 ? (
+                <div className="text-sm text-keu-black/50">
+                  Informe o valor da venda
+                </div>
+              ) : bate ? (
+                <Badge className="bg-emerald-600 text-white">
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Total bate
+                </Badge>
+              ) : diferenca > 0 ? (
+                <Badge className="bg-amber-500 text-white">
+                  <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                  Faltam {formatCurrency(diferenca)}
+                </Badge>
+              ) : (
+                <Badge className="bg-amber-500 text-white">
+                  <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                  Sobra {formatCurrency(-diferenca)}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -602,7 +926,7 @@ export default function NovaVendaPage() {
               <div>
                 <h2 className="font-bold">Negociação</h2>
                 <p className="text-sm text-keu-black/60">
-                  Valor fechado, forma de pagamento e comissão
+                  Valor fechado e comissão
                 </p>
               </div>
             </div>
@@ -650,51 +974,6 @@ export default function NovaVendaPage() {
               </div>
 
               <div>
-                <Label required>Forma de pagamento</Label>
-                <Select
-                  required
-                  value={form.formaPagamento}
-                  onChange={(e) => {
-                    const fp = e.target.value as FormaPagamento;
-                    set("formaPagamento", fp);
-                    if (fp !== "financiado" && fp !== "cartao") {
-                      set("parcelas", "");
-                    }
-                  }}
-                >
-                  <option value="a-vista">À vista</option>
-                  <option value="financiado">Financiado</option>
-                  <option value="cartao">Cartão</option>
-                  <option value="consorcio">Consórcio</option>
-                  <option value="troca">Troca</option>
-                </Select>
-              </div>
-
-              {exigeParcelas && (
-                <div>
-                  <Label required>Parcelas</Label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
-                    <Input
-                      type="number"
-                      min="1"
-                      max="120"
-                      required
-                      placeholder="Ex: 12"
-                      className="pl-9"
-                      value={form.parcelas}
-                      onChange={(e) =>
-                        set(
-                          "parcelas",
-                          e.target.value ? Number(e.target.value) : ""
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className={exigeParcelas ? "" : "col-span-1"}>
                 <Label>Comissão (R$)</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
@@ -730,6 +1009,295 @@ export default function NovaVendaPage() {
                   onChange={(e) => set("observacoes", e.target.value)}
                 />
               </div>
+            </div>
+          </Card>
+
+          {/* PAGAMENTOS */}
+          <Card className="p-6">
+            <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-keu-black/5">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-500/10 text-amber-600 w-10 h-10 rounded-lg flex items-center justify-center">
+                  <Wallet className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-bold">Formas de pagamento</h2>
+                  <p className="text-sm text-keu-black/60">
+                    Combine quantas formas precisar até bater o total
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addPagamento}
+                size="sm"
+              >
+                <Plus className="h-4 w-4" /> Adicionar forma
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {form.pagamentos.map((pg, idx) => {
+                const meta = FORMA_META[pg.forma];
+                const Icon = meta.icon;
+                const podeRemover = form.pagamentos.length > 1;
+                return (
+                  <Card
+                    key={pg.uid}
+                    className={`overflow-hidden border-2 ${meta.cardBorder} ${meta.cardBg}`}
+                  >
+                    {/* header */}
+                    <div
+                      className={`flex items-center gap-3 px-4 py-3 ${meta.headerBg} ${meta.headerText}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <div className="font-bold text-sm flex-1">
+                        {meta.label}
+                      </div>
+                      <Badge variant="outline" className="bg-white">
+                        #{idx + 1}
+                      </Badge>
+                    </div>
+
+                    {/* body */}
+                    <div className="p-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label required>Forma</Label>
+                          <Select
+                            value={pg.forma}
+                            onChange={(e) =>
+                              updatePagamento(pg.uid, {
+                                forma: e.target.value as FormaPagamento,
+                              })
+                            }
+                          >
+                            {(Object.keys(FORMA_META) as FormaPagamento[]).map(
+                              (k) => (
+                                <option key={k} value={k}>
+                                  {FORMA_META[k].label}
+                                </option>
+                              )
+                            )}
+                          </Select>
+                        </div>
+                        <div>
+                          <Label required>Valor</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
+                              R$
+                            </span>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="pl-9"
+                              value={pg.valor}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  valor: e.target.value
+                                    ? Number(e.target.value)
+                                    : "",
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Campos condicionais */}
+                      {pg.forma === "cartao-credito" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label required>Parcelas</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="24"
+                              placeholder="Ex: 6"
+                              value={pg.parcelasCartao ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  parcelasCartao: e.target.value
+                                    ? Number(e.target.value)
+                                    : "",
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {pg.forma === "financiamento-banco" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label required>Banco</Label>
+                            <Input
+                              placeholder="Ex: Banco do Brasil"
+                              value={pg.banco ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  banco: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Nº do contrato</Label>
+                            <Input
+                              placeholder="Opcional"
+                              value={pg.numeroContratoBanco ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  numeroContratoBanco: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label required>Parcelas do contrato</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="120"
+                              placeholder="Ex: 48"
+                              value={pg.parcelasContrato ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  parcelasContrato: e.target.value
+                                    ? Number(e.target.value)
+                                    : "",
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {pg.forma === "parcelado-loja" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label required>Parcelas (total)</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="60"
+                              placeholder="Ex: 12"
+                              value={pg.parcelasLoja ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  parcelasLoja: e.target.value
+                                    ? Number(e.target.value)
+                                    : "",
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Parcelas já pagas</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={pg.parcelasPagasLoja ?? 0}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  parcelasPagasLoja: e.target.value
+                                    ? Number(e.target.value)
+                                    : 0,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label>Valor da parcela</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
+                                R$
+                              </span>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="pl-9"
+                                placeholder="Calculado auto"
+                                value={pg.valorParcelaLoja ?? ""}
+                                onChange={(e) =>
+                                  updatePagamento(pg.uid, {
+                                    valorParcelaLoja: e.target.value
+                                      ? Number(e.target.value)
+                                      : "",
+                                  })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label required>Primeira parcela em</Label>
+                            <Input
+                              type="date"
+                              value={pg.primeiraParcelaEm ?? ""}
+                              onChange={(e) =>
+                                updatePagamento(pg.uid, {
+                                  primeiraParcelaEm: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="col-span-2 text-xs text-red-700 bg-red-100/60 border border-red-200 rounded-md px-3 py-2 flex items-start gap-2">
+                            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                            <span>
+                              Parcelamento da loja — saldo será cobrado
+                              diretamente pela Keu Motos.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {pg.forma === "troca" && (
+                        <div>
+                          <Label required>Item recebido</Label>
+                          <Input
+                            placeholder="Ex: Honda CG 150 2018 — placa XYZ-1234"
+                            value={pg.itemRecebido ?? ""}
+                            onChange={(e) =>
+                              updatePagamento(pg.uid, {
+                                itemRecebido: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <Label>Observação</Label>
+                        <Input
+                          placeholder="Opcional"
+                          value={pg.observacao ?? ""}
+                          onChange={(e) =>
+                            updatePagamento(pg.uid, {
+                              observacao: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* footer */}
+                    {podeRemover && (
+                      <div className="px-4 py-2 border-t border-keu-black/5 flex justify-end bg-white/50">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePagamento(pg.uid)}
+                        >
+                          <Trash2 className="h-4 w-4" /> Remover
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -811,14 +1379,14 @@ export default function NovaVendaPage() {
             Cancelar
           </Button>
         </Link>
-        <Button type="submit" size="lg" disabled={saving}>
+        <Button type="submit" size="lg" disabled={confirmDesabilitado}>
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4" /> Registrar Venda
+              <Save className="h-4 w-4" /> Confirmar venda
             </>
           )}
         </Button>

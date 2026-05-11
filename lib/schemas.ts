@@ -153,6 +153,35 @@ export const roleCreateSchema = z.object({
   ativo: z.boolean().default(true),
 });
 
+export const pagamentoFormaEnum = z.enum([
+  "dinheiro",
+  "pix",
+  "transferencia",
+  "cartao-debito",
+  "cartao-credito",
+  "financiamento-banco",
+  "parcelado-loja",
+  "troca",
+  "cheque",
+  "consorcio",
+]);
+
+export const pagamentoSchema = z.object({
+  forma: pagamentoFormaEnum,
+  valor: z.number().min(0.01, "Valor obrigatório"),
+  parcelasCartao: z.number().int().min(1).max(24).optional(),
+  parcelasLoja: z.number().int().min(1).max(60).optional(),
+  parcelasPagasLoja: z.number().int().min(0).optional(),
+  valorParcelaLoja: z.number().min(0).optional(),
+  primeiraParcelaEm: z.union([z.string(), z.date()]).optional(),
+  proximaParcelaEm: z.union([z.string(), z.date()]).optional(),
+  banco: z.string().optional(),
+  numeroContratoBanco: z.string().optional(),
+  parcelasContrato: z.number().int().min(1).max(120).optional(),
+  itemRecebido: z.string().optional(),
+  observacao: z.string().optional(),
+});
+
 export const vendaCreateSchema = z.object({
   motoId: z.string().min(1, "Moto obrigatória"),
   motoModelo: z.string().min(1),
@@ -171,14 +200,8 @@ export const vendaCreateSchema = z.object({
   vendedorNome: z.string().min(1),
 
   valorVendido: z.number().min(0, "Valor inválido"),
-  formaPagamento: z.enum([
-    "a-vista",
-    "financiado",
-    "cartao",
-    "consorcio",
-    "troca",
-  ]),
-  parcelas: z.number().int().min(1).optional(),
+  pagamentos: z.array(pagamentoSchema).min(1, "Adicione ao menos uma forma de pagamento"),
+
   comissao: z.number().min(0).default(0),
 
   status: z.enum(["pendente", "concluida", "cancelada"]).optional(),
@@ -215,8 +238,62 @@ export const aluguelCreateSchema = z.object({
   km_inicial: z.number().min(0),
   km_final: z.number().min(0).optional(),
 
+  fotosInicio: z.array(z.string()).default([]),
+  observacoesInicio: z.string().optional(),
+
   status: z.enum(["ativo", "concluido", "atrasado", "cancelado"]).optional(),
   observacoes: z.string().optional(),
+});
+
+export const avariaSchema = z.object({
+  descricao: z.string().min(2, "Descrição obrigatória"),
+  fotos: z.array(z.string()).default([]),
+  custoEstimado: z.number().min(0).optional(),
+  cobradoCaucao: z.boolean().optional(),
+  reparado: z.boolean().optional(),
+});
+
+export const aluguelDevolucaoSchema = z.object({
+  km_final: z.number().min(0),
+  fotosFim: z.array(z.string()).default([]),
+  observacoesFim: z.string().optional(),
+  avarias: z.array(avariaSchema).default([]),
+  multaAtraso: z.number().min(0).optional(),
+  dataDevolucao: z.union([z.string(), z.date()]).optional(),
+});
+
+export const revisaoCreateSchema = z.object({
+  motoId: z.string().min(1),
+  data: z.union([z.string(), z.date()]).optional(),
+  tipo: z
+    .enum(["revisao", "manutencao", "troca-peca", "reparo-avaria", "outro"])
+    .default("revisao"),
+  descricao: z.string().min(3, "Descrição obrigatória"),
+  pecas: z
+    .array(
+      z.object({
+        nome: z.string().min(1),
+        quantidade: z.number().int().min(1).default(1),
+        valorUnitario: z.number().min(0),
+      })
+    )
+    .default([]),
+  servicos: z
+    .array(
+      z.object({
+        descricao: z.string().min(1),
+        valor: z.number().min(0),
+      })
+    )
+    .default([]),
+  custoTotal: z.number().min(0),
+  kmNaRevisao: z.number().min(0),
+  responsavel: z.string().optional(),
+  notaFiscal: z.string().optional(),
+  fotos: z.array(z.string()).default([]),
+  observacoes: z.string().optional(),
+  aluguelOrigemId: z.string().optional(),
+  avariaOrigemId: z.string().optional(),
 });
 
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
@@ -227,3 +304,7 @@ export type ContatoCreateInput = z.infer<typeof contatoCreateSchema>;
 export type RoleCreateInput = z.infer<typeof roleCreateSchema>;
 export type VendaCreateInput = z.infer<typeof vendaCreateSchema>;
 export type AluguelCreateInput = z.infer<typeof aluguelCreateSchema>;
+export type PagamentoInput = z.infer<typeof pagamentoSchema>;
+export type AvariaInput = z.infer<typeof avariaSchema>;
+export type AluguelDevolucaoInput = z.infer<typeof aluguelDevolucaoSchema>;
+export type RevisaoCreateInput = z.infer<typeof revisaoCreateSchema>;
