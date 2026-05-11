@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Proprietario } from "@/lib/models/proprietario";
+import { proprietarioCreateSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -32,16 +33,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectMongo();
-    const data = await req.json();
-
-    if (!data.nome?.trim() || !data.cpf?.trim() || !data.telefone?.trim()) {
+    const raw = await req.json();
+    const parsed = proprietarioCreateSchema.safeParse(raw);
+    if (!parsed.success) {
+      const issues = parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; ");
       return NextResponse.json(
-        { error: "Nome, CPF e telefone são obrigatórios" },
+        { error: `Validação: ${issues}` },
         { status: 400 }
       );
     }
-
-    const proprietario = await Proprietario.create(data);
+    const proprietario = await Proprietario.create(parsed.data);
     return NextResponse.json({ proprietario }, { status: 201 });
   } catch (err) {
     const message =

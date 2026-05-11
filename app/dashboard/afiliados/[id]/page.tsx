@@ -29,6 +29,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Afiliado {
   _id: string;
@@ -122,12 +124,21 @@ export default function EditarAfiliadoPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Remover este afiliado? Esta ação é irreversível.")) return;
+    const ok = await confirmDialog({
+      title: "Remover afiliado",
+      message:
+        "Tem certeza? O afiliado perderá acesso à área dele e os links pararão de funcionar. Essa ação não pode ser desfeita.",
+      confirmText: "Remover",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
-      await fetch(`/api/afiliados/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/afiliados/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Falha ao remover");
+      toast.success("Afiliado removido");
       router.push("/dashboard/afiliados");
     } catch (err) {
-      alert("Erro ao remover");
+      toast.error(err instanceof Error ? err.message : "Erro ao remover");
     }
   }
 
@@ -177,7 +188,7 @@ export default function EditarAfiliadoPage() {
           variant="outline"
           onClick={() => {
             navigator.clipboard.writeText(linkAfiliado);
-            alert("Link copiado!");
+            toast.success("Link copiado para a área de transferência");
           }}
         >
           <Copy className="h-4 w-4" /> Copiar link
@@ -637,7 +648,7 @@ export default function EditarAfiliadoPage() {
               className="w-full"
               onClick={() => {
                 navigator.clipboard.writeText(linkAfiliado);
-                alert("Copiado!");
+                toast.success("Link copiado");
               }}
             >
               <Copy className="h-3.5 w-3.5" /> Copiar link

@@ -27,7 +27,13 @@ export interface IMotoDoc {
   valorMensal?: number;
   caucao?: number;
   tipo: "venda" | "aluguel" | "ambos";
-  status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
+  status:
+    | "disponivel"
+    | "reservada"
+    | "vendida"
+    | "alugada"
+    | "manutencao"
+    | "devolvida";
   destaque?: boolean;
   fotos: string[];
   descricao?: string;
@@ -104,7 +110,14 @@ const MotoSchema = new Schema<IMotoDoc>(
     },
     status: {
       type: String,
-      enum: ["disponivel", "reservada", "vendida", "alugada", "manutencao"],
+      enum: [
+        "disponivel",
+        "reservada",
+        "vendida",
+        "alugada",
+        "manutencao",
+        "devolvida",
+      ],
       required: true,
       default: "disponivel",
       index: true,

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Mock — em produção viria da sessão do usuário
 const me = {
@@ -89,7 +90,7 @@ export default function AfiliadoDashboardPage() {
   function copyLink() {
     const link = `${window.location.origin}/m/${me.codigo}`;
     navigator.clipboard.writeText(link);
-    alert("Link copiado!");
+    toast.success("Link copiado para a área de transferência");
   }
 
   function shareWhatsApp() {

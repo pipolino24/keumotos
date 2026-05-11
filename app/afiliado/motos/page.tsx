@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 // Mock — em produção viria da sessão
 const me = {
@@ -172,7 +173,7 @@ function MotoCardAfiliado({ moto }: { moto: Moto }) {
 
   function copyLink() {
     navigator.clipboard.writeText(linkMoto);
-    alert("Link copiado!");
+    toast.success("Link copiado");
   }
 
   function shareWhatsApp() {

@@ -251,11 +251,11 @@ export default function RegisterPage() {
                 />
                 <span>
                   Eu li e concordo com os{" "}
-                  <Link href="#" className="text-keu-red font-semibold hover:underline">
+                  <Link href="/termos" className="text-keu-red font-semibold hover:underline">
                     Termos de Uso
                   </Link>{" "}
                   e a{" "}
-                  <Link href="#" className="text-keu-red font-semibold hover:underline">
+                  <Link href="/privacidade" className="text-keu-red font-semibold hover:underline">
                     Política de Privacidade
                   </Link>
                 </span>

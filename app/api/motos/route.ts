@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
+import { motoCreateSchema } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectMongo();
-    const data = await req.json();
-    const moto = await Moto.create(data);
+    const raw = await req.json();
+    const parsed = motoCreateSchema.safeParse(raw);
+    if (!parsed.success) {
+      const issues = parsed.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; ");
+      return NextResponse.json(
+        { error: `Validação: ${issues}` },
+        { status: 400 }
+      );
+    }
+    const moto = await Moto.create(parsed.data);
     return NextResponse.json({ moto }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao salvar moto";

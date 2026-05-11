@@ -1,0 +1,161 @@
+import { z } from "zod";
+
+export const userCreateSchema = z.object({
+  nome: z.string().min(2, "Nome muito curto"),
+  email: z.email("E-mail inválido"),
+  telefone: z.string().min(8, "Telefone inválido"),
+  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  role: z.enum(["admin", "vendedor", "cliente", "afiliado"]).optional(),
+  status: z.enum(["ativo", "inativo", "pendente"]).optional(),
+  avatar: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().max(2).optional(),
+  cpf: z.string().optional(),
+});
+
+export const motoCreateSchema = z.object({
+  marca: z.string().min(1, "Marca obrigatória"),
+  modelo: z.string().min(1, "Modelo obrigatório"),
+  versao: z.string().optional(),
+  anoFabricacao: z.number().int().min(1900).max(2100),
+  anoModelo: z.number().int().min(1900).max(2100),
+  cor: z.string().min(1, "Cor obrigatória"),
+  placa: z.string().optional(),
+  chassi: z.string().optional(),
+  renavam: z.string().optional(),
+  numeroMotor: z.string().optional(),
+  cilindrada: z.number().int().min(1),
+  combustivel: z.enum(["gasolina", "flex", "eletrica"]),
+  cambio: z.enum(["manual", "automatico", "semi-automatico", "cvt"]),
+  partida: z.enum(["eletrica", "pedal", "ambas"]).optional(),
+  km: z.number().int().min(0),
+  potencia: z.string().optional(),
+  valorFipe: z.number().min(0),
+  valorCompra: z.number().min(0),
+  valorAnunciado: z.number().min(0),
+  valorMinimo: z.number().min(0),
+  comissao: z.number().min(0).optional(),
+  valorDiaria: z.number().min(0).optional(),
+  valorSemanal: z.number().min(0).optional(),
+  valorMensal: z.number().min(0).optional(),
+  caucao: z.number().min(0).optional(),
+  tipo: z.enum(["venda", "aluguel", "ambos"]),
+  status: z
+    .enum(["disponivel", "reservada", "vendida", "alugada", "manutencao", "devolvida"])
+    .optional(),
+  destaque: z.boolean().optional(),
+  fotos: z.array(z.string()).default([]),
+  descricao: z.string().optional(),
+  observacoes: z.string().optional(),
+  origem: z.enum(["propria", "comprada", "repasse"]).default("comprada"),
+  proprietarioId: z.string().optional(),
+  proprietarioNome: z.string().optional(),
+  compra: z
+    .object({
+      valorPago: z.number().min(0),
+      formaPagamento: z.enum([
+        "pix",
+        "dinheiro",
+        "transferencia",
+        "troca",
+        "cheque",
+      ]),
+      numeroNotaFiscal: z.string().optional(),
+      dataAquisicao: z.union([z.string(), z.date()]),
+    })
+    .optional(),
+  repasse: z
+    .object({
+      valorCombinadoDono: z.number().min(0),
+      tipoComissao: z.enum(["percentual", "fixo"]),
+      comissaoPercentual: z.number().min(0).max(100).optional(),
+      comissaoFixa: z.number().min(0).optional(),
+      prazoConsignacao: z.number().int().min(1),
+      dataInicioConsignacao: z.union([z.string(), z.date()]),
+      contratoAssinado: z.boolean().default(false),
+      observacoesAcordo: z.string().optional(),
+    })
+    .optional(),
+  setor: z.enum(["multimarcas", "loca", "pecas"]).default("multimarcas"),
+  vendedorResponsavel: z.string().optional(),
+  dataEntrada: z.union([z.string(), z.date()]).optional(),
+});
+
+export const proprietarioCreateSchema = z.object({
+  nome: z.string().min(2),
+  cpf: z.string().min(11),
+  rg: z.string().optional(),
+  cnh: z.string().optional(),
+  email: z.email().optional().or(z.literal("")),
+  telefone: z.string().min(8),
+  whatsapp: z.string().optional(),
+  cep: z.string().optional(),
+  endereco: z.string().optional(),
+  numero: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().max(2).optional(),
+  pixTipo: z.enum(["cpf", "email", "telefone", "aleatoria"]).optional(),
+  pixChave: z.string().optional(),
+  banco: z.string().optional(),
+  agencia: z.string().optional(),
+  conta: z.string().optional(),
+  fotoPessoal: z.string().optional(),
+  fotoCnh: z.string().optional(),
+  fotoComprovanteResidencia: z.string().optional(),
+  fotoDocMoto: z.string().optional(),
+});
+
+export const afiliadoCreateSchema = z.object({
+  nome: z.string().min(2),
+  email: z.email(),
+  telefone: z.string().min(8),
+  avatar: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().max(2).optional(),
+  bio: z.string().optional(),
+  instagram: z.string().optional(),
+  whatsapp: z.string().optional(),
+  tipoComissao: z.enum(["percentual", "fixo"]),
+  comissaoPercentual: z.number().min(0).max(100).optional(),
+  comissaoFixa: z.number().min(0).optional(),
+  valorMinimoVenda: z.number().min(0).optional(),
+  comissaoMaxima: z.number().min(0).optional(),
+  pixTipo: z.enum(["cpf", "email", "telefone", "aleatoria"]).optional(),
+  pixChave: z.string().optional(),
+  banco: z.string().optional(),
+  agencia: z.string().optional(),
+  conta: z.string().optional(),
+  aprovado: z.boolean().default(true),
+  status: z.enum(["ativo", "pausado", "bloqueado"]).optional(),
+  observacoes: z.string().optional(),
+});
+
+export const contatoCreateSchema = z.object({
+  nome: z.string().min(2),
+  telefone: z.string().min(8),
+  email: z.email().optional().or(z.literal("")),
+  origem: z.enum(["site", "instagram", "whatsapp", "presencial", "indicacao"]),
+  interesse: z.enum(["compra", "venda", "troca", "aluguel", "pecas", "outro"]),
+  motoInteresse: z.string().optional(),
+  observacoes: z.string().optional(),
+  status: z
+    .enum(["novo", "em-atendimento", "convertido", "perdido"])
+    .optional(),
+  vendedorResponsavel: z.string().optional(),
+});
+
+export const roleCreateSchema = z.object({
+  nome: z.string().min(2),
+  descricao: z.string().optional(),
+  cor: z.string().optional(),
+  permissoes: z.array(z.string()).default([]),
+  ativo: z.boolean().default(true),
+});
+
+export type UserCreateInput = z.infer<typeof userCreateSchema>;
+export type MotoCreateInput = z.infer<typeof motoCreateSchema>;
+export type ProprietarioCreateInput = z.infer<typeof proprietarioCreateSchema>;
+export type AfiliadoCreateInput = z.infer<typeof afiliadoCreateSchema>;
+export type ContatoCreateInput = z.infer<typeof contatoCreateSchema>;
+export type RoleCreateInput = z.infer<typeof roleCreateSchema>;

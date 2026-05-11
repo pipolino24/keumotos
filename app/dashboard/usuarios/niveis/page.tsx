@@ -20,7 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { PERMISSION_MODULES, getPermissionLabel } from "@/lib/permissions";
+import { PERMISSION_MODULES } from "@/lib/permissions";
+import { toast } from "sonner";
+import { confirmDialog } from "@/components/ui/confirm-dialog";
 
 interface RoleItem {
   _id: string;
@@ -59,7 +61,13 @@ export default function NiveisPage() {
 
   async function handleDelete(role: RoleItem) {
     if (role.sistema) return;
-    if (!confirm(`Remover o cargo "${role.nome}"?`)) return;
+    const ok = await confirmDialog({
+      title: "Remover cargo",
+      message: `Tem certeza que quer remover "${role.nome}"? Usuários com esse cargo perdem as permissões.`,
+      confirmText: "Remover",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/roles/${role._id}`, { method: "DELETE" });
       if (!res.ok) {
@@ -67,8 +75,9 @@ export default function NiveisPage() {
         throw new Error(data.error);
       }
       setRoles((rs) => rs.filter((r) => r._id !== role._id));
+      toast.success(`Cargo "${role.nome}" removido`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao remover");
+      toast.error(e instanceof Error ? e.message : "Erro ao remover");
     }
   }
 

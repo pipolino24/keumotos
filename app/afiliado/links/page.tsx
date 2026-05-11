@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { toast } from "sonner";
 
 const me = { codigo: "joao-silva-keu" };
 
@@ -46,7 +47,7 @@ const motosCompartilhadas = [
 export default function MeusLinksPage() {
   function copy(link: string) {
     navigator.clipboard.writeText(`${window.location.origin}${link}`);
-    alert("Copiado!");
+    toast.success("Link copiado");
   }
 
   const linkPrincipal =

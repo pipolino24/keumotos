@@ -19,11 +19,19 @@ export default function LoginPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Seta o cookie de role pra middleware/RBAC reconhecer.
+    // Quando integrar auth real, isso virá do JWT/sessão.
+    document.cookie = `keu_role=${accountType}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
     if (accountType === "afiliado") {
       router.push("/afiliado");
     } else {
       router.push("/dashboard");
     }
+  }
+
+  function loginAsAdmin() {
+    document.cookie = `keu_role=admin; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+    router.push("/dashboard");
   }
 
   return (
@@ -109,7 +117,7 @@ export default function LoginPage() {
                     Senha
                   </Label>
                   <Link
-                    href="#"
+                    href="/forgot-password"
                     className="text-xs font-medium text-keu-red hover:underline"
                   >
                     Esqueceu a senha?
@@ -161,8 +169,49 @@ export default function LoginPage() {
                 </div>
                 <div className="relative flex justify-center text-xs">
                   <span className="bg-white px-3 text-keu-black/40 uppercase">
-                    ou
+                    demo
                   </span>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <div className="text-xs font-semibold text-amber-900 mb-2">
+                  🛠️ Entrar sem senha (modo demonstração)
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={loginAsAdmin}
+                    className="text-xs"
+                  >
+                    👑 Admin
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      document.cookie = `keu_role=vendedor; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+                      router.push("/dashboard");
+                    }}
+                    className="text-xs"
+                  >
+                    🛒 Vendedor
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      document.cookie = `keu_role=afiliado; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+                      router.push("/afiliado");
+                    }}
+                    className="text-xs"
+                  >
+                    🤝 Afiliado
+                  </Button>
                 </div>
               </div>
 

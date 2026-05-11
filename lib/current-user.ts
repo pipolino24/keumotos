@@ -1,8 +1,3 @@
-/**
- * Mock do usuário atual. Em produção, viria da sessão (NextAuth/cookies).
- * Centralizo aqui para facilitar a troca quando implementar auth real.
- */
-
 import type { UserRole } from "./types";
 
 export interface CurrentUser {
@@ -15,31 +10,71 @@ export interface CurrentUser {
   setor: "multimarcas" | "loca" | "pecas";
 }
 
-// Mock para desenvolvimento. Em produção: lookup da sessão.
-const MOCK_USER: CurrentUser = {
-  id: "u2",
-  nome: "Marcos Vinícius Lima",
-  email: "marcos@keumotos.com.br",
-  role: "vendedor",
-  permissoes: [],
-  setor: "multimarcas",
+const MOCK_USERS: Record<UserRole, CurrentUser> = {
+  admin: {
+    id: "u1",
+    nome: "Antônio Carlos Silva",
+    email: "keu.admin@keumotos.com.br",
+    role: "admin",
+    permissoes: [],
+    setor: "multimarcas",
+  },
+  vendedor: {
+    id: "u2",
+    nome: "Marcos Vinícius Lima",
+    email: "marcos@keumotos.com.br",
+    role: "vendedor",
+    permissoes: [],
+    setor: "multimarcas",
+  },
+  afiliado: {
+    id: "u7",
+    nome: "João Silva",
+    email: "joao@email.com",
+    role: "afiliado",
+    permissoes: [],
+    setor: "multimarcas",
+  },
+  cliente: {
+    id: "u4",
+    nome: "João Pedro Santos",
+    email: "joaopedro@gmail.com",
+    role: "cliente",
+    permissoes: [],
+    setor: "multimarcas",
+  },
 };
 
-// Toggle pra simular login como admin durante desenvolvimento.
-// Em produção, isso virá do JWT/cookie da sessão.
-const ENABLE_ADMIN_MODE = false;
+export function userByRole(role: UserRole): CurrentUser {
+  return MOCK_USERS[role] ?? MOCK_USERS.vendedor;
+}
 
-const MOCK_ADMIN: CurrentUser = {
-  id: "u1",
-  nome: "Antônio Carlos Silva",
-  email: "keu.admin@keumotos.com.br",
-  role: "admin",
-  permissoes: [],
-  setor: "multimarcas",
-};
+/**
+ * Server-side: lê o role do cookie `keu_role` (seteado no login).
+ * Em produção, trocar por sessão real (NextAuth).
+ */
+export async function getCurrentUserServer(): Promise<CurrentUser> {
+  try {
+    const { cookies } = await import("next/headers");
+    const store = await cookies();
+    const role = (store.get("keu_role")?.value as UserRole) || "vendedor";
+    return MOCK_USERS[role] ?? MOCK_USERS.vendedor;
+  } catch {
+    return MOCK_USERS.vendedor;
+  }
+}
 
+/**
+ * Client-side: lê o role do cookie via document.cookie.
+ * Fallback pra "vendedor" se não tiver cookie.
+ */
 export function getCurrentUser(): CurrentUser {
-  return ENABLE_ADMIN_MODE ? MOCK_ADMIN : MOCK_USER;
+  if (typeof document === "undefined") {
+    return MOCK_USERS.vendedor;
+  }
+  const match = document.cookie.match(/(?:^|;\s*)keu_role=([^;]+)/);
+  const role = (match?.[1] as UserRole) || "vendedor";
+  return MOCK_USERS[role] ?? MOCK_USERS.vendedor;
 }
 
 export function isAdmin(user: CurrentUser = getCurrentUser()): boolean {
