@@ -26,25 +26,25 @@ export function AfiliadoSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex w-64 bg-gradient-to-b from-keu-black via-keu-gray to-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
-      <div className="p-6 border-b border-white/10 bg-white">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-keu-black/10 text-keu-black flex-col fixed inset-y-0 left-0 z-40">
+      <div className="p-5 border-b border-keu-black/5">
         <Link href="/" className="block">
           <KeuLogo size="md" />
         </Link>
       </div>
 
-      <div className="px-4 pt-4">
-        <div className="bg-gradient-to-br from-purple-500 to-keu-red rounded-xl p-3 flex items-center gap-2">
-          <Handshake className="h-5 w-5 text-white" />
+      <div className="px-3 pt-3">
+        <div className="bg-gradient-to-br from-purple-500 to-keu-red rounded-xl p-3 flex items-center gap-2 text-white">
+          <Handshake className="h-5 w-5" />
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-white/80">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-white/90">
               Área do Afiliado
             </div>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-thin">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -56,24 +56,24 @@ export function AfiliadoSidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                 isActive
-                  ? "bg-keu-red text-white shadow-lg shadow-keu-red/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
+                  ? "bg-keu-red text-white shadow-md shadow-keu-red/25"
+                  : "text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
               )}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
               {isActive && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/10">
+      <div className="p-3 border-t border-keu-black/5">
         <Link
           href="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-keu-red hover:text-white"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white"
         >
           <LogOut className="h-4 w-4" /> Sair
         </Link>

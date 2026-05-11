@@ -23,7 +23,6 @@ import {
   KeuMotoPecas,
   KeuLocaMotos,
   KeuMultimarcas,
-  MotoIcon,
 } from "@/components/keu-logo";
 
 export default function HomePage() {
@@ -136,10 +135,6 @@ export default function HomePage() {
                 <div className="absolute -top-4 -right-4 bg-keu-red rounded-2xl p-4 shadow-2xl rotate-12 animate-fade-in">
                   <Award className="h-8 w-8 text-white" />
                 </div>
-                <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-3 shadow-xl -rotate-6 border border-keu-black/5">
-                  <div className="text-xs font-bold text-keu-black/60">FIPE</div>
-                  <div className="text-keu-red font-black">Garantido</div>
-                </div>
               </div>
             </div>
           </div>
@@ -162,9 +157,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             <UnidadeCard
-              brand={
-                <KeuMotoPecas width={240} height={150} className="mx-auto" />
-              }
+              brand={<KeuMotoPecas width={220} height={180} className="max-h-[180px] w-auto mx-auto object-contain" />}
               title="Peças e Borracharia"
               description="Padre Cícero. Peças originais, acessórios e borracharia completa para sua moto."
               phone="(88) 98814-3757"
@@ -172,9 +165,7 @@ export default function HomePage() {
               gradient="from-amber-500/10 to-keu-red/10"
             />
             <UnidadeCard
-              brand={
-                <KeuLocaMotos width={220} height={180} className="mx-auto" />
-              }
+              brand={<KeuLocaMotos width={220} height={180} className="max-h-[180px] w-auto mx-auto object-contain" />}
               title="Aluguel de Motos"
               description="Realizando sonhos sobre duas rodas. Locação por diária, semana ou mês."
               phone="(88) 98814-3757"
@@ -182,9 +173,7 @@ export default function HomePage() {
               featured
             />
             <UnidadeCard
-              brand={
-                <KeuMultimarcas width={240} height={150} className="mx-auto" />
-              }
+              brand={<KeuMultimarcas width={220} height={180} className="max-h-[180px] w-auto mx-auto object-contain" />}
               title="Compra, Vende e Troca"
               description="Multimarcas: as melhores motos seminovas e zero km com FIPE garantida."
               phone="(88) 99850-5859"

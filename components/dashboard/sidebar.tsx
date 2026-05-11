@@ -55,14 +55,14 @@ function SidebarContent({
 }) {
   return (
     <>
-      <div className="p-6 border-b border-white/10 bg-white">
+      <div className="p-5 border-b border-keu-black/5">
         <Link href="/" className="block" onClick={onItemClick}>
           <KeuLogo size="md" />
         </Link>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-thin">
-        <div className="text-xs font-bold uppercase tracking-wider text-white/40 px-3 mb-2">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+        <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-keu-black/40 px-3 mb-2 mt-1">
           Principal
         </div>
         {navItems.map((item) => {
@@ -75,16 +75,16 @@ function SidebarContent({
               href={item.href}
               onClick={onItemClick}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative group",
                 isActive
-                  ? "bg-keu-red text-white shadow-lg shadow-keu-red/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
+                  ? "bg-keu-red text-white shadow-md shadow-keu-red/25"
+                  : "text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
               )}
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              <span className="flex-1">{item.label}</span>
               {isActive && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
               )}
             </Link>
           );
@@ -92,8 +92,8 @@ function SidebarContent({
 
         {userIsAdmin && (
           <>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 px-3 mb-2 mt-6">
-              <Shield className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-keu-black/40 px-3 mb-2 mt-6">
+              <Shield className="h-3 w-3 text-amber-500" />
               Restrito Admin
             </div>
             {adminNavItems.map((item) => {
@@ -105,16 +105,21 @@ function SidebarContent({
                   href={item.href}
                   onClick={onItemClick}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all relative",
                     isActive
-                      ? "bg-amber-500 text-white shadow-lg"
-                      : "text-amber-300/80 hover:bg-amber-500/10 hover:text-amber-200"
+                      ? "bg-keu-black text-white shadow-md"
+                      : "text-keu-black/70 hover:bg-amber-500/10 hover:text-keu-black"
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <item.icon
+                    className={cn(
+                      "h-4 w-4 flex-shrink-0",
+                      !isActive && "text-amber-600"
+                    )}
+                  />
+                  <span className="flex-1">{item.label}</span>
                   {isActive && (
-                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                   )}
                 </Link>
               );
@@ -123,11 +128,11 @@ function SidebarContent({
         )}
       </nav>
 
-      <div className="p-4 border-t border-white/10 space-y-1">
+      <div className="p-3 border-t border-keu-black/5 space-y-0.5">
         <Link
           href="#"
           onClick={onItemClick}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/5 hover:text-white"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
         >
           <Settings className="h-4 w-4" /> Configurações
         </Link>
@@ -137,7 +142,7 @@ function SidebarContent({
             document.cookie = "keu_role=; path=/; max-age=0";
             onItemClick?.();
           }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-keu-red hover:text-white"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white"
         >
           <LogOut className="h-4 w-4" /> Sair
         </Link>
@@ -145,27 +150,27 @@ function SidebarContent({
 
       <div
         className={cn(
-          "p-4 border-t m-4 rounded-xl",
-          userIsAdmin
-            ? "bg-amber-500/10 border-amber-500/30"
-            : "bg-keu-red/10 border-keu-red/20"
+          "px-3 py-3 border-t flex items-center gap-3",
+          userIsAdmin ? "border-amber-200 bg-amber-50/40" : "border-keu-red/15 bg-keu-red/5"
         )}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center font-bold",
-              userIsAdmin ? "bg-amber-500" : "bg-keu-red"
-            )}
-          >
-            {userName.charAt(0)}
+        <div
+          className={cn(
+            "w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0",
+            userIsAdmin
+              ? "bg-gradient-to-br from-amber-500 to-amber-600"
+              : "bg-gradient-to-br from-keu-red to-keu-red-dark"
+          )}
+        >
+          {userName.charAt(0)}
+        </div>
+        <div className="text-xs flex-1 min-w-0">
+          <div className="font-semibold truncate text-keu-black">
+            {userName}
           </div>
-          <div className="text-xs flex-1 min-w-0">
-            <div className="font-semibold truncate">{userName}</div>
-            <div className="text-white/50 capitalize flex items-center gap-1">
-              {userIsAdmin && <Crown className="h-3 w-3" />}
-              {userRole}
-            </div>
+          <div className="text-keu-black/50 capitalize flex items-center gap-1">
+            {userIsAdmin && <Crown className="h-3 w-3 text-amber-500" />}
+            {userRole}
           </div>
         </div>
       </div>
@@ -179,7 +184,7 @@ export function Sidebar() {
   const userIsAdmin = isAdmin(user);
 
   return (
-    <aside className="hidden lg:flex w-64 bg-gradient-to-b from-keu-gray via-keu-black to-keu-gray text-white flex-col fixed inset-y-0 left-0 z-40 shadow-2xl">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-keu-black/10 text-keu-black flex-col fixed inset-y-0 left-0 z-40">
       <SidebarContent
         pathname={pathname}
         userIsAdmin={userIsAdmin}
@@ -196,18 +201,17 @@ export function MobileTopbar() {
   const userIsAdmin = isAdmin(user);
   const [open, setOpen] = useState(false);
 
-  // Fecha o drawer quando muda de rota
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
   return (
     <>
-      <div className="lg:hidden sticky top-0 z-30 bg-gradient-to-r from-keu-gray to-keu-black text-white border-b border-white/10">
-        <div className="flex items-center justify-between p-4">
+      <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-keu-black/10">
+        <div className="flex items-center justify-between p-3">
           <button
             onClick={() => setOpen(true)}
-            className="p-2 rounded-md hover:bg-white/10"
+            className="p-2 rounded-md hover:bg-keu-gray-light"
             aria-label="Abrir menu"
           >
             <Menu className="h-5 w-5" />
@@ -218,8 +222,10 @@ export function MobileTopbar() {
           </Link>
           <div
             className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs",
-              userIsAdmin ? "bg-amber-500" : "bg-keu-red"
+              "w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs",
+              userIsAdmin
+                ? "bg-gradient-to-br from-amber-500 to-amber-600"
+                : "bg-gradient-to-br from-keu-red to-keu-red-dark"
             )}
           >
             {user.nome.charAt(0)}
@@ -229,16 +235,16 @@ export function MobileTopbar() {
 
       {open && (
         <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/60"
+          className="lg:hidden fixed inset-0 z-50 bg-black/40"
           onClick={() => setOpen(false)}
         >
           <aside
-            className="absolute left-0 inset-y-0 w-72 bg-gradient-to-b from-keu-gray via-keu-black to-keu-gray text-white flex flex-col animate-slide-in"
+            className="absolute left-0 inset-y-0 w-72 bg-white text-keu-black flex flex-col animate-slide-in shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-md hover:bg-white/10 z-10"
+              className="absolute top-3 right-3 p-2 rounded-md hover:bg-keu-gray-light z-10"
               aria-label="Fechar menu"
             >
               <X className="h-5 w-5" />
