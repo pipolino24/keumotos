@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Users,
   UserPlus,
@@ -36,9 +37,11 @@ export default function UsuariosPage() {
         title="Gerenciamento de Usuários"
         description="Administre clientes, vendedores e administradores"
       >
-        <Button variant="outline">
-          <Filter className="h-4 w-4" /> Exportar
-        </Button>
+        <Link href="/dashboard/usuarios/niveis">
+          <Button variant="outline">
+            <Shield className="h-4 w-4" /> Cargos & Níveis
+          </Button>
+        </Link>
         <Button>
           <UserPlus className="h-4 w-4" /> Novo usuário
         </Button>

@@ -7,6 +7,8 @@ export interface IUserDoc {
   telefone: string;
   cpf?: string;
   role: "admin" | "vendedor" | "cliente";
+  cargoId?: mongoose.Types.ObjectId;
+  permissoes: string[];
   status: "ativo" | "inativo" | "pendente";
   avatar?: string;
   endereco?: string;
@@ -40,6 +42,8 @@ const UserSchema = new Schema<IUserDoc>(
       default: "cliente",
       index: true,
     },
+    cargoId: { type: Schema.Types.ObjectId, ref: "Role" },
+    permissoes: { type: [String], default: [] },
     status: {
       type: String,
       enum: ["ativo", "inativo", "pendente"],
