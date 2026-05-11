@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Phone,
   Mail,
@@ -15,7 +15,9 @@ import {
   Globe,
   Users as UsersIcon,
   Loader2,
+  Handshake,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Instagram } from "@/components/icons";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +26,9 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatDate } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
+import { apiPatch } from "@/lib/api-client";
+
+type LeadStatus = "novo" | "em-atendimento" | "convertido" | "perdido";
 
 interface ContatoApi {
   _id: string;
@@ -39,6 +44,13 @@ interface ContatoApi {
   createdAt: string;
 }
 
+const STATUS_LABEL: Record<LeadStatus, string> = {
+  novo: "Novos",
+  "em-atendimento": "Em atendimento",
+  convertido: "Convertidos",
+  perdido: "Perdidos",
+};
+
 export default function ContatosPage() {
   const [search, setSearch] = useState("");
   const [filtroOrigem, setFiltroOrigem] = useState("");
@@ -52,18 +64,114 @@ export default function ContatosPage() {
     search,
   ]);
 
-  const contatos = data?.contatos ?? [];
-  const totalContatos = contatos.length;
-  const novosLeads = contatos.filter((c) => c.status === "novo").length;
-  const emAtendimento = contatos.filter(
+  // Estado local otimista para drag & drop
+  const [items, setItems] = useState<ContatoApi[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [hoverCol, setHoverCol] = useState<LeadStatus | null>(null);
+
+  useEffect(() => {
+    setItems(data?.contatos ?? []);
+  }, [data]);
+
+  const totalContatos = items.length;
+  const novosLeads = items.filter((c) => c.status === "novo").length;
+  const emAtendimento = items.filter(
     (c) => c.status === "em-atendimento"
   ).length;
-  const convertidos = contatos.filter(
-    (c) => c.status === "convertido"
-  ).length;
+  const convertidos = items.filter((c) => c.status === "convertido").length;
   const taxaConversao = totalContatos
     ? ((convertidos / totalContatos) * 100).toFixed(0)
     : "0";
+
+  async function moverStatus(id: string, novoStatus: LeadStatus) {
+    const original = items.find((c) => c._id === id);
+    if (!original || original.status === novoStatus) return;
+
+    // Atualização otimista
+    setItems((prev) =>
+      prev.map((c) => (c._id === id ? { ...c, status: novoStatus } : c))
+    );
+
+    const { error: err } = await apiPatch<{ contato: ContatoApi }>(
+      `/api/contatos/${id}`,
+      { status: novoStatus }
+    );
+
+    if (err) {
+      // Rollback
+      setItems((prev) =>
+        prev.map((c) =>
+          c._id === id ? { ...c, status: original.status } : c
+        )
+      );
+      toast.error(`Não rolou mover: ${err}`);
+    } else {
+      toast.success(`${original.nome} → ${STATUS_LABEL[novoStatus]}`);
+    }
+  }
+
+  function handleDragStart(e: React.DragEvent, id: string) {
+    setDraggingId(id);
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragEnd() {
+    setDraggingId(null);
+    setHoverCol(null);
+  }
+
+  function handleDragOver(e: React.DragEvent, status: LeadStatus) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (hoverCol !== status) setHoverCol(status);
+  }
+
+  function handleDragLeave(status: LeadStatus) {
+    if (hoverCol === status) setHoverCol(null);
+  }
+
+  function handleDrop(e: React.DragEvent, status: LeadStatus) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain") || draggingId;
+    setHoverCol(null);
+    setDraggingId(null);
+    if (id) {
+      void moverStatus(id, status);
+    }
+  }
+
+  const colDefs: {
+    status: LeadStatus;
+    title: string;
+    color: string;
+    dotColor: string;
+  }[] = [
+    {
+      status: "novo",
+      title: "Novos",
+      color: "border-blue-500 bg-blue-50/50",
+      dotColor: "bg-blue-500",
+    },
+    {
+      status: "em-atendimento",
+      title: "Em atendimento",
+      color: "border-amber-500 bg-amber-50/50",
+      dotColor: "bg-amber-500",
+    },
+    {
+      status: "convertido",
+      title: "Convertidos",
+      color: "border-emerald-500 bg-emerald-50/50",
+      dotColor: "bg-emerald-500",
+    },
+    {
+      status: "perdido",
+      title: "Perdidos",
+      color: "border-red-300 bg-red-50/50",
+      dotColor: "bg-red-300",
+    },
+  ];
 
   return (
     <div>
@@ -107,36 +215,29 @@ export default function ContatosPage() {
         />
       </div>
 
-      {/* PIPELINE */}
+      {/* PIPELINE DRAG & DROP */}
+      <div className="mb-3 flex items-center gap-2 text-xs text-keu-black/60">
+        <Handshake className="h-3.5 w-3.5" />
+        Arraste os cards entre as colunas para mudar o status do lead.
+      </div>
       <div className="grid lg:grid-cols-4 gap-4 mb-8">
-        <PipelineCol
-          title="Novos"
-          count={contatos.filter((c) => c.status === "novo").length}
-          color="border-blue-500 bg-blue-50/50"
-          dotColor="bg-blue-500"
-          contatos={contatos.filter((c) => c.status === "novo")}
-        />
-        <PipelineCol
-          title="Em atendimento"
-          count={contatos.filter((c) => c.status === "em-atendimento").length}
-          color="border-amber-500 bg-amber-50/50"
-          dotColor="bg-amber-500"
-          contatos={contatos.filter((c) => c.status === "em-atendimento")}
-        />
-        <PipelineCol
-          title="Convertidos"
-          count={contatos.filter((c) => c.status === "convertido").length}
-          color="border-emerald-500 bg-emerald-50/50"
-          dotColor="bg-emerald-500"
-          contatos={contatos.filter((c) => c.status === "convertido")}
-        />
-        <PipelineCol
-          title="Perdidos"
-          count={contatos.filter((c) => c.status === "perdido").length}
-          color="border-red-300 bg-red-50/50"
-          dotColor="bg-red-300"
-          contatos={contatos.filter((c) => c.status === "perdido")}
-        />
+        {colDefs.map((col) => (
+          <PipelineCol
+            key={col.status}
+            status={col.status}
+            title={col.title}
+            color={col.color}
+            dotColor={col.dotColor}
+            contatos={items.filter((c) => c.status === col.status)}
+            draggingId={draggingId}
+            isHover={hoverCol === col.status}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => handleDragOver(e, col.status)}
+            onDragLeave={() => handleDragLeave(col.status)}
+            onDrop={(e) => handleDrop(e, col.status)}
+          />
+        ))}
       </div>
 
       {/* TABELA */}
@@ -146,7 +247,9 @@ export default function ContatosPage() {
             <div>
               <h2 className="font-bold text-lg">Todos os contatos</h2>
               <p className="text-sm text-keu-black/60">
-                {loading ? "Carregando..." : `${totalContatos} contatos registrados`}
+                {loading
+                  ? "Carregando..."
+                  : `${totalContatos} contatos registrados`}
               </p>
             </div>
             <div className="flex gap-2">
@@ -204,11 +307,13 @@ export default function ContatosPage() {
         {loading ? (
           <div className="p-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
-            <div className="text-sm text-keu-black/60">Carregando contatos...</div>
+            <div className="text-sm text-keu-black/60">
+              Carregando contatos...
+            </div>
           </div>
         ) : error ? (
           <div className="p-16 text-center text-red-600 text-sm">{error}</div>
-        ) : contatos.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="p-16 text-center">
             <UsersIcon className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
             <h3 className="font-bold mb-1">Nenhum contato encontrado</h3>
@@ -237,8 +342,11 @@ export default function ContatosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-keu-black/5">
-                {contatos.map((c) => (
-                  <tr key={c._id} className="hover:bg-keu-gray-light transition">
+                {items.map((c) => (
+                  <tr
+                    key={c._id}
+                    className="hover:bg-keu-gray-light transition"
+                  >
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="bg-keu-red text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm">
@@ -265,7 +373,9 @@ export default function ContatosPage() {
                     </td>
                     <td className="p-4 max-w-xs">
                       {c.motoInteresse && (
-                        <div className="text-sm font-medium">{c.motoInteresse}</div>
+                        <div className="text-sm font-medium">
+                          {c.motoInteresse}
+                        </div>
                       )}
                       {c.observacoes && (
                         <div className="text-xs text-keu-black/60 truncate">
@@ -327,50 +437,172 @@ function StatBox({
   );
 }
 
-function PipelineCol({
-  title,
-  count,
-  color,
-  dotColor,
-  contatos,
-}: {
+interface PipelineColProps {
+  status: LeadStatus;
   title: string;
-  count: number;
   color: string;
   dotColor: string;
   contatos: ContatoApi[];
-}) {
+  draggingId: string | null;
+  isHover: boolean;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+}
+
+function PipelineCol({
+  title,
+  color,
+  dotColor,
+  contatos,
+  draggingId,
+  isHover,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: PipelineColProps) {
   return (
-    <Card className={`border-t-4 ${color} p-4`}>
+    <Card
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`border-t-4 ${color} p-4 transition ${
+        isHover ? "ring-2 ring-keu-red/40 ring-offset-2" : ""
+      }`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${dotColor}`} />
           <span className="font-bold text-sm">{title}</span>
         </div>
         <Badge variant="outline" className="text-xs">
-          {count}
+          {contatos.length}
         </Badge>
       </div>
-      <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+      <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-thin min-h-20">
         {contatos.length === 0 ? (
-          <p className="text-xs text-keu-black/40 text-center py-4">
-            Nenhum contato
+          <p className="text-xs text-keu-black/40 text-center py-6 border-2 border-dashed border-keu-black/10 rounded-lg">
+            {isHover ? "Solte aqui" : "Nenhum contato"}
           </p>
         ) : (
           contatos.map((c) => (
-            <div
+            <KanbanCard
               key={c._id}
-              className="bg-white p-3 rounded-lg border border-keu-black/5 hover:border-keu-red/20 transition cursor-pointer"
-            >
-              <div className="font-semibold text-sm truncate">{c.nome}</div>
-              <div className="text-xs text-keu-black/60 truncate">
-                {c.motoInteresse ?? c.interesse}
-              </div>
-            </div>
+              contato={c}
+              dragging={draggingId === c._id}
+              onDragStart={(e) => onDragStart(e, c._id)}
+              onDragEnd={onDragEnd}
+            />
           ))
         )}
       </div>
     </Card>
+  );
+}
+
+function KanbanCard({
+  contato,
+  dragging,
+  onDragStart,
+  onDragEnd,
+}: {
+  contato: ContatoApi;
+  dragging: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+}) {
+  const telefoneDigits = contato.telefone.replace(/\D/g, "");
+  const waNumber = telefoneDigits.startsWith("55")
+    ? telefoneDigits
+    : `55${telefoneDigits}`;
+  const waText = encodeURIComponent(
+    `Olá ${contato.nome}, sou da KEU Multimarcas.`
+  );
+  const waUrl = `https://wa.me/${waNumber}?text=${waText}`;
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`bg-white p-3 rounded-lg border transition cursor-grab active:cursor-grabbing select-none ${
+        dragging
+          ? "opacity-50 border-keu-red/40 shadow-lg"
+          : "border-keu-black/5 hover:border-keu-red/20 hover:shadow-sm"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="font-semibold text-sm truncate flex-1">
+          {contato.nome}
+        </div>
+        <MiniOrigemIcon origem={contato.origem} />
+      </div>
+      <div className="text-xs text-keu-black/60 truncate mb-2">
+        {contato.motoInteresse ?? contato.interesse}
+      </div>
+      <a
+        href={waUrl}
+        target="_blank"
+        rel="noopener"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 transition"
+        title={`WhatsApp ${contato.telefone}`}
+      >
+        <Phone className="h-3 w-3" />
+        {contato.telefone}
+      </a>
+    </div>
+  );
+}
+
+function MiniOrigemIcon({ origem }: { origem: string }) {
+  const map: Record<
+    string,
+    { icon: React.ReactNode; title: string; cls: string }
+  > = {
+    site: {
+      icon: <Globe className="h-3 w-3" />,
+      title: "Site",
+      cls: "bg-slate-100 text-slate-700",
+    },
+    instagram: {
+      icon: <Instagram className="h-3 w-3" />,
+      title: "Instagram",
+      cls: "bg-pink-100 text-pink-700",
+    },
+    whatsapp: {
+      icon: <MessageCircle className="h-3 w-3" />,
+      title: "WhatsApp",
+      cls: "bg-emerald-100 text-emerald-700",
+    },
+    presencial: {
+      icon: <UsersIcon className="h-3 w-3" />,
+      title: "Presencial",
+      cls: "bg-amber-100 text-amber-700",
+    },
+    indicacao: {
+      icon: <Handshake className="h-3 w-3" />,
+      title: "Indicação",
+      cls: "bg-violet-100 text-violet-700",
+    },
+  };
+  const conf = map[origem] ?? {
+    icon: <Globe className="h-3 w-3" />,
+    title: origem,
+    cls: "bg-keu-gray-light text-keu-black/60",
+  };
+  return (
+    <span
+      title={conf.title}
+      className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${conf.cls}`}
+    >
+      {conf.icon}
+    </span>
   );
 }
 
@@ -452,8 +684,16 @@ function StatusBadge({ status }: { status: string }) {
       l: "Em atendimento",
       i: <MessageCircle className="h-3 w-3" />,
     },
-    convertido: { v: "success", l: "Convertido", i: <CheckCircle2 className="h-3 w-3" /> },
-    perdido: { v: "danger", l: "Perdido", i: <XCircle className="h-3 w-3" /> },
+    convertido: {
+      v: "success",
+      l: "Convertido",
+      i: <CheckCircle2 className="h-3 w-3" />,
+    },
+    perdido: {
+      v: "danger",
+      l: "Perdido",
+      i: <XCircle className="h-3 w-3" />,
+    },
   };
   const conf = map[status] || { v: "warning" as const, l: status, i: null };
   return (

@@ -1,0 +1,558 @@
+import Link from "next/link";
+import Image from "next/image";
+import {
+  Bike,
+  ArrowRight,
+  ArrowLeft,
+  Phone,
+  MapPin,
+  Clock,
+  Search,
+} from "lucide-react";
+import { Instagram } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input, Select } from "@/components/ui/input";
+import { KeuLogo } from "@/components/keu-logo";
+import { formatCurrency, formatKm } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+interface Moto {
+  _id: string;
+  marca: string;
+  modelo: string;
+  versao?: string;
+  anoFabricacao: number;
+  anoModelo: number;
+  cor: string;
+  km: number;
+  cilindrada: number;
+  combustivel: string;
+  cambio: string;
+  valorAnunciado: number;
+  valorDiaria?: number;
+  valorMensal?: number;
+  tipo: "venda" | "aluguel" | "ambos";
+  status: string;
+  destaque?: boolean;
+  fotos: string[];
+  descricao?: string;
+}
+
+interface SearchParams {
+  q?: string;
+  tipo?: string;
+  marca?: string;
+  precoMin?: string;
+  precoMax?: string;
+  anoMin?: string;
+  anoMax?: string;
+  page?: string;
+}
+
+const PAGE_SIZE = 12;
+
+async function getMotos(): Promise<Moto[]> {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  try {
+    const res = await fetch(`${base}/api/motos?status=disponivel`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.motos as Moto[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function applyFilters(motos: Moto[], sp: SearchParams): Moto[] {
+  let result = motos;
+  if (sp.q) {
+    const q = sp.q.toLowerCase();
+    result = result.filter(
+      (m) =>
+        m.marca.toLowerCase().includes(q) ||
+        m.modelo.toLowerCase().includes(q) ||
+        (m.versao ?? "").toLowerCase().includes(q)
+    );
+  }
+  if (sp.tipo && sp.tipo !== "todos") {
+    if (sp.tipo === "venda") {
+      result = result.filter((m) => m.tipo === "venda" || m.tipo === "ambos");
+    } else if (sp.tipo === "aluguel") {
+      result = result.filter((m) => m.tipo === "aluguel" || m.tipo === "ambos");
+    }
+  }
+  if (sp.marca) {
+    result = result.filter(
+      (m) => m.marca.toLowerCase() === sp.marca!.toLowerCase()
+    );
+  }
+  if (sp.precoMin) {
+    const v = parseFloat(sp.precoMin);
+    if (!isNaN(v)) result = result.filter((m) => m.valorAnunciado >= v);
+  }
+  if (sp.precoMax) {
+    const v = parseFloat(sp.precoMax);
+    if (!isNaN(v)) result = result.filter((m) => m.valorAnunciado <= v);
+  }
+  if (sp.anoMin) {
+    const v = parseInt(sp.anoMin, 10);
+    if (!isNaN(v)) result = result.filter((m) => m.anoModelo >= v);
+  }
+  if (sp.anoMax) {
+    const v = parseInt(sp.anoMax, 10);
+    if (!isNaN(v)) result = result.filter((m) => m.anoModelo <= v);
+  }
+  return result;
+}
+
+function buildPageHref(sp: SearchParams, page: number): string {
+  const params = new URLSearchParams();
+  if (sp.q) params.set("q", sp.q);
+  if (sp.tipo) params.set("tipo", sp.tipo);
+  if (sp.marca) params.set("marca", sp.marca);
+  if (sp.precoMin) params.set("precoMin", sp.precoMin);
+  if (sp.precoMax) params.set("precoMax", sp.precoMax);
+  if (sp.anoMin) params.set("anoMin", sp.anoMin);
+  if (sp.anoMax) params.set("anoMax", sp.anoMax);
+  if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return `/motos${qs ? `?${qs}` : ""}`;
+}
+
+export default async function MotosPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const allMotos = await getMotos();
+
+  const marcas = Array.from(new Set(allMotos.map((m) => m.marca))).sort();
+  const filtered = applyFilters(allMotos, sp);
+  const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col bg-keu-gray-light">
+      {/* HEADER */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-keu-black/5">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl gap-3">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <KeuLogo size="sm" showSubtitle={false} />
+          </Link>
+          <Link
+            href="/"
+            className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium hover:text-keu-red transition"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar pra home
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/login">
+              <Button variant="outline" size="sm">
+                Entrar
+              </Button>
+            </Link>
+            <a
+              href="https://wa.me/5588998505859?text=Quero%20vender%20minha%20moto"
+              target="_blank"
+              rel="noopener"
+            >
+              <Button size="sm" className="hidden sm:inline-flex">
+                Vender minha moto
+              </Button>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-keu-black via-keu-gray to-keu-black text-white">
+        <div className="absolute inset-0 bg-grid opacity-10" />
+        <div
+          className="absolute -top-32 -right-32 w-96 h-96 rounded-full blur-3xl opacity-30"
+          style={{ background: "var(--keu-red)" }}
+        />
+        <div className="relative container mx-auto px-4 py-14 md:py-20 max-w-5xl">
+          <div className="text-center space-y-5">
+            <Badge variant="default">Catálogo</Badge>
+            <h1 className="text-4xl md:text-6xl font-black leading-[1] tracking-tight">
+              Motos <span className="text-keu-red">KEU Multimarcas</span>
+            </h1>
+            <p className="text-white/70 text-lg max-w-2xl mx-auto">
+              Encontre a moto perfeita pra você. FIPE garantida, documentação em
+              dia e os melhores preços do Cariri.
+            </p>
+            <form
+              action="/motos"
+              method="get"
+              className="max-w-2xl mx-auto mt-4 flex items-center gap-2 bg-white rounded-xl shadow-2xl p-2"
+            >
+              <Search className="h-5 w-5 text-keu-black/40 ml-2 flex-shrink-0" />
+              <input
+                name="q"
+                defaultValue={sp.q ?? ""}
+                type="text"
+                placeholder="Busque por marca ou modelo (ex: Honda CG)"
+                className="flex-1 bg-transparent outline-none text-keu-black text-base px-2 py-2"
+              />
+              <Button type="submit" size="lg">
+                Buscar
+              </Button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTENT */}
+      <section className="flex-1 py-10 md:py-14">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+            {/* FILTERS */}
+            <aside className="lg:sticky lg:top-20 lg:self-start">
+              <Card className="p-5">
+                <form action="/motos" method="get" className="space-y-4">
+                  {sp.q && <input type="hidden" name="q" value={sp.q} />}
+                  <div>
+                    <h3 className="font-bold text-sm mb-3">Filtrar</h3>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-keu-black/60 uppercase tracking-wider mb-1.5 block">
+                      Tipo
+                    </label>
+                    <Select name="tipo" defaultValue={sp.tipo ?? "todos"}>
+                      <option value="todos">Todos</option>
+                      <option value="venda">Venda</option>
+                      <option value="aluguel">Aluguel</option>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-keu-black/60 uppercase tracking-wider mb-1.5 block">
+                      Marca
+                    </label>
+                    <Select name="marca" defaultValue={sp.marca ?? ""}>
+                      <option value="">Todas</option>
+                      {marcas.map((marca) => (
+                        <option key={marca} value={marca}>
+                          {marca}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-keu-black/60 uppercase tracking-wider mb-1.5 block">
+                      Faixa de preço (R$)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        name="precoMin"
+                        placeholder="Mín"
+                        defaultValue={sp.precoMin ?? ""}
+                      />
+                      <Input
+                        type="number"
+                        name="precoMax"
+                        placeholder="Máx"
+                        defaultValue={sp.precoMax ?? ""}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-keu-black/60 uppercase tracking-wider mb-1.5 block">
+                      Ano modelo
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="number"
+                        name="anoMin"
+                        placeholder="De"
+                        defaultValue={sp.anoMin ?? ""}
+                      />
+                      <Input
+                        type="number"
+                        name="anoMax"
+                        placeholder="Até"
+                        defaultValue={sp.anoMax ?? ""}
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full">
+                    Aplicar filtros
+                  </Button>
+                  <Link href="/motos" className="block">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full text-xs"
+                    >
+                      Limpar filtros
+                    </Button>
+                  </Link>
+                </form>
+              </Card>
+            </aside>
+
+            {/* GRID */}
+            <div>
+              <div className="flex items-end justify-between mb-6 flex-wrap gap-2">
+                <h2 className="text-2xl font-black">
+                  {filtered.length}{" "}
+                  {filtered.length === 1 ? "moto encontrada" : "motos encontradas"}
+                </h2>
+                <div className="text-sm text-keu-black/60">
+                  Página {safePage} de {totalPages}
+                </div>
+              </div>
+
+              {pageItems.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <div className="bg-keu-red/10 text-keu-red w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bike className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">
+                    Nenhuma moto encontrada
+                  </h3>
+                  <p className="text-sm text-keu-black/60 max-w-md mx-auto mb-6">
+                    Tente ajustar os filtros ou volte mais tarde — nosso estoque
+                    é renovado toda semana.
+                  </p>
+                  <Link href="/motos">
+                    <Button>Ver todas as motos</Button>
+                  </Link>
+                </Card>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pageItems.map((moto) => (
+                    <MotoCard key={moto._id} moto={moto} />
+                  ))}
+                </div>
+              )}
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="mt-10 flex justify-center items-center gap-2 flex-wrap">
+                  {safePage > 1 && (
+                    <Link href={buildPageHref(sp, safePage - 1)}>
+                      <Button variant="outline" size="sm">
+                        <ArrowLeft className="h-3 w-3" /> Anterior
+                      </Button>
+                    </Link>
+                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <Link key={p} href={buildPageHref(sp, p)}>
+                        <Button
+                          variant={p === safePage ? "default" : "ghost"}
+                          size="sm"
+                          className="min-w-[40px]"
+                        >
+                          {p}
+                        </Button>
+                      </Link>
+                    )
+                  )}
+                  {safePage < totalPages && (
+                    <Link href={buildPageHref(sp, safePage + 1)}>
+                      <Button variant="outline" size="sm">
+                        Próxima <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA / CONTATO */}
+      <section className="py-16 bg-gradient-to-br from-keu-red to-keu-red-dark text-white">
+        <div className="container mx-auto px-4 max-w-5xl text-center">
+          <h2 className="text-3xl md:text-5xl font-black mb-4">
+            Não encontrou sua moto?
+          </h2>
+          <p className="text-white/90 text-lg mb-8">
+            Fale com a gente pelo WhatsApp — temos mais opções chegando toda
+            semana.
+          </p>
+          <a
+            href="https://wa.me/5588998505859"
+            target="_blank"
+            rel="noopener"
+            className="inline-block"
+          >
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-keu-red"
+            >
+              <Phone className="h-4 w-4" /> (88) 99850-5859
+            </Button>
+          </a>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-keu-black text-white py-12">
+        <div className="container mx-auto px-4 max-w-7xl">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <KeuLogo size="md" />
+              <p className="text-sm text-white/60 mt-4">
+                Uma loja, três setores. Compra, venda, troca, aluguel e peças.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">Setores</h4>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li>KEU Moto Peças</li>
+                <li>KEU Loca Motos</li>
+                <li>KEU Multimarcas</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">Sistema</h4>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/login" className="hover:text-keu-red">
+                    Login
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/register" className="hover:text-keu-red">
+                    Cadastro
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/motos" className="hover:text-keu-red">
+                    Motos
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">Contato</h4>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li className="flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" /> (88) 99850-5859
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Instagram className="h-3.5 w-3.5" /> @keumultimarcass
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Juazeiro do Norte - CE
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" /> Seg a Sáb 8h-18h
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-6 flex flex-wrap justify-between items-center gap-4 text-sm text-white/40">
+            <span>© 2026 KEU Empreendimentos. Todos os direitos reservados.</span>
+            <span>Feito com paixão pelas duas rodas</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function MotoCard({ moto }: { moto: Moto }) {
+  const isAluguel = moto.tipo === "aluguel";
+  const isAmbos = moto.tipo === "ambos";
+
+  return (
+    <Link href={`/motos/${moto._id}`} className="group block">
+      <Card className="overflow-hidden h-full hover:shadow-2xl transition-all hover:-translate-y-1">
+        <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+          {moto.fotos?.[0] ? (
+            <Image
+              src={moto.fotos[0]}
+              alt={`${moto.marca} ${moto.modelo}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              unoptimized
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-white/30">
+              <Bike className="h-16 w-16" />
+            </div>
+          )}
+          {moto.destaque && (
+            <Badge className="absolute top-3 left-3" variant="default">
+              Destaque
+            </Badge>
+          )}
+          {isAluguel && (
+            <Badge className="absolute top-3 left-3" variant="dark">
+              Aluguel
+            </Badge>
+          )}
+          {isAmbos && (
+            <Badge className="absolute top-3 left-3" variant="info">
+              Venda/Aluguel
+            </Badge>
+          )}
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg px-2 py-1 text-xs font-bold">
+            {moto.anoModelo}
+          </div>
+        </div>
+        <div className="p-5">
+          <div className="text-xs font-semibold text-keu-red mb-1">
+            {moto.marca}
+          </div>
+          <h3 className="font-bold text-lg mb-3 truncate">
+            {moto.modelo}
+            {moto.versao && (
+              <span className="text-keu-black/60 font-medium">
+                {" "}
+                {moto.versao}
+              </span>
+            )}
+          </h3>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-keu-black/60 mb-4">
+            <span>{formatKm(moto.km)}</span>
+            <span>•</span>
+            <span>{moto.cor}</span>
+            <span>•</span>
+            <span>{moto.cilindrada}cc</span>
+          </div>
+          <div className="border-t border-keu-black/5 pt-4 flex items-end justify-between gap-2">
+            <div>
+              <div className="text-xs text-keu-black/60">
+                {isAluguel ? "Diária a partir de" : "Por"}
+              </div>
+              <div className="text-2xl font-black text-keu-red leading-tight">
+                {formatCurrency(
+                  isAluguel && moto.valorDiaria
+                    ? moto.valorDiaria
+                    : moto.valorAnunciado
+                )}
+              </div>
+            </div>
+            <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-all h-8 px-3 bg-gradient-to-br from-keu-red to-keu-red-dark text-white group-hover:shadow-lg group-hover:shadow-keu-red/30">
+              Ver detalhes <ArrowRight className="h-3 w-3" />
+            </span>
+          </div>
+        </div>
+      </Card>
+    </Link>
+  );
+}

@@ -99,7 +99,7 @@ export default function HomePage() {
                 lugar.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <Link href="#destaques">
+                <Link href="/motos">
                   <Button size="lg">
                     Ver Motos Disponíveis
                     <ArrowRight className="h-4 w-4" />
@@ -247,7 +247,7 @@ export default function HomePage() {
                 Selecionadas pelos nossos especialistas
               </p>
             </div>
-            <Link href="/dashboard/vendas">
+            <Link href="/motos">
               <Button variant="outline">
                 Ver todas <ArrowRight className="h-4 w-4" />
               </Button>
@@ -281,48 +281,47 @@ export default function HomePage() {
                 cor: "Verde",
               },
             ].map((m, i) => (
-              <Card
-                key={i}
-                className="overflow-hidden group hover:shadow-2xl transition-all hover:-translate-y-1"
-              >
-                <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-60 transition-opacity group-hover:scale-110 duration-500">
-                    <Image
-                      src={`/logos/moto-rider-${(i % 3) + 1}.webp`}
-                      alt={m.modelo}
-                      width={200}
-                      height={150}
-                      className="object-contain"
-                    />
-                  </div>
-                  <Badge className="absolute top-3 left-3" variant="default">
-                    Destaque
-                  </Badge>
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg px-2 py-1 text-xs font-bold">
-                    {m.ano}
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="text-xs font-semibold text-keu-red mb-1">
-                    {m.marca}
-                  </div>
-                  <h3 className="font-bold text-lg mb-3">{m.modelo}</h3>
-                  <div className="flex gap-3 text-xs text-keu-black/60 mb-4">
-                    <span>{m.km} km</span>
-                    <span>•</span>
-                    <span>{m.cor}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-keu-black/5 pt-4">
-                    <div>
-                      <div className="text-xs text-keu-black/60">A partir de</div>
-                      <div className="text-2xl font-black text-keu-red">{m.valor}</div>
+              <Link href="/motos" key={i} className="group block">
+                <Card className="overflow-hidden h-full hover:shadow-2xl transition-all hover:-translate-y-1">
+                  <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-60 transition-opacity group-hover:scale-110 duration-500">
+                      <Image
+                        src={`/logos/moto-rider-${(i % 3) + 1}.webp`}
+                        alt={m.modelo}
+                        width={200}
+                        height={150}
+                        className="object-contain"
+                      />
                     </div>
-                    <Button size="sm">
-                      Ver moto <ArrowRight className="h-3 w-3" />
-                    </Button>
+                    <Badge className="absolute top-3 left-3" variant="default">
+                      Destaque
+                    </Badge>
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg px-2 py-1 text-xs font-bold">
+                      {m.ano}
+                    </div>
                   </div>
-                </div>
-              </Card>
+                  <div className="p-5">
+                    <div className="text-xs font-semibold text-keu-red mb-1">
+                      {m.marca}
+                    </div>
+                    <h3 className="font-bold text-lg mb-3">{m.modelo}</h3>
+                    <div className="flex gap-3 text-xs text-keu-black/60 mb-4">
+                      <span>{m.km} km</span>
+                      <span>•</span>
+                      <span>{m.cor}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-keu-black/5 pt-4">
+                      <div>
+                        <div className="text-xs text-keu-black/60">A partir de</div>
+                        <div className="text-2xl font-black text-keu-red">{m.valor}</div>
+                      </div>
+                      <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-all h-8 px-3 bg-gradient-to-br from-keu-red to-keu-red-dark text-white group-hover:shadow-lg group-hover:shadow-keu-red/30">
+                        Ver moto <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
