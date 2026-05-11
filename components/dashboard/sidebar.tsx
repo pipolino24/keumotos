@@ -30,12 +30,9 @@ export function Sidebar() {
 
   return (
     <aside className="hidden lg:flex w-64 bg-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
-      <div className="p-6 border-b border-white/10">
+      <div className="p-6 border-b border-white/10 bg-white">
         <Link href="/" className="block">
-          <KeuLogo size="sm" showSubtitle={false} />
-          <span className="block text-[10px] font-bold tracking-[0.3em] text-white/40 mt-1">
-            EMPREENDIMENTOS
-          </span>
+          <KeuLogo size="md" />
         </Link>
       </div>
 

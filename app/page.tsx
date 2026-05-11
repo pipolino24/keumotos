@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   Bike,
   Wrench,
@@ -125,8 +126,15 @@ export default function HomePage() {
             <div className="relative hidden md:flex justify-center items-center">
               <div className="relative w-full max-w-md aspect-square">
                 <div className="absolute inset-0 bg-keu-red/30 rounded-full blur-3xl" />
-                <div className="relative bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 p-12 h-full flex items-center justify-center">
-                  <MotoIcon className="w-full h-full" />
+                <div className="relative bg-white/5 backdrop-blur-sm rounded-3xl border border-white/10 p-8 h-full flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/logos/moto-rider-1.webp"
+                    alt="KEU Motos"
+                    width={500}
+                    height={400}
+                    priority
+                    className="object-contain w-full h-full drop-shadow-2xl"
+                  />
                 </div>
                 <div className="absolute -top-4 -right-4 bg-keu-red rounded-2xl p-4 shadow-2xl rotate-12 animate-fade-in">
                   <Award className="h-8 w-8 text-white" />
@@ -157,8 +165,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             <UnidadeCard
-              brand={<KeuMotoPecas />}
-              icon={<Wrench />}
+              brand={
+                <KeuMotoPecas width={240} height={150} className="mx-auto" />
+              }
               title="Peças e Borracharia"
               description="Padre Cícero. Peças originais, acessórios e borracharia completa para sua moto."
               phone="(88) 98814-3757"
@@ -166,8 +175,9 @@ export default function HomePage() {
               gradient="from-amber-500/10 to-keu-red/10"
             />
             <UnidadeCard
-              brand={<KeuLocaMotos />}
-              icon={<Key />}
+              brand={
+                <KeuLocaMotos width={220} height={180} className="mx-auto" />
+              }
               title="Aluguel de Motos"
               description="Realizando sonhos sobre duas rodas. Locação por diária, semana ou mês."
               phone="(88) 98814-3757"
@@ -175,8 +185,9 @@ export default function HomePage() {
               featured
             />
             <UnidadeCard
-              brand={<KeuMultimarcas />}
-              icon={<Bike />}
+              brand={
+                <KeuMultimarcas width={240} height={150} className="mx-auto" />
+              }
               title="Compra, Vende e Troca"
               description="Multimarcas: as melhores motos seminovas e zero km com FIPE garantida."
               phone="(88) 99850-5859"
@@ -274,8 +285,14 @@ export default function HomePage() {
                 className="overflow-hidden group hover:shadow-2xl transition-all hover:-translate-y-1"
               >
                 <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-40 transition-opacity group-hover:scale-110 duration-500">
-                    <MotoIcon className="w-32 h-32" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-60 transition-opacity group-hover:scale-110 duration-500">
+                    <Image
+                      src={`/logos/moto-rider-${(i % 3) + 1}.webp`}
+                      alt={m.modelo}
+                      width={200}
+                      height={150}
+                      className="object-contain"
+                    />
                   </div>
                   <Badge className="absolute top-3 left-3" variant="default">
                     Destaque
@@ -504,7 +521,6 @@ function Stat({ number, label }: { number: string; label: string }) {
 
 function UnidadeCard({
   brand,
-  icon,
   title,
   description,
   phone,
@@ -513,7 +529,6 @@ function UnidadeCard({
   featured,
 }: {
   brand: React.ReactNode;
-  icon: React.ReactNode;
   title: string;
   description: string;
   phone: string;
@@ -532,12 +547,11 @@ function UnidadeCard({
           Mais procurada
         </Badge>
       )}
-      <div className="bg-white/80 backdrop-blur rounded-2xl p-4 inline-block mb-6 text-keu-red">
-        {icon}
+      <div className="mb-6 min-h-[180px] flex items-center justify-center">
+        {brand}
       </div>
-      <div className="mb-4 min-h-[60px] flex items-center">{brand}</div>
-      <h3 className="font-bold text-xl mb-2">{title}</h3>
-      <p className="text-sm text-keu-black/70 mb-6">{description}</p>
+      <h3 className="font-bold text-xl mb-2 text-center">{title}</h3>
+      <p className="text-sm text-keu-black/70 mb-6 text-center">{description}</p>
       <div className="space-y-2 mb-6 text-sm">
         <div className="flex items-center gap-2 text-keu-black/80">
           <Phone className="h-4 w-4 text-keu-red" />

@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { KeuLogo, MotoIcon } from "@/components/keu-logo";
+import Image from "next/image";
+import { KeuLogo } from "@/components/keu-logo";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 type RegisterForm = {
@@ -288,8 +289,15 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-grid opacity-10" />
 
         <div className="relative z-10 text-white max-w-md">
-          <div className="mb-8 inline-block bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-8">
-            <MotoIcon className="w-24 h-24 fill-white" />
+          <div className="mb-8 inline-block bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-6">
+            <Image
+              src="/logos/moto-rider-3.webp"
+              alt="KEU"
+              width={280}
+              height={210}
+              priority
+              className="object-contain drop-shadow-2xl"
+            />
           </div>
           <h2 className="text-5xl font-black mb-4 leading-tight">
             Faça parte

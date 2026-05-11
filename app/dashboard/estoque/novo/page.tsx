@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { FipeSelector, type FipeResult } from "@/components/ui/fipe-selector";
 
 type MotoForm = {
   marca: string;
@@ -108,6 +109,23 @@ export default function NovoMotoPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleFipeResult(r: FipeResult) {
+    const cleanModel = r.modelName.replace(/\s+\/.*$/, "").trim();
+    const yearNum = parseInt(r.yearName, 10);
+    setForm((prev) => ({
+      ...prev,
+      marca: capitalizarMarca(r.brandName),
+      modelo: cleanModel,
+      anoModelo: isNaN(yearNum) ? prev.anoModelo : yearNum,
+      anoFabricacao:
+        isNaN(yearNum) || prev.anoFabricacao
+          ? prev.anoFabricacao
+          : yearNum - 1,
+      valorFipe: r.priceNumber,
+      combustivel: mapearCombustivel(r.fuel),
+    }));
+  }
+
   const valorCompraN = typeof form.valorCompra === "number" ? form.valorCompra : 0;
   const valorAnunciadoN =
     typeof form.valorAnunciado === "number" ? form.valorAnunciado : 0;
@@ -178,6 +196,22 @@ export default function NovoMotoPage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* FIPE */}
+          <Card className="p-6 bg-gradient-to-br from-keu-red/5 via-white to-white border-keu-red/20">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-red/10">
+              <div className="bg-keu-red text-white w-10 h-10 rounded-lg flex items-center justify-center">
+                <Info className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold">Consulta Tabela FIPE</h2>
+                <p className="text-sm text-keu-black/60">
+                  Preencha automaticamente marca, modelo, ano e valor FIPE
+                </p>
+              </div>
+            </div>
+            <FipeSelector onResult={handleFipeResult} />
+          </Card>
+
           {/* IDENTIFICAÇÃO */}
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-black/5">
@@ -774,6 +808,34 @@ export default function NovoMotoPage() {
       </div>
     </form>
   );
+}
+
+function capitalizarMarca(nome: string): string {
+  const upper = nome.toUpperCase();
+  const map: Record<string, string> = {
+    HONDA: "Honda",
+    YAMAHA: "Yamaha",
+    SUZUKI: "Suzuki",
+    KAWASAKI: "Kawasaki",
+    BMW: "BMW",
+    DUCATI: "Ducati",
+    "HARLEY-DAVIDSON": "Harley-Davidson",
+    "ROYAL ENFIELD": "Royal Enfield",
+    TRIUMPH: "Triumph",
+    DAFRA: "Dafra",
+    SHINERAY: "Shineray",
+  };
+  return map[upper] ?? nome;
+}
+
+function mapearCombustivel(
+  fuel: string
+): "" | "gasolina" | "flex" | "eletrica" {
+  const f = fuel.toLowerCase();
+  if (f.includes("flex") || f.includes("álcool") || f.includes("alcool"))
+    return "flex";
+  if (f.includes("elét") || f.includes("elet")) return "eletrica";
+  return "gasolina";
 }
 
 function ValueInput({
