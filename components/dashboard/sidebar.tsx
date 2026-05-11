@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -16,6 +17,8 @@ import {
   Shield,
   Crown,
   ShoppingBag,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -32,19 +35,28 @@ const navItems = [
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
   { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Aquisições" },
+  { href: "/dashboard/proprietarios", icon: Users, label: "Proprietários" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];
 
-export function Sidebar() {
-  const pathname = usePathname();
-  const user = getCurrentUser();
-  const userIsAdmin = isAdmin(user);
-
+function SidebarContent({
+  pathname,
+  userIsAdmin,
+  userName,
+  userRole,
+  onItemClick,
+}: {
+  pathname: string;
+  userIsAdmin: boolean;
+  userName: string;
+  userRole: string;
+  onItemClick?: () => void;
+}) {
   return (
-    <aside className="hidden lg:flex w-64 bg-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
+    <>
       <div className="p-6 border-b border-white/10 bg-white">
-        <Link href="/" className="block">
+        <Link href="/" className="block" onClick={onItemClick}>
           <KeuLogo size="md" />
         </Link>
       </div>
@@ -61,6 +73,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onItemClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                 isActive
@@ -77,7 +90,6 @@ export function Sidebar() {
           );
         })}
 
-        {/* Seção admin — só renderiza para admins */}
         {userIsAdmin && (
           <>
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 px-3 mb-2 mt-6">
@@ -91,6 +103,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onItemClick}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                     isActive
@@ -113,12 +126,17 @@ export function Sidebar() {
       <div className="p-4 border-t border-white/10 space-y-1">
         <Link
           href="#"
+          onClick={onItemClick}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/5 hover:text-white"
         >
           <Settings className="h-4 w-4" /> Configurações
         </Link>
         <Link
           href="/"
+          onClick={() => {
+            document.cookie = "keu_role=; path=/; max-age=0";
+            onItemClick?.();
+          }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-keu-red hover:text-white"
         >
           <LogOut className="h-4 w-4" /> Sair
@@ -140,41 +158,101 @@ export function Sidebar() {
               userIsAdmin ? "bg-amber-500" : "bg-keu-red"
             )}
           >
-            {user.nome.charAt(0)}
+            {userName.charAt(0)}
           </div>
           <div className="text-xs flex-1 min-w-0">
-            <div className="font-semibold truncate">{user.nome}</div>
+            <div className="font-semibold truncate">{userName}</div>
             <div className="text-white/50 capitalize flex items-center gap-1">
               {userIsAdmin && <Crown className="h-3 w-3" />}
-              {user.role}
+              {userRole}
             </div>
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const user = getCurrentUser();
+  const userIsAdmin = isAdmin(user);
+
+  return (
+    <aside className="hidden lg:flex w-64 bg-keu-black text-white flex-col fixed inset-y-0 left-0 z-40">
+      <SidebarContent
+        pathname={pathname}
+        userIsAdmin={userIsAdmin}
+        userName={user.nome}
+        userRole={user.role}
+      />
     </aside>
   );
 }
 
 export function MobileTopbar() {
+  const pathname = usePathname();
+  const user = getCurrentUser();
+  const userIsAdmin = isAdmin(user);
+  const [open, setOpen] = useState(false);
+
+  // Fecha o drawer quando muda de rota
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   return (
-    <div className="lg:hidden sticky top-0 z-30 bg-keu-black text-white border-b border-white/10">
-      <div className="flex items-center justify-between p-4">
-        <Link href="/" className="flex items-center gap-2">
-          <Bike className="h-5 w-5 text-keu-red" />
-          <span className="font-black text-xl">KEU</span>
-        </Link>
-        <nav className="flex gap-1">
-          {navItems.slice(0, 4).map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="p-2 rounded-md hover:bg-white/10"
-            >
-              <item.icon className="h-4 w-4" />
-            </Link>
-          ))}
-        </nav>
+    <>
+      <div className="lg:hidden sticky top-0 z-30 bg-keu-black text-white border-b border-white/10">
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={() => setOpen(true)}
+            className="p-2 rounded-md hover:bg-white/10"
+            aria-label="Abrir menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <Link href="/" className="flex items-center gap-2">
+            <Bike className="h-5 w-5 text-keu-red" />
+            <span className="font-black text-xl">KEU</span>
+          </Link>
+          <div
+            className={cn(
+              "w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs",
+              userIsAdmin ? "bg-amber-500" : "bg-keu-red"
+            )}
+          >
+            {user.nome.charAt(0)}
+          </div>
+        </div>
       </div>
-    </div>
+
+      {open && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/60"
+          onClick={() => setOpen(false)}
+        >
+          <aside
+            className="absolute left-0 inset-y-0 w-72 bg-keu-black text-white flex flex-col animate-slide-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-md hover:bg-white/10 z-10"
+              aria-label="Fechar menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <SidebarContent
+              pathname={pathname}
+              userIsAdmin={userIsAdmin}
+              userName={user.nome}
+              userRole={user.role}
+              onItemClick={() => setOpen(false)}
+            />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

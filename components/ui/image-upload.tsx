@@ -72,8 +72,11 @@ export function ImageUpload({
       }
       onChange([...value, ...compressed]);
     } catch (err) {
-      console.error(err);
-      setError("Erro ao processar imagem. Tente outro arquivo.");
+      setError(
+        err instanceof Error
+          ? `Erro ao processar imagem: ${err.message}`
+          : "Erro ao processar imagem. Tente outro arquivo."
+      );
     } finally {
       setLoading(false);
       setProgress(0);

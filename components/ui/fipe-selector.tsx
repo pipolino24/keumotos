@@ -152,7 +152,7 @@ export function FipeSelector({ onResult, className }: FipeSelectorProps) {
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-3 gap-3 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
         <div>
           <Label htmlFor="fipe-brand">Marca</Label>
           <Select
