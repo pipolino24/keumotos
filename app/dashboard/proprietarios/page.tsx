@@ -68,12 +68,12 @@ export default function ProprietariosPage() {
       </Link>
 
       <PageHeader
-        title="Proprietários"
-        description="Pessoas que venderam ou colocaram motos em repasse na KEU"
+        title="Pessoas"
+        description="Donos de motos consignadas, vendedores externos e clientes de aluguel"
       >
         <Link href="/dashboard/aquisicoes/nova">
           <Button>
-            <UserPlus className="h-4 w-4" /> Novo proprietário
+            <UserPlus className="h-4 w-4" /> Nova pessoa
           </Button>
         </Link>
       </PageHeader>
@@ -82,9 +82,9 @@ export default function ProprietariosPage() {
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <StatCard
           icon={<Users />}
-          label="Total de proprietários"
+          label="Total de pessoas"
           value={stats.total.toString()}
-          subtitle="cadastrados no sistema"
+          subtitle="cadastradas no sistema"
           color="from-keu-red to-keu-red-dark"
         />
         <StatCard
@@ -108,7 +108,7 @@ export default function ProprietariosPage() {
         <div className="p-5 border-b border-keu-black/5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <h2 className="font-bold text-lg">Lista de proprietários</h2>
+              <h2 className="font-bold text-lg">Lista de pessoas</h2>
               <p className="text-sm text-keu-black/60">
                 {filtered.length} {filtered.length === 1 ? "encontrado" : "encontrados"}
               </p>
@@ -129,7 +129,7 @@ export default function ProprietariosPage() {
           <div className="p-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
             <div className="text-sm text-keu-black/60">
-              Carregando proprietários...
+              Carregando pessoas...
             </div>
           </div>
         ) : error ? (
@@ -267,10 +267,10 @@ function EmptyState() {
       <div className="bg-gradient-to-br from-keu-red to-keu-red-dark w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
         <Users className="h-8 w-8 text-white" />
       </div>
-      <h3 className="font-bold text-lg mb-1">Nenhum proprietário ainda</h3>
+      <h3 className="font-bold text-lg mb-1">Nenhuma pessoa cadastrada ainda</h3>
       <p className="text-sm text-keu-black/60 mb-6 max-w-sm mx-auto">
-        Ao registrar uma aquisição (compra ou repasse), o proprietário fica
-        cadastrado aqui automaticamente.
+        Pessoas são cadastradas automaticamente quando você registra uma
+        aquisição (compra/repasse) ou uma locação.
       </p>
       <Link href="/dashboard/aquisicoes/nova">
         <Button>

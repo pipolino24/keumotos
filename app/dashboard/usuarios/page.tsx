@@ -14,7 +14,8 @@ import {
   Clock,
   TrendingUp,
   DollarSign,
-  MoreVertical,
+  Edit,
+  Eye,
   Mail,
   Phone,
   Loader2,
@@ -285,9 +286,16 @@ export default function UsuariosPage() {
                       {u.ultimoAcesso ? formatDate(u.ultimoAcesso) : "—"}
                     </td>
                     <td className="p-4 text-right">
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Link
+                          href={`/dashboard/usuarios/${u._id}`}
+                          title="Ver / Editar"
+                        >
+                          <Button variant="ghost" size="icon">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

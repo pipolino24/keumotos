@@ -35,7 +35,7 @@ const navItems = [
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
   { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Aquisições" },
-  { href: "/dashboard/proprietarios", icon: Users, label: "Proprietários" },
+  { href: "/dashboard/proprietarios", icon: Users, label: "Pessoas" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];

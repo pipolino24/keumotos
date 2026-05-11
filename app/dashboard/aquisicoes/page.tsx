@@ -389,9 +389,11 @@ function AquisicaoRow({ moto }: { moto: MotoApi }) {
         )}
       </td>
       <td className="p-4 text-right">
-        <Button variant="ghost" size="sm">
-          Detalhes
-        </Button>
+        <Link href={`/dashboard/estoque/${moto._id}`}>
+          <Button variant="ghost" size="sm">
+            Detalhes
+          </Button>
+        </Link>
       </td>
     </tr>
   );
