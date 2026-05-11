@@ -13,13 +13,17 @@ import { KeuLogo } from "@/components/keu-logo";
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [accountType, setAccountType] = useState<"cliente" | "vendedor">(
-    "vendedor"
-  );
+  const [accountType, setAccountType] = useState<
+    "cliente" | "vendedor" | "afiliado"
+  >("vendedor");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/dashboard");
+    if (accountType === "afiliado") {
+      router.push("/afiliado");
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (
@@ -46,11 +50,11 @@ export default function LoginPage() {
             </div>
 
             {/* Account type tabs */}
-            <div className="flex bg-keu-gray-light rounded-lg p-1 mb-6">
+            <div className="flex bg-keu-gray-light rounded-lg p-1 mb-6 gap-1">
               <button
                 type="button"
                 onClick={() => setAccountType("vendedor")}
-                className={`flex-1 py-2 px-4 text-sm font-semibold rounded-md transition ${
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
                   accountType === "vendedor"
                     ? "bg-white text-keu-red shadow-sm"
                     : "text-keu-black/60 hover:text-keu-black"
@@ -61,13 +65,24 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setAccountType("cliente")}
-                className={`flex-1 py-2 px-4 text-sm font-semibold rounded-md transition ${
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
                   accountType === "cliente"
                     ? "bg-white text-keu-red shadow-sm"
                     : "text-keu-black/60 hover:text-keu-black"
                 }`}
               >
                 Cliente
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType("afiliado")}
+                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
+                  accountType === "afiliado"
+                    ? "bg-white text-keu-red shadow-sm"
+                    : "text-keu-black/60 hover:text-keu-black"
+                }`}
+              >
+                Afiliado
               </button>
             </div>
 
@@ -133,7 +148,11 @@ export default function LoginPage() {
 
               <Button type="submit" size="lg" className="w-full">
                 Entrar como{" "}
-                {accountType === "vendedor" ? "Vendedor" : "Cliente"}
+                {accountType === "vendedor"
+                  ? "Vendedor"
+                  : accountType === "afiliado"
+                    ? "Afiliado"
+                    : "Cliente"}
               </Button>
 
               <div className="relative my-6">

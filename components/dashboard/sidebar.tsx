@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   Bike,
+  Handshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
   { href: "/dashboard/contatos", icon: Phone, label: "Contatos" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
+  { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];
 
 export function Sidebar() {

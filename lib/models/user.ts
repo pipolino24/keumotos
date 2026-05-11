@@ -6,7 +6,7 @@ export interface IUserDoc {
   senhaHash: string;
   telefone: string;
   cpf?: string;
-  role: "admin" | "vendedor" | "cliente";
+  role: "admin" | "vendedor" | "cliente" | "afiliado";
   cargoId?: mongoose.Types.ObjectId;
   permissoes: string[];
   status: "ativo" | "inativo" | "pendente";
@@ -37,7 +37,7 @@ const UserSchema = new Schema<IUserDoc>(
     cpf: { type: String, sparse: true },
     role: {
       type: String,
-      enum: ["admin", "vendedor", "cliente"],
+      enum: ["admin", "vendedor", "cliente", "afiliado"],
       required: true,
       default: "cliente",
       index: true,
