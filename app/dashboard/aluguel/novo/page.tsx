@@ -41,6 +41,7 @@ interface MotoApi {
   anoFabricacao: number;
   anoModelo: number;
   cor?: string;
+  placa?: string;
   cilindrada?: number;
   km?: number;
   valorDiaria?: number;
@@ -635,6 +636,8 @@ export default function NovoAluguelPage() {
                 {todasMotos.map((m) => (
                   <option key={m._id} value={m._id}>
                     {m.marca} {m.modelo} {m.anoModelo}
+                    {m.placa ? ` • ${m.placa}` : ""}
+                    {m.cor ? ` • ${m.cor}` : ""}
                     {m.valorDiaria
                       ? ` — ${formatCurrency(m.valorDiaria)}/dia`
                       : ""}
