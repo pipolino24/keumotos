@@ -49,6 +49,7 @@ interface MotoApi {
   anoFabricacao: number;
   anoModelo: number;
   cor?: string;
+  placa?: string;
   cilindrada?: number;
   km?: number;
   valorFipe?: number;
@@ -860,7 +861,9 @@ export default function NovaVendaPage() {
                 </option>
                 {todasMotos.map((m) => (
                   <option key={m._id} value={m._id}>
-                    {m.marca} {m.modelo} {m.anoModelo} —{" "}
+                    {m.marca} {m.modelo} {m.anoModelo}
+                    {m.placa ? ` • ${m.placa}` : ""}
+                    {m.cor ? ` • ${m.cor}` : ""} —{" "}
                     {formatCurrency(m.valorAnunciado)}
                   </option>
                 ))}
@@ -892,6 +895,9 @@ export default function NovaVendaPage() {
                     </div>
                     <div className="text-xs text-keu-black/60 mt-1">
                       {motoSelecionada.anoModelo}
+                      {motoSelecionada.placa
+                        ? ` • Placa ${motoSelecionada.placa}`
+                        : ""}
                       {motoSelecionada.cor ? ` • ${motoSelecionada.cor}` : ""}
                       {motoSelecionada.km !== undefined
                         ? ` • ${motoSelecionada.km.toLocaleString("pt-BR")} km`
