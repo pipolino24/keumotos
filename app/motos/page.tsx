@@ -16,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
 import { formatCurrency, formatKm } from "@/lib/utils";
+import { connectMongo } from "@/lib/mongodb";
+import { Moto as MotoModel } from "@/lib/models/moto";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // cache de 1 min — alivia carga no Mongo
 
 interface Moto {
   _id: string;
@@ -54,15 +56,43 @@ interface SearchParams {
 
 const PAGE_SIZE = 12;
 
+/**
+ * Lê motos direto do Mongo (sem HTTP intermediário pra própria API)
+ * e projeta apenas a primeira foto pra reduzir o payload — fotos base64
+ * podem ter 200KB+ cada e antes o servidor mandava o array inteiro.
+ */
 async function getMotos(): Promise<Moto[]> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   try {
-    const res = await fetch(`${base}/api/motos?status=disponivel`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.motos as Moto[]) ?? [];
+    await connectMongo();
+    const docs = await MotoModel.find(
+      { status: "disponivel" },
+      {
+        marca: 1,
+        modelo: 1,
+        versao: 1,
+        anoFabricacao: 1,
+        anoModelo: 1,
+        cor: 1,
+        km: 1,
+        cilindrada: 1,
+        combustivel: 1,
+        cambio: 1,
+        valorAnunciado: 1,
+        valorDiaria: 1,
+        valorMensal: 1,
+        tipo: 1,
+        status: 1,
+        destaque: 1,
+        descricao: 1,
+        fotos: { $slice: 1 }, // só a capa
+      }
+    )
+      .sort({ createdAt: -1 })
+      .lean();
+    return docs.map((d) => ({
+      ...d,
+      _id: String(d._id),
+    })) as unknown as Moto[];
   } catch {
     return [];
   }

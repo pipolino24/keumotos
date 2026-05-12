@@ -94,9 +94,16 @@ export default function HomePage() {
                 pra realizar seu sonho sobre duas rodas.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
-                <Link href="/motos" className={buttonVariants({ size: "lg" })}>
+                <Link
+                  href="/motos"
+                  prefetch
+                  className={cn(
+                    buttonVariants({ size: "xl" }),
+                    "shadow-2xl shadow-keu-red/40 ring-2 ring-keu-red/20 ring-offset-2 hover:ring-keu-red/40 hover:scale-[1.03] transition-all"
+                  )}
+                >
                   Ver Motos Disponíveis
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-5 w-5" />
                 </Link>
                 <a href="https://wa.me/5588998505859" target="_blank" rel="noopener">
                   <Button variant="dark" size="lg">
@@ -226,8 +233,13 @@ export default function HomePage() {
                 Selecionadas pelos nossos especialistas
               </p>
             </div>
-            <Link href="/motos" className={buttonVariants({ variant: "outline" })}>
-              Ver todas <ArrowRight className="h-4 w-4" />
+            <Link
+              href="/motos"
+              prefetch
+              className={cn(buttonVariants({ size: "lg" }), "shadow-lg shadow-keu-red/30")}
+            >
+              Ver todas as motos
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
