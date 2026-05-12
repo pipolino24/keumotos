@@ -30,6 +30,9 @@ export async function GET() {
     const interesseScope =
       auth.role === "vendedor" ? { vendedorAtendeu: auth.userId } : {};
 
+    // $limit por pipeline pra evitar full scan quando collections crescerem.
+    // 5000 docs por aggregation é o suficiente pra dashboard razoável.
+    const PIPELINE_LIMIT = 5000;
     const [interesses, vendas, alugueis] = await Promise.all([
       Interesse.aggregate([
         {
@@ -41,6 +44,7 @@ export async function GET() {
             ],
           },
         },
+        { $limit: PIPELINE_LIMIT },
         {
           $group: {
             _id: {
@@ -56,6 +60,7 @@ export async function GET() {
       ]),
       Venda.aggregate([
         { $match: vendaScope },
+        { $limit: PIPELINE_LIMIT },
         {
           $group: {
             _id: { clienteId: "$clienteId", clienteNome: "$clienteNome" },
@@ -69,6 +74,7 @@ export async function GET() {
       ]),
       Aluguel.aggregate([
         { $match: alugScope },
+        { $limit: PIPELINE_LIMIT },
         {
           $group: {
             _id: { clienteId: "$clienteId", clienteNome: "$clienteNome" },

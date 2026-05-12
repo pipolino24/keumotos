@@ -42,10 +42,26 @@ interface MotoApi {
   destaque?: boolean;
 }
 
+interface VendaApi {
+  _id: string;
+  motoMarca?: string;
+  motoModelo: string;
+  motoAno?: number;
+  clienteNome: string;
+  clienteTelefone?: string;
+  vendedorId?: string;
+  vendedorNome?: string;
+  valorVendido: number;
+  comissao: number;
+  status: "pendente" | "concluida" | "cancelada";
+  data: string;
+}
+
 export default function VendasPage() {
   const me = useCurrentUser();
   const verTudo = canSeeFinancialData(me);
   const [search, setSearch] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState<string>("");
 
   const params = new URLSearchParams();
   params.set("tipo", "venda");
@@ -59,15 +75,28 @@ export default function VendasPage() {
     (m) => m.tipo === "venda" || m.tipo === "ambos"
   );
 
-  // TODO(sprint-futura): criar endpoint /api/vendas para listar histórico de
-  // vendas. Por ora não há dados reais — mostramos empty state. A regra de
-  // visibilidade (admin vê todas, vendedor só as próprias via vendedorId === me.id)
-  // já está pronta para consumir o endpoint quando existir.
-  const vendasVisiveis: never[] = [];
-  const totalVendas = 0;
-  const totalFaturado = 0;
-  const totalComissao = 0;
-  const vendasPendentes = 0;
+  // Vendas reais: backend já faz o scope (admin vê todas, vendedor só as
+  // próprias). Não precisamos repetir aqui.
+  const vendaParams = new URLSearchParams();
+  if (statusFiltro) vendaParams.set("status", statusFiltro);
+  const { data: vendasData } = useApi<{ vendas: VendaApi[] }>(
+    `/api/vendas${vendaParams.toString() ? `?${vendaParams}` : ""}`,
+    [statusFiltro]
+  );
+  const vendasVisiveis = vendasData?.vendas ?? [];
+
+  // Agregados do mês corrente (filtra status "concluida")
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const vendasMes = vendasVisiveis.filter(
+    (v) => new Date(v.data) >= inicioMes && v.status === "concluida"
+  );
+  const totalVendas = vendasMes.length;
+  const totalFaturado = vendasMes.reduce((s, v) => s + (v.valorVendido || 0), 0);
+  const totalComissao = vendasMes.reduce((s, v) => s + (v.comissao || 0), 0);
+  const vendasPendentes = vendasVisiveis.filter(
+    (v) => v.status === "pendente"
+  ).length;
 
   return (
     <div>
@@ -266,28 +295,141 @@ export default function VendasPage() {
         )}
       </Card>
 
-      {/* HISTÓRICO — em construção */}
+      {/* HISTÓRICO */}
       <Card>
-        <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
+        <div className="p-6 border-b border-keu-black/5 flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-bold text-lg">Histórico de vendas</h2>
             <p className="text-sm text-keu-black/60">
-              Todas as transações realizadas
+              {verTudo
+                ? "Todas as transações registradas"
+                : "Suas vendas registradas"}
             </p>
           </div>
-          <Badge variant="warning">Em construção</Badge>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ["", "Todas"],
+                ["concluida", "Concluídas"],
+                ["pendente", "Pendentes"],
+                ["cancelada", "Canceladas"],
+              ] as const
+            ).map(([k, label]) => {
+              const active = statusFiltro === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setStatusFiltro(k)}
+                  className={
+                    active
+                      ? "px-3 py-1 rounded-full bg-keu-red text-white text-xs font-bold shadow-md"
+                      : "px-3 py-1 rounded-full bg-white text-keu-black/70 hover:bg-keu-gray-light text-xs font-medium border border-keu-black/10 transition"
+                  }
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="p-16 text-center">
-          <ShoppingCart className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
-          <h3 className="font-bold mb-1">Nenhuma venda registrada ainda</h3>
-          <p className="text-sm text-keu-black/60 max-w-md mx-auto">
-            {verTudo
-              ? "Quando vendas forem registradas, o histórico completo aparecerá aqui."
-              : "Suas vendas registradas aparecerão aqui."}{" "}
-            O módulo de registro de vendas está em desenvolvimento.
-          </p>
-          {vendasVisiveis.length === 0 && null}
-        </div>
+        {vendasVisiveis.length === 0 ? (
+          <div className="p-16 text-center">
+            <ShoppingCart className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
+            <h3 className="font-bold mb-1">
+              {statusFiltro
+                ? `Nenhuma venda ${statusFiltro}`
+                : "Nenhuma venda registrada ainda"}
+            </h3>
+            <p className="text-sm text-keu-black/60 max-w-md mx-auto">
+              {statusFiltro
+                ? "Mude o filtro de status pra ver outras vendas."
+                : verTudo
+                ? "Quando vendas forem registradas, aparecem aqui."
+                : "Suas vendas registradas aparecerão aqui."}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
+                <tr>
+                  <th className="text-left p-4">Moto</th>
+                  <th className="text-left p-4">Cliente</th>
+                  {verTudo && <th className="text-left p-4">Vendedor</th>}
+                  <th className="text-left p-4">Data</th>
+                  <th className="text-right p-4">Valor</th>
+                  <th className="text-right p-4">Comissão</th>
+                  <th className="text-left p-4">Status</th>
+                  <th className="text-right p-4">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-keu-black/5">
+                {vendasVisiveis.map((v) => (
+                  <tr
+                    key={v._id}
+                    className="hover:bg-keu-gray-light transition"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-emerald-500/10 text-emerald-600 w-9 h-9 rounded-lg flex items-center justify-center">
+                          <Bike className="h-4 w-4" />
+                        </div>
+                        <div className="font-semibold">
+                          {v.motoMarca ? `${v.motoMarca} ` : ""}
+                          {v.motoModelo}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div>{v.clienteNome}</div>
+                      {v.clienteTelefone && (
+                        <div className="text-[10px] text-keu-black/50">
+                          {v.clienteTelefone}
+                        </div>
+                      )}
+                    </td>
+                    {verTudo && (
+                      <td className="p-4 text-sm">
+                        {v.vendedorNome ?? "—"}
+                      </td>
+                    )}
+                    <td className="p-4 text-sm">
+                      {new Date(v.data).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="p-4 text-right font-bold text-keu-red">
+                      {formatCurrency(v.valorVendido)}
+                    </td>
+                    <td className="p-4 text-right text-sm text-emerald-700">
+                      {v.comissao > 0 ? formatCurrency(v.comissao) : "—"}
+                    </td>
+                    <td className="p-4">
+                      <Badge
+                        variant={
+                          v.status === "concluida"
+                            ? "success"
+                            : v.status === "cancelada"
+                            ? "danger"
+                            : "warning"
+                        }
+                        className="text-[10px] uppercase"
+                      >
+                        {v.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right">
+                      <Link href={`/dashboard/vendas/${v._id}`}>
+                        <Button variant="ghost" size="sm">
+                          Ver <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -67,6 +67,10 @@ export async function emitNotification(args: EmitArgs): Promise<void> {
 
     await Notification.insertMany(docs, { ordered: false });
   } catch (err) {
-    console.error("[notifications] emit failed:", err);
+    // Loga só a mensagem — evita vazar Supabase service key ou outros
+    // segredos que possam estar em err.cause ou err.stack se o erro
+    // borbulhou do cliente admin.
+    const msg = err instanceof Error ? err.message : "unknown";
+    console.error("[notifications] emit failed:", msg);
   }
 }

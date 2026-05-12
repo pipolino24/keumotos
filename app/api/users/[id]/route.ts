@@ -141,6 +141,53 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     );
   }
 
+  // Bloqueia delete se cliente ainda tem aluguel ativo OU venda concluída
+  // (dados financeiros vinculados — não pode sumir). Soft-delete via Supabase
+  // marca-deleted manual seria melhor, mas por ora só refusamos.
+  try {
+    const { connectMongo } = await import("@/lib/mongodb");
+    await connectMongo();
+    const [{ Aluguel }, { Venda }] = await Promise.all([
+      import("@/lib/models/aluguel"),
+      import("@/lib/models/venda"),
+    ]);
+    const [temAlug, temVenda] = await Promise.all([
+      Aluguel.exists({
+        clienteId: id,
+        status: { $in: ["ativo", "atrasado"] },
+      }),
+      Venda.exists({ clienteId: id, status: "concluida" }),
+    ]);
+    if (temAlug) {
+      return NextResponse.json(
+        {
+          error:
+            "Usuário tem aluguel ativo — encerre antes de deletar",
+        },
+        { status: 409 }
+      );
+    }
+    if (temVenda) {
+      return NextResponse.json(
+        {
+          error:
+            "Usuário tem venda concluída registrada — não pode ser deletado",
+        },
+        { status: 409 }
+      );
+    }
+
+    // Limpa notificações órfãs do usuário (segurança: notif de cliente
+    // deletado não serve mais)
+    const { Notification } = await import("@/lib/models/notification");
+    await Notification.deleteMany({ destinatarioId: id }).catch(() => {});
+  } catch (err) {
+    console.error(
+      "[users:delete] check fail:",
+      err instanceof Error ? err.message : "unknown"
+    );
+  }
+
   const admin = createSupabaseAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
