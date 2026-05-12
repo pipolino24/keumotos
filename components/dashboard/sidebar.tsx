@@ -31,6 +31,7 @@ const staffNavItems = [
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
   { href: "/dashboard/contatos", icon: Phone, label: "Contatos" },
+  { href: "/dashboard/clientes", icon: Users, label: "Clientes" },
 ];
 
 const clienteNavItems = [

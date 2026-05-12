@@ -119,6 +119,7 @@ export function MotoDetailActions({
             <FinancingSimulator
               valorMoto={valorMoto}
               modeloNome={shareTitle}
+              motoId={motoId}
             />
           </div>
         )}

@@ -63,6 +63,12 @@ export interface IMotoDoc {
   };
 
   setor: "multimarcas" | "loca" | "pecas";
+
+  // Contador de visualizações na página de detalhe (incrementado via
+  // /api/interesses POST com tipo="visualizou"). Usado pra ranking
+  // de motos mais visadas.
+  viewCount?: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -164,6 +170,8 @@ const MotoSchema = new Schema<IMotoDoc>(
       required: true,
       default: "multimarcas",
     },
+
+    viewCount: { type: Number, default: 0, min: 0, index: true },
   },
   { timestamps: true }
 );

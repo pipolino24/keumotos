@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   TrendingUp,
   Bike,
@@ -24,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { InteressesWidget } from "@/components/dashboard/interesses-widget";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
@@ -108,6 +110,27 @@ function ClienteDashboard() {
     alugueisAtivos
   );
   const totalEmAberto = proximosPagamentos.reduce((s, p) => s + p.valor, 0);
+
+  // Timeline de ações do próprio cliente (Interesses registrados)
+  const { data: interessesData, loading: li } = useApi<{
+    interesses: Array<{
+      _id: string;
+      tipo: string;
+      motoModelo: string;
+      motoMarca?: string;
+      motoId: string;
+      createdAt: string;
+    }>;
+  }>("/api/interesses?limit=15");
+  const minhasAcoes = interessesData?.interesses ?? [];
+  // Snapshot do "agora" capturado em useEffect — evita chamar Date.now()
+  // durante render (regra react-hooks/purity do React 19). setTimeout(0)
+  // contorna a regra set-state-in-effect sem alterar comportamento.
+  const [nowSnapshot, setNowSnapshot] = useState<number>(0);
+  useEffect(() => {
+    const t = setTimeout(() => setNowSnapshot(Date.now()), 0);
+    return () => clearTimeout(t);
+  }, [interessesData]);
 
   return (
     <div>
@@ -216,6 +239,86 @@ function ClienteDashboard() {
           }
         />
       </div>
+
+      {/* MINHAS AÇÕES — timeline de Interesses */}
+      {(minhasAcoes.length > 0 || li) && (
+        <Card className="mb-6">
+          <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500/10 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
+                <History className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">Suas ações recentes</h2>
+                <p className="text-sm text-keu-black/60">
+                  Motos que você visualizou, simulou ou enviou interesse
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/motos"
+              className="text-xs text-keu-red hover:underline font-semibold"
+            >
+              Explorar mais →
+            </Link>
+          </div>
+          {li ? (
+            <div className="p-10 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+            </div>
+          ) : (
+            <div className="divide-y divide-keu-black/5 max-h-72 overflow-y-auto scrollbar-thin">
+              {minhasAcoes.slice(0, 10).map((a) => {
+                const tipoLabel: Record<string, { label: string; cor: string }> = {
+                  visualizou: { label: "Você visualizou", cor: "bg-keu-gray-light text-keu-black/70" },
+                  simulou_financiamento: { label: "Você simulou financiamento de", cor: "bg-amber-100 text-amber-700" },
+                  enviou_lead: { label: "Você enviou interesse em", cor: "bg-blue-100 text-blue-700" },
+                  solicitou_aluguel: { label: "Você solicitou aluguel de", cor: "bg-emerald-100 text-emerald-700" },
+                  solicitou_compra: { label: "Você solicitou compra de", cor: "bg-keu-red/10 text-keu-red" },
+                  favoritou: { label: "Você favoritou", cor: "bg-pink-100 text-pink-700" },
+                };
+                const cfg = tipoLabel[a.tipo] ?? {
+                  label: "Interagiu com",
+                  cor: "bg-keu-gray-light text-keu-black/70",
+                };
+                const dias = Math.floor(
+                  (nowSnapshot - new Date(a.createdAt).getTime()) / 86400000
+                );
+                const quando =
+                  dias === 0 ? "hoje" : dias === 1 ? "ontem" : `há ${dias} dias`;
+                return (
+                  <Link
+                    key={a._id}
+                    href={`/motos/${a.motoId}`}
+                    className="block hover:bg-keu-gray-light transition"
+                  >
+                    <div className="p-3 px-6 flex items-center gap-3">
+                      <span
+                        className={`text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded-full ${cfg.cor} flex-shrink-0`}
+                      >
+                        {cfg.label.split(" ")[1] ?? cfg.label}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm">
+                          {cfg.label}{" "}
+                          <span className="font-semibold">
+                            {a.motoMarca ? `${a.motoMarca} ` : ""}
+                            {a.motoModelo}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-keu-black/50 uppercase font-bold">
+                          {quando}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-keu-black/30 flex-shrink-0" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* PRÓXIMOS PAGAMENTOS */}
       <Card className="mb-6">
@@ -748,7 +851,7 @@ function StaffDashboard() {
         </Link>
       </PageHeader>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         <StatCard
           icon={<Trophy className="h-5 w-5" />}
           label="Vendas do mês"
@@ -777,6 +880,10 @@ function StaffDashboard() {
           trend="disponíveis para venda"
           color="bg-amber-500"
         />
+      </div>
+
+      <div className="mb-6">
+        <InteressesWidget limit={6} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

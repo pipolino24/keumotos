@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
-import { requireRole } from "@/lib/auth/api-guards";
+import { requireRole, requireAuth } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +9,29 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-// GET é público (catálogo de motos é visível pra qualquer um)
+// GET é público mas filtra dados internos (preço de custo, repasse) pra
+// non-staff. Catálogo é visível, mas margem da KEU não vaza.
+const PRIVATE_FIELDS = [
+  "valorCompra",
+  "valorMinimo",
+  "comissao",
+  "compra",
+  "repasse",
+] as const;
+
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
-    const moto = await Moto.findById(id).lean();
+    const moto = await Moto.findById(id).lean<Record<string, unknown> | null>();
     if (!moto) {
       return NextResponse.json({ error: "Moto não encontrada" }, { status: 404 });
+    }
+    const auth = await requireAuth();
+    const isStaff =
+      auth.ok && (auth.role === "admin" || auth.role === "vendedor");
+    if (!isStaff) {
+      for (const f of PRIVATE_FIELDS) delete moto[f];
     }
     return NextResponse.json({ moto });
   } catch (err) {

@@ -62,10 +62,22 @@ export async function PATCH(req: NextRequest) {
 
     let filter: Record<string, unknown> = { destinatarioId: auth.userId };
     if (acao !== "ler_todas") {
-      if (!Array.isArray(ids) || !ids.length) {
-        return NextResponse.json({ error: "ids vazios" }, { status: 400 });
+      if (!Array.isArray(ids) || !ids.length || ids.length > 200) {
+        return NextResponse.json({ error: "ids inválidos" }, { status: 400 });
       }
-      filter = { ...filter, _id: { $in: ids } };
+      // Defesa em profundidade: garante que cada ID pertence ao caller.
+      // O filter abaixo já restringe via destinatarioId, mas validamos
+      // aqui pra retornar 403 explícito em vez de "0 modificados".
+      const safeIds = ids.filter(
+        (id) => typeof id === "string" && id.length > 0 && id.length < 100
+      );
+      if (safeIds.length !== ids.length) {
+        return NextResponse.json(
+          { error: "ids contêm valores inválidos" },
+          { status: 400 }
+        );
+      }
+      filter = { ...filter, _id: { $in: safeIds } };
     }
 
     const update =

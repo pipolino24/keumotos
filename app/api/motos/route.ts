@@ -3,8 +3,20 @@ import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
 import { motoCreateSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
+import { requireAuth } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
+
+// Campos internos que NÃO podem vazar pra callers públicos / cliente.
+// valorCompra, valorMinimo, repasse e compra são preço de custo / acordo
+// com proprietário — concorrentes não devem ver.
+const CAMPOS_PRIVADOS = {
+  valorCompra: 0,
+  valorMinimo: 0,
+  comissao: 0,
+  compra: 0,
+  repasse: 0,
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,14 +32,25 @@ export async function GET(req: NextRequest) {
     if (status) query.status = status;
     if (setor) query.setor = setor;
     if (search) {
+      // Escapa metacaracteres (anti-ReDoS) e limita comprimento
+      const termo = search.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { marca: { $regex: search, $options: "i" } },
-        { modelo: { $regex: search, $options: "i" } },
-        { placa: { $regex: search, $options: "i" } },
+        { marca: { $regex: termo, $options: "i" } },
+        { modelo: { $regex: termo, $options: "i" } },
+        { placa: { $regex: termo, $options: "i" } },
       ];
     }
 
-    const motos = await Moto.find(query).sort({ createdAt: -1 }).lean();
+    // Caller staff (admin/vendedor) vê tudo. Outros (cliente, anônimo,
+    // afiliado) só vê dados públicos.
+    const auth = await requireAuth();
+    const isStaff =
+      auth.ok && (auth.role === "admin" || auth.role === "vendedor");
+    const projection = isStaff ? undefined : CAMPOS_PRIVADOS;
+
+    const motos = await Moto.find(query, projection)
+      .sort({ createdAt: -1 })
+      .lean();
     return NextResponse.json({ motos });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

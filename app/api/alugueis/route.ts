@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Moto } from "@/lib/models/moto";
+import { Notification } from "@/lib/models/notification";
 import { aluguelCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
@@ -100,6 +101,23 @@ export async function POST(req: NextRequest) {
     ).catch((err) => {
       console.error("[alugueis] falha ao sync moto.status:", err);
     });
+
+    // Notifica o cliente que tem aluguel ativo
+    if (aluguel.clienteId) {
+      const fim = new Date(aluguel.dataFim).toLocaleDateString("pt-BR");
+      Notification.create({
+        destinatarioId: aluguel.clienteId,
+        tipo: "aluguel",
+        titulo: `Aluguel confirmado — ${aluguel.motoMarca ?? ""} ${aluguel.motoModelo}`.trim(),
+        descricao: `Devolução prevista para ${fim}. Caução: R$ ${aluguel.caucao}.`,
+        origemTipo: "aluguel",
+        origemId: aluguel._id.toString(),
+        link: "/dashboard",
+        prioridade: "alta",
+        lido: false,
+        arquivado: false,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ aluguel }, { status: 201 });
   } catch (err) {

@@ -16,12 +16,13 @@ import { formatCurrency } from "@/lib/utils";
 interface Props {
   valorMoto: number;
   modeloNome?: string;
+  motoId?: string;
 }
 
 const PRAZOS = [12, 24, 36, 48, 60] as const;
 type Prazo = (typeof PRAZOS)[number];
 
-export function FinancingSimulator({ valorMoto, modeloNome }: Props) {
+export function FinancingSimulator({ valorMoto, modeloNome, motoId }: Props) {
   const entradaPadrao = Math.round(valorMoto * 0.2);
   const [entrada, setEntrada] = useState<number>(entradaPadrao);
   const [prazo, setPrazo] = useState<Prazo>(36);
@@ -53,6 +54,27 @@ export function FinancingSimulator({ valorMoto, modeloNome }: Props) {
   ];
 
   function handleWhatsApp() {
+    // Registra Interesse "simulou_financiamento" pra vendedor receber alerta
+    // com os valores antes do cliente abrir o WhatsApp. Falha silenciosa.
+    if (motoId && simulacao.pmt > 0) {
+      fetch("/api/interesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          motoId,
+          tipo: "simulou_financiamento",
+          simulacao: {
+            entrada,
+            parcelas: prazo,
+            taxa,
+            valorParcela: simulacao.pmt,
+          },
+          mensagem: modeloNome ? `Simulação para ${modeloNome}` : undefined,
+          origem: "site",
+        }),
+      }).catch(() => {});
+    }
+
     const linhas = [
       `Olá! Quero enviar uma proposta de financiamento${modeloNome ? ` para a ${modeloNome}` : ""}.`,
       "",

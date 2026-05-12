@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Venda } from "@/lib/models/venda";
+import { Notification } from "@/lib/models/notification";
 import { vendaCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
@@ -73,6 +74,24 @@ export async function POST(req: NextRequest) {
     }
 
     const venda = await Venda.create(parsed.data);
+
+    // Notifica o cliente (se identificado) que a compra foi registrada.
+    // Falha silenciosa pra não derrubar a criação.
+    if (venda.clienteId) {
+      Notification.create({
+        destinatarioId: venda.clienteId,
+        tipo: "venda",
+        titulo: `Sua compra foi registrada — ${venda.motoMarca ?? ""} ${venda.motoModelo}`.trim(),
+        descricao: `Vendedor ${venda.vendedorNome ?? ""} concluiu o registro. Em breve você terá acesso aos próximos passos.`,
+        origemTipo: "venda",
+        origemId: venda._id.toString(),
+        link: "/dashboard",
+        prioridade: "alta",
+        lido: false,
+        arquivado: false,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ venda }, { status: 201 });
   } catch (err) {
     const message =
