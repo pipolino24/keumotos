@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -29,7 +28,6 @@ type RegisterForm = {
 };
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [form, setForm] = useState<RegisterForm>({
     nome: "",
     email: "",
@@ -83,11 +81,13 @@ export default function RegisterPage() {
           .eq("id", data.user.id);
       }
 
-      // Se já há sessão ativa (email confirmation desligada), redireciona
+      // Se já há sessão ativa (email confirmation desligada), redireciona.
+      // window.location.replace força hard reload — evita cache RSC do user
+      // anterior (se o browser já tinha sessão de outra conta) e garante
+      // que o SSR do /dashboard rode com o cookie novo.
       if (data.session) {
         toast.success("Conta criada!");
-        router.push("/dashboard");
-        router.refresh();
+        window.location.replace("/dashboard");
       } else {
         setSuccess(true);
       }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import {
   ArrowLeft,
@@ -42,7 +42,6 @@ function safeNextPath(raw: string | null): string {
 }
 
 function LoginPageInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
 
@@ -72,8 +71,10 @@ function LoginPageInner() {
         role === "afiliado" && nextPath === "/dashboard"
           ? "/afiliado"
           : nextPath;
-      router.push(target);
-      router.refresh();
+      // Hard reload garante que o SSR do destino rode com o cookie fresco,
+      // sem cache RSC herdado de uma sessão anterior (admin/vendedor) que
+      // renderizaria o dashboard com role errado.
+      window.location.replace(target);
     } catch (err) {
       const msg =
         err instanceof Error ? traduzirErro(err.message) : "Erro ao entrar";
