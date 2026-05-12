@@ -89,11 +89,26 @@ export async function POST(req: NextRequest) {
     if (data.email && String(data.email).length > 200) {
       return NextResponse.json({ error: "Email muito longo" }, { status: 400 });
     }
-    // Origem e interesse precisam estar no enum — senão Mongoose rejeita.
-    const origem = ORIGENS_VALIDAS.has(data.origem) ? data.origem : "site";
-    const interesse = INTERESSES_VALIDOS.has(data.interesse)
-      ? data.interesse
-      : "outro";
+    // Origem e interesse: se fornecidos, devem ser válidos. Defaults só
+    // quando o campo é completamente omitido (compatibilidade com clientes
+    // antigos que não enviam o campo).
+    if (data.origem !== undefined && !ORIGENS_VALIDAS.has(data.origem)) {
+      return NextResponse.json(
+        { error: "origem inválida" },
+        { status: 400 }
+      );
+    }
+    if (
+      data.interesse !== undefined &&
+      !INTERESSES_VALIDOS.has(data.interesse)
+    ) {
+      return NextResponse.json(
+        { error: "interesse inválido" },
+        { status: 400 }
+      );
+    }
+    const origem = data.origem ?? "site";
+    const interesse = data.interesse ?? "outro";
 
     const contato = await Contato.create({
       nome: String(data.nome).slice(0, 120),

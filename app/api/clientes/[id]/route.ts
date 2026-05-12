@@ -44,13 +44,33 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       }
     }
 
-    // Perfil no Supabase (se for usuário identificado)
+    // Perfil no Supabase. Admin vê tudo; vendedor recebe payload minimizado
+    // (sem CPF/RG/CNH/endereço/banco/pix) por PII minimization.
     const admin = createSupabaseAdminClient();
-    const { data: profile } = await admin
+    const columns =
+      auth.role === "admin"
+        ? "id, nome, email, telefone, role, status, created_at, cpf, rg, cnh, endereco"
+        : "id, nome, email, telefone, role, status, created_at";
+    const { data: profile, error: profileErr } = await admin
       .from("profiles")
-      .select("id, nome, email, telefone, role, status, created_at")
+      .select(columns)
       .eq("id", id)
       .maybeSingle();
+
+    if (profileErr) {
+      // Erro real do Supabase — não devolve 200 com payload vazio
+      return NextResponse.json(
+        { error: "Erro ao consultar perfil" },
+        { status: 503 }
+      );
+    }
+    if (!profile) {
+      // 404 uniforme: evita enumeração de UUIDs via status code
+      return NextResponse.json(
+        { error: "Cliente não encontrado" },
+        { status: 404 }
+      );
+    }
 
     // Mongo collections: tudo o que tiver clienteId = id
     // Vendedor só vê os próprios documentos (caso o cliente também
@@ -74,9 +94,10 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       (async () => {
         // Constrói $or apenas com campos não-vazios — evita query com
         // { email: undefined } que casaria com docs sem o campo.
+        const p = profile as { email?: string; telefone?: string };
         const ors: Array<Record<string, string>> = [];
-        if (profile?.email) ors.push({ email: profile.email });
-        if (profile?.telefone) ors.push({ telefone: profile.telefone });
+        if (p.email) ors.push({ email: p.email });
+        if (p.telefone) ors.push({ telefone: p.telefone });
         if (!ors.length) return [];
         // Vendedor só vê contatos que ele é responsável; admin vê tudo.
         const contatoFilter: Record<string, unknown> = { $or: ors };

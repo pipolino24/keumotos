@@ -23,6 +23,28 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
     await connectMongo();
     const { id } = await params;
 
+    // Pre-check: bloqueia atender Interesse anônimo (sem clienteId nem
+    // telefone nem nome). Vendedor não tem como contatar.
+    const preCheck = await Interesse.findById(id)
+      .select("clienteId clienteNome clienteTelefone")
+      .lean();
+    if (!preCheck) {
+      return NextResponse.json(
+        { error: "Interesse não encontrado" },
+        { status: 404 }
+      );
+    }
+    if (
+      !preCheck.clienteId &&
+      !preCheck.clienteNome &&
+      !preCheck.clienteTelefone
+    ) {
+      return NextResponse.json(
+        { error: "Interesse anônimo — sem como contatar o cliente" },
+        { status: 400 }
+      );
+    }
+
     const filter: Record<string, unknown> = { _id: id };
     if (auth.role !== "admin") {
       // Vendedor só pode pegar se está livre (lock contra steal entre vendedores).

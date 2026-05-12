@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { FinanceiroWidget } from "@/components/dashboard/financeiro-widget";
 import { formatCurrency } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 
@@ -235,6 +236,11 @@ export default function AdministracaoPage() {
           </div>
         </div>
       </Card>
+
+      {/* WIDGET FINANCEIRO — agregação via /api/admin/financeiro */}
+      <div className="mb-6">
+        <FinanceiroWidget />
+      </div>
 
       {/* P&L PRINCIPAL */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
