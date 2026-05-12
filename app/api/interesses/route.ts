@@ -253,10 +253,10 @@ export async function GET(req: NextRequest) {
         .skip(skip)
         .limit(limit)
         .lean()
-        .maxTimeMS(5000),
+        .maxTimeMS(12_000),
       // Conta total só quando paginação é usada — economiza um round-trip
       skip > 0 || searchParams.get("withCount") === "1"
-        ? Interesse.countDocuments(query).maxTimeMS(3000)
+        ? Interesse.countDocuments(query).maxTimeMS(10_000)
         : Promise.resolve(undefined),
     ]);
 

@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .sort({ dataInicio: -1 })
         .select("vendedorId vendedorNome status dataInicio")
         .lean()
-        .maxTimeMS(3000),
+        .maxTimeMS(10_000),
       Venda.findOne({
         clienteId: id,
         vendedorId: { $exists: true, $ne: null },
@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .sort({ data: -1 })
         .select("vendedorId vendedorNome data")
         .lean()
-        .maxTimeMS(3000),
+        .maxTimeMS(10_000),
       Interesse.findOne({
         clienteId: id,
         vendedorAtendeu: { $exists: true, $ne: null },
@@ -61,7 +61,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .sort({ atendidoEm: -1 })
         .select("vendedorAtendeu atendidoEm")
         .lean()
-        .maxTimeMS(3000),
+        .maxTimeMS(10_000),
       Contato.findOne({
         clienteId: id,
         vendedorResponsavel: { $exists: true, $ne: null },
@@ -69,7 +69,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .sort({ createdAt: -1 })
         .select("vendedorResponsavel createdAt")
         .lean()
-        .maxTimeMS(3000),
+        .maxTimeMS(10_000),
     ]);
 
     // Picks por prioridade

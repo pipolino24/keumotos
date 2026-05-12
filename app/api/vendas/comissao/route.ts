@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         .sort({ data: -1 })
         .limit(500)
         .lean()
-        .maxTimeMS(5000),
+        .maxTimeMS(12_000),
       // Aluguéis ativos (comissão referente)
       Aluguel.find({
         vendedorId,
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         .sort({ dataInicio: -1 })
         .limit(500)
         .lean()
-        .maxTimeMS(5000),
+        .maxTimeMS(12_000),
     ]);
 
     const vendas = settled[0].status === "fulfilled" ? settled[0].value : [];

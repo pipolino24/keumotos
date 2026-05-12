@@ -91,9 +91,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .sort({ createdAt: -1 })
         .limit(100)
         .lean()
-        .maxTimeMS(5000),
-      Venda.find(vendaScope).sort({ data: -1 }).limit(200).lean().maxTimeMS(5000),
-      Aluguel.find(alugScope).sort({ dataInicio: -1 }).limit(200).lean().maxTimeMS(5000),
+        .maxTimeMS(12_000),
+      Venda.find(vendaScope).sort({ data: -1 }).limit(200).lean().maxTimeMS(12_000),
+      Aluguel.find(alugScope).sort({ dataInicio: -1 }).limit(200).lean().maxTimeMS(12_000),
       (async () => {
         const p = profile as { email?: string; telefone?: string };
         const ors: Array<Record<string, string>> = [];
@@ -108,7 +108,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
           .sort({ createdAt: -1 })
           .limit(50)
           .lean()
-          .maxTimeMS(5000);
+          .maxTimeMS(12_000);
       })(),
     ]);
     const interesses = settled[0].status === "fulfilled" ? settled[0].value : [];

@@ -50,19 +50,37 @@ export async function GET(req: NextRequest) {
     const skipRaw = Number(searchParams.get("skip"));
     const skip = Number.isFinite(skipRaw) && skipRaw > 0 ? Math.floor(skipRaw) : 0;
 
-    const [notifications, unreadCount] = await Promise.all([
+    // allSettled + retorno tolerante: se uma das queries falhar (cold start,
+    // timeout, índice em build), o bell ainda fica funcional com 200 + dados
+    // parciais. Antes, qualquer falha virava 500 e o polling do useNotifications
+    // espalhava error pelo console mesmo em transient blip.
+    const settled = await Promise.allSettled([
       Notification.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean()
-        .maxTimeMS(4000),
+        .maxTimeMS(12_000),
       Notification.countDocuments({
         destinatarioId: auth.userId,
         lido: false,
         arquivado: false,
-      }).maxTimeMS(3000),
+      }).maxTimeMS(10_000),
     ]);
+
+    const notifications =
+      settled[0].status === "fulfilled" ? settled[0].value : [];
+    const unreadCount =
+      settled[1].status === "fulfilled" ? (settled[1].value as number) : 0;
+
+    if (settled[0].status === "rejected") {
+      console.warn(
+        "[notifications:get] find failed:",
+        settled[0].reason instanceof Error
+          ? settled[0].reason.message
+          : "unknown"
+      );
+    }
 
     return NextResponse.json({
       notifications,
@@ -70,8 +88,16 @@ export async function GET(req: NextRequest) {
       hasMore: notifications.length === limit,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Catastrófico (auth, DB unreachable): ainda retorna 200 com dados vazios
+    // pra o bell não inundar o console — só loga.
+    console.error(
+      "[notifications:get] fatal:",
+      err instanceof Error ? err.message : "unknown"
+    );
+    return NextResponse.json(
+      { notifications: [], unreadCount: 0, hasMore: false },
+      { status: 200 }
+    );
   }
 }
 
