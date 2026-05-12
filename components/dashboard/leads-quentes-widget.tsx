@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, Phone, ArrowRight, Loader2, Users } from "lucide-react";
+import { useState } from "react";
+import { Flame, Phone, ArrowRight, Loader2, Users, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
+import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
 interface LeadQuente {
   clienteId?: string;
@@ -39,29 +41,66 @@ function tempo(iso: string): string {
 }
 
 export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
+  const me = useCurrentUser();
+  const userIsAdmin = isAdmin(me);
   const { data, loading } = useApi<{ leads: LeadQuente[] }>(
     `/api/leads-quentes?limit=${limit}`
   );
+  const [showInfo, setShowInfo] = useState(false);
 
   const leads = data?.leads ?? [];
 
   return (
     <Card>
-      <div className="p-5 border-b border-keu-black/5 flex items-center justify-between">
-        <div>
-          <h2 className="font-bold text-base flex items-center gap-2">
-            <Flame className="h-4 w-4 text-orange-500" /> Leads quentes
-          </h2>
-          <p className="text-xs text-keu-black/50">
-            Clientes com mais engajamento — atender primeiro!
-          </p>
+      <div className="p-5 border-b border-keu-black/5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-base flex items-center gap-2">
+              <Flame className="h-4 w-4 text-orange-500" /> Leads quentes
+              <button
+                type="button"
+                onClick={() => setShowInfo((v) => !v)}
+                className="text-keu-black/30 hover:text-keu-red transition"
+                aria-label="Como funciona"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </h2>
+            <p className="text-xs text-keu-black/50">
+              Clientes com mais engajamento — atender primeiro!
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant={userIsAdmin ? "warning" : "info"} className="text-[9px]">
+              {userIsAdmin ? "Toda equipe" : "Seus leads"}
+            </Badge>
+            <Link
+              href="/dashboard/clientes"
+              className="text-xs text-keu-red hover:underline font-semibold"
+            >
+              Clientes →
+            </Link>
+          </div>
         </div>
-        <Link
-          href="/dashboard/clientes"
-          className="text-xs text-keu-red hover:underline font-semibold"
-        >
-          Clientes →
-        </Link>
+        {showInfo && (
+          <div className="mt-3 p-3 rounded-lg bg-orange-50 border border-orange-200 text-[11px] text-orange-900 leading-relaxed">
+            <strong>Como classificamos:</strong> agrupamos os Interesses por
+            cliente nos últimos 30 dias e calculamos um score:
+            <br />
+            <code className="text-[10px]">
+              score = (eventos quentes × 5) + total interações + nº motos
+              distintas
+            </code>
+            <br />
+            <strong>Eventos quentes:</strong> enviou lead, solicitou
+            aluguel/compra, simulou financiamento, favoritou.
+            <br />
+            <strong>Quem você vê aqui:</strong>{" "}
+            {userIsAdmin
+              ? "TODOS os leads quentes da equipe (você é admin)."
+              : "só os leads que você está atendendo. Leads livres aparecem em ‘Leads esfriados’ pra você puxar."}
+          </div>
+        )}
       </div>
       {loading ? (
         <div className="p-8 text-center">

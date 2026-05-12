@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Snowflake, Phone, ArrowRight, Loader2, Check } from "lucide-react";
+import { Snowflake, Phone, ArrowRight, Loader2, Check, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
+import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
 interface ColdLead {
   _id: string;
@@ -39,7 +40,10 @@ function diasAtras(iso: string): number {
  * Botão "Atender" puxa o lead pro vendedor logado.
  */
 export function ColdLeadsWidget({ limit = 6 }: { limit?: number }) {
-  const [snapshotNow] = useState(() => 0); // placeholder, real now via Date.now lazy
+  const me = useCurrentUser();
+  const userIsAdmin = isAdmin(me);
+  const [snapshotNow] = useState(() => 0);
+  const [showInfo, setShowInfo] = useState(false);
   const { data, loading, refetch } = useApi<{ interesses: ColdLead[] }>(
     `/api/interesses/cold-leads?limit=${limit}`
   );
@@ -66,15 +70,42 @@ export function ColdLeadsWidget({ limit = 6 }: { limit?: number }) {
 
   return (
     <Card>
-      <div className="p-5 border-b border-keu-black/5 flex items-center justify-between">
-        <div>
-          <h2 className="font-bold text-base flex items-center gap-2">
-            <Snowflake className="h-4 w-4 text-blue-500" /> Leads esfriados
-          </h2>
-          <p className="text-xs text-keu-black/50">
-            Interesses sem atendente há mais de 3 dias — puxe pra você
-          </p>
+      <div className="p-5 border-b border-keu-black/5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-base flex items-center gap-2">
+              <Snowflake className="h-4 w-4 text-blue-500" /> Leads esfriados
+              <button
+                type="button"
+                onClick={() => setShowInfo((v) => !v)}
+                className="text-keu-black/30 hover:text-keu-red transition"
+                aria-label="Como funciona"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </h2>
+            <p className="text-xs text-keu-black/50">
+              Interesses sem atendente há mais de 3 dias — puxe pra você
+            </p>
+          </div>
+          <Badge variant={userIsAdmin ? "warning" : "info"} className="text-[9px] flex-shrink-0">
+            {userIsAdmin ? "Toda equipe" : "Livres pra você"}
+          </Badge>
         </div>
+        {showInfo && (
+          <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-[11px] text-blue-900 leading-relaxed">
+            <strong>Como entram aqui:</strong> Interesses identificados (com
+            nome/telefone) marcados como{" "}
+            <em>enviou lead / solicitou aluguel / solicitou compra / simulou
+            financiamento / favoritou</em>, criados há mais de 3 dias e que
+            ninguém atendeu ainda.
+            <br />
+            <strong>O que aparece pra você:</strong>{" "}
+            {userIsAdmin
+              ? "TODOS os leads esfriados da equipe (admin)."
+              : "leads LIVRES — ainda sem vendedor responsável. Clica em ‘Atender’ pra puxar pra você."}
+          </div>
+        )}
       </div>
       {loading ? (
         <div className="p-8 text-center">
