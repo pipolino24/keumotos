@@ -18,11 +18,13 @@ interface CacheEntry<T = unknown> {
 // Cache global in-memory por URL. SWR-light: a página exibe imediatamente
 // o último valor (se tiver) e revalida em background. Some no F5 (RAM only).
 const CACHE = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 30_000; // 30s — frescor razoável pra dashboards
+const CACHE_TTL_MS = 30_000;
 
-// In-flight requests deduplication: se duas instâncias do mesmo hook
-// pedem a mesma URL ao mesmo tempo, só dispara uma fetch.
-const IN_FLIGHT = new Map<string, Promise<unknown>>();
+// In-flight requests deduplication. A fetch NÃO recebe AbortSignal — se 1
+// instância desmonta, outras instâncias da mesma URL continuam recebendo
+// o resultado quando ele chegar. Antes a fetch era cancelada e os hooks
+// remanescentes ficavam com loading=true pra sempre.
+const IN_FLIGHT = new Map<string, Promise<ApiResult<unknown>>>();
 
 function readCache<T>(url: string): T | null {
   const hit = CACHE.get(url);
@@ -36,7 +38,7 @@ function readCache<T>(url: string): T | null {
 
 /**
  * Limpa o cache de uma URL específica (ou todas se sem arg).
- * Usado por componentes depois de POST/PATCH pra forçar refetch fresco.
+ * Útil depois de POST/PATCH pra forçar refetch fresco.
  */
 export function invalidateApiCache(url?: string): void {
   if (!url) {
@@ -46,11 +48,25 @@ export function invalidateApiCache(url?: string): void {
   CACHE.delete(url);
 }
 
+function fetchDedup<T>(url: string): Promise<ApiResult<T>> {
+  const existing = IN_FLIGHT.get(url);
+  if (existing) return existing as Promise<ApiResult<T>>;
+  // SEM signal: a fetch corre até o fim independente de qual instância
+  // desmontou. O apiGet ainda tem timeout interno (default 15s).
+  const p = apiGet<T>(url).finally(() => {
+    // Remove do mapa pra próxima requisição não pegar dado stale do flight
+    IN_FLIGHT.delete(url);
+  });
+  IN_FLIGHT.set(url, p as Promise<ApiResult<unknown>>);
+  return p;
+}
+
 /**
  * Hook genérico pra GET de API.
- * - Cancela request em flight quando URL muda / componente desmonta
  * - Cache in-memory SWR (stale-while-revalidate) de 30s
  * - Deduplica requests concorrentes pra mesma URL
+ * - Cleanup correto: se a instância desmonta antes da fetch resolver,
+ *   o resultado ainda é gravado no cache (próxima montagem pega instantâneo)
  */
 export function useApi<T>(
   url: string | null,
@@ -68,54 +84,64 @@ export function useApi<T>(
   }, [url]);
 
   useEffect(() => {
+    let mounted = true;
+
     if (!url) {
-      const t = setTimeout(() => setLoading(false), 0);
-      return () => clearTimeout(t);
+      // setTimeout 0 evita "setState in effect" warning do React 19
+      const t = setTimeout(() => {
+        if (mounted) setLoading(false);
+      }, 0);
+      return () => {
+        mounted = false;
+        clearTimeout(t);
+      };
     }
 
-    // Cache hit fresh: já tem o dado, não precisa loading
     const cacheHit = readCache<T>(url);
     if (cacheHit !== null && tick === 0) {
       const t = setTimeout(() => {
-        setData(cacheHit);
-        setLoading(false);
+        if (mounted) {
+          setData(cacheHit);
+          setLoading(false);
+        }
       }, 0);
-      // Continua pra revalidar em background mesmo com cache hit
-      // (SWR pattern). Mas sem mostrar loading ao usuário.
       void t;
     } else {
-      const initial = setTimeout(() => {
-        setLoading(true);
-        setError(null);
+      const t = setTimeout(() => {
+        if (mounted) {
+          setLoading(true);
+          setError(null);
+        }
       }, 0);
-      void initial;
+      void t;
     }
 
-    const controller = new AbortController();
-    // Dedup: se já tem uma request pendente pra essa URL, reusa a promise
-    let promise = IN_FLIGHT.get(url) as Promise<ApiResult<T>> | undefined;
-    if (!promise) {
-      promise = apiGet<T>(url, { signal: controller.signal });
-      IN_FLIGHT.set(url, promise as Promise<unknown>);
-      promise.finally(() => IN_FLIGHT.delete(url));
-    }
+    fetchDedup<T>(url).then((r) => {
+      // Sempre atualiza o cache mesmo se a instância desmontou.
+      // Próxima montagem do hook pega cache fresh imediato.
+      if (!r.error && r.data !== null) {
+        CACHE.set(url, { data: r.data, ts: Date.now() });
+      }
 
-    promise.then((r) => {
-      if (controller.signal.aborted) return;
+      if (!mounted) return;
+
       if (r.error) {
-        if (r.error === "AbortError" || r.error.includes("aborted")) return;
+        // AbortError não deveria mais acontecer aqui (sem signal),
+        // mas mantemos o filtro por segurança.
+        if (r.error === "AbortError" || r.error.includes("aborted")) {
+          setLoading(false);
+          return;
+        }
         setError(r.error);
-        // Se já tinha cache válido, mantém — não derruba a UI por flap
         if (!cacheHit) setData(null);
       } else if (r.data !== null) {
-        CACHE.set(url, { data: r.data, ts: Date.now() });
         setData(r.data);
       }
       setLoading(false);
     });
 
     return () => {
-      controller.abort();
+      mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, tick, ...deps]);
