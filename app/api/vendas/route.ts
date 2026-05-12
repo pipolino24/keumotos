@@ -4,6 +4,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Venda } from "@/lib/models/venda";
 import { Moto } from "@/lib/models/moto";
 import { Notification } from "@/lib/models/notification";
+import { Interesse } from "@/lib/models/interesse";
 import { vendaCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
@@ -129,6 +130,23 @@ export async function POST(req: NextRequest) {
         lido: false,
         arquivado: false,
       }).catch(() => {});
+
+      // Auto-converte Interesses pendentes do cliente nessa moto → "convertido".
+      // Limpa hot leads que viraram venda concreta. Não bloqueia o response.
+      Interesse.updateMany(
+        {
+          clienteId: venda.clienteId,
+          motoId: venda.motoId,
+          resultado: { $ne: "convertido" },
+        },
+        {
+          $set: {
+            resultado: "convertido",
+            vendedorAtendeu: parsed.data.vendedorId,
+            atendidoEm: new Date(),
+          },
+        }
+      ).catch(() => {});
     }
 
     return NextResponse.json({ venda }, { status: 201 });

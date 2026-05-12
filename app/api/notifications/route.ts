@@ -6,6 +6,20 @@ import { requireAuth } from "@/lib/auth/api-guards";
 export const dynamic = "force-dynamic";
 
 /**
+ * POST /api/notifications
+ * Bloqueado externamente. Notificações são criadas só por emit interno
+ * (lib/notifications/emit.ts) ou direto via Notification.create() em
+ * handlers de eventos (venda, aluguel, etc). Sem esse 405 explícito, um
+ * atacante poderia spammar bell de qualquer usuário via POST.
+ */
+export async function POST() {
+  return NextResponse.json(
+    { error: "Operação não permitida — notificações são geradas pelo sistema" },
+    { status: 405 }
+  );
+}
+
+/**
  * GET /api/notifications
  * Lista notificações do caller. Filtros: ?unread=true, ?prioridade=alta, ?limit=50
  * Sempre retorna `unreadCount` para o badge do bell icon.

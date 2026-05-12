@@ -86,6 +86,9 @@ export async function POST(req: NextRequest) {
     if (String(data.nome).length > 120 || String(data.telefone).length > 40) {
       return NextResponse.json({ error: "Campos muito longos" }, { status: 400 });
     }
+    if (data.email && String(data.email).length > 200) {
+      return NextResponse.json({ error: "Email muito longo" }, { status: 400 });
+    }
     // Origem e interesse precisam estar no enum — senão Mongoose rejeita.
     const origem = ORIGENS_VALIDAS.has(data.origem) ? data.origem : "site";
     const interesse = INTERESSES_VALIDOS.has(data.interesse)
@@ -95,7 +98,9 @@ export async function POST(req: NextRequest) {
     const contato = await Contato.create({
       nome: String(data.nome).slice(0, 120),
       telefone: String(data.telefone).slice(0, 40),
-      email: data.email ? String(data.email).slice(0, 200) : undefined,
+      email: data.email
+        ? String(data.email).slice(0, 200).toLowerCase()
+        : undefined,
       origem,
       interesse,
       motoInteresse: data.motoInteresse

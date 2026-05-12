@@ -16,6 +16,8 @@ const CAMPOS_PRIVADOS = {
   comissao: 0,
   compra: 0,
   repasse: 0,
+  // vendedorResponsavel é staff ID — não vaza pra catálogo público
+  vendedorResponsavel: 0,
 };
 
 export async function GET(req: NextRequest) {

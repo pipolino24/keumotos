@@ -17,6 +17,9 @@ const PRIVATE_FIELDS = [
   "comissao",
   "compra",
   "repasse",
+  // vendedorResponsavel é interno (ID do staff). Público vê só dados públicos
+  // do vendedor via endpoint dedicado (/api/motos/[id]/vendedor).
+  "vendedorResponsavel",
 ] as const;
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {

@@ -4,6 +4,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Moto } from "@/lib/models/moto";
 import { Notification } from "@/lib/models/notification";
+import { Interesse } from "@/lib/models/interesse";
 import { aluguelCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
@@ -130,6 +131,22 @@ export async function POST(req: NextRequest) {
         lido: false,
         arquivado: false,
       }).catch(() => {});
+
+      // Auto-converte Interesses pendentes do cliente nessa moto → "convertido"
+      Interesse.updateMany(
+        {
+          clienteId: aluguel.clienteId,
+          motoId: aluguel.motoId,
+          resultado: { $ne: "convertido" },
+        },
+        {
+          $set: {
+            resultado: "convertido",
+            vendedorAtendeu: parsed.data.vendedorId,
+            atendidoEm: new Date(),
+          },
+        }
+      ).catch(() => {});
     }
 
     return NextResponse.json({ aluguel }, { status: 201 });

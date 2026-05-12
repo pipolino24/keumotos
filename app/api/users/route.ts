@@ -120,6 +120,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    // Bloqueia criação de admin via API regular — exige promoção manual
+    // via /api/users/[id] PATCH com auditoria. Defende contra escalação
+    // lateral caso uma conta admin seja comprometida.
+    const ROLES_CRIAVEIS = ["cliente", "vendedor", "afiliado"] as const;
+    const roleAlvo = data.role || "cliente";
+    if (!ROLES_CRIAVEIS.includes(roleAlvo)) {
+      return NextResponse.json(
+        {
+          error:
+            "Role inválido nessa rota. Use /api/users/[id] PATCH pra promover a admin.",
+        },
+        { status: 400 }
+      );
+    }
 
     const admin = createSupabaseAdminClient();
     const { data: created, error } = await admin.auth.admin.createUser({

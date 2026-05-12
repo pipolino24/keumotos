@@ -24,6 +24,7 @@ import { formatCurrency, formatKm } from "@/lib/utils";
 import { MotoDetailActions } from "./moto-detail-actions";
 import { MotoPhotoGallery } from "./moto-photo-gallery";
 import { AffiliateTracker } from "./affiliate-tracker";
+import { VendedorCard } from "./vendedor-card";
 import { InterestTracker } from "@/components/motos/interest-tracker";
 
 export const dynamic = "force-dynamic";
@@ -278,6 +279,8 @@ export default async function MotoDetailPage({
                 motoId={moto._id}
                 motoTipo={moto.tipo}
               />
+
+              <VendedorCard motoId={moto._id} motoLabel={tituloModelo} />
 
               {/* SPECS */}
               <Card className="p-5">

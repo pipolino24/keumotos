@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Wallet,
   History,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -296,12 +297,15 @@ function ClienteDashboard() {
                 const quando =
                   dias === 0 ? "hoje" : dias === 1 ? "ontem" : `há ${dias} dias`;
                 return (
-                  <Link
+                  <div
                     key={a._id}
-                    href={`/motos/${a.motoId}`}
-                    className="block hover:bg-keu-gray-light transition"
+                    className="block hover:bg-keu-gray-light transition group/row"
                   >
                     <div className="p-3 px-6 flex items-center gap-3">
+                      <Link
+                        href={`/motos/${a.motoId}`}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                      >
                       <span
                         className={`text-[10px] uppercase tracking-wide font-bold px-2 py-1 rounded-full ${cfg.cor} flex-shrink-0`}
                       >
@@ -320,8 +324,25 @@ function ClienteDashboard() {
                         </div>
                       </div>
                       <ArrowRight className="h-3 w-3 text-keu-black/30 flex-shrink-0" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await fetch(`/api/interesses/${a._id}`, {
+                            method: "DELETE",
+                          }).catch(() => {});
+                          toast.success("Interesse removido do histórico");
+                          // Refetch via reload — useApi não tem refetch público fácil aqui
+                          window.location.reload();
+                        }}
+                        title="Remover do histórico"
+                        aria-label="Remover do histórico"
+                        className="opacity-0 group-hover/row:opacity-100 transition w-7 h-7 rounded-full hover:bg-keu-red/10 hover:text-keu-red text-keu-black/40 flex items-center justify-center"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
