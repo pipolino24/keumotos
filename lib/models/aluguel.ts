@@ -16,7 +16,7 @@ export interface IAluguelDoc {
   motoMarca?: string;
   motoAno?: number;
 
-  clienteId?: mongoose.Types.ObjectId;
+  clienteId?: string; // UUID Supabase (ou ObjectId legacy)
   clienteNome: string;
   clienteTelefone?: string;
   clienteEmail?: string;
@@ -84,7 +84,7 @@ const AluguelSchema = new Schema<IAluguelDoc>(
     motoMarca: String,
     motoAno: Number,
 
-    clienteId: { type: Schema.Types.ObjectId, ref: "User" },
+    clienteId: { type: String, index: true },
     clienteNome: { type: String, required: true },
     clienteTelefone: String,
     clienteEmail: String,

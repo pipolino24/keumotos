@@ -509,46 +509,59 @@ function MotoCard({ moto }: { moto: Moto }) {
 
   return (
     <Link href={`/motos/${moto._id}`} className="group block">
-      <Card className="overflow-hidden h-full hover:shadow-2xl transition-all hover:-translate-y-1">
-        <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
+      <Card className="overflow-hidden h-full hover:shadow-2xl hover:shadow-keu-red/15 transition-all hover:-translate-y-1 border border-keu-black/5">
+        {/* IMAGEM */}
+        <div className="aspect-[4/3] bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
           {moto.fotos?.[0] ? (
             <Image
               src={moto.fotos[0]}
               alt={`${moto.marca} ${moto.modelo}`}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              className="object-cover group-hover:scale-110 transition-transform duration-700"
               unoptimized
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-white/30">
-              <Bike className="h-16 w-16" />
+            <div className="absolute inset-0 flex items-center justify-center text-keu-red/15">
+              <Bike className="h-20 w-20" />
             </div>
           )}
-          {moto.destaque && (
-            <Badge className="absolute top-3 left-3" variant="default">
-              Destaque
-            </Badge>
-          )}
-          {isAluguel && (
-            <Badge className="absolute top-3 left-3" variant="dark">
-              Aluguel
-            </Badge>
-          )}
-          {isAmbos && (
-            <Badge className="absolute top-3 left-3" variant="info">
-              Venda/Aluguel
-            </Badge>
-          )}
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-lg px-2 py-1 text-xs font-bold">
+          {/* Gradient overlay sutil pra dar profundidade */}
+          <div className="absolute inset-0 bg-gradient-to-t from-keu-black/40 via-transparent to-transparent" />
+
+          {/* Badges */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+            {moto.destaque && (
+              <Badge variant="default" className="shadow-lg">
+                ★ Destaque
+              </Badge>
+            )}
+            {isAluguel && (
+              <Badge variant="dark" className="shadow-lg">
+                Aluguel
+              </Badge>
+            )}
+            {isAmbos && (
+              <Badge variant="info" className="shadow-lg">
+                Venda · Aluguel
+              </Badge>
+            )}
+          </div>
+          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur rounded-md px-2 py-1 text-xs font-bold shadow-lg">
             {moto.anoModelo}
           </div>
-        </div>
-        <div className="p-5">
-          <div className="text-xs font-semibold text-keu-red mb-1">
-            {moto.marca}
+
+          {/* Marca em overlay no rodapé da imagem */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+            <span className="bg-white/95 backdrop-blur rounded-md px-2.5 py-1 text-xs font-bold text-keu-red shadow">
+              {moto.marca}
+            </span>
           </div>
-          <h3 className="font-bold text-lg mb-3 truncate">
+        </div>
+
+        {/* CONTEÚDO */}
+        <div className="p-5 flex flex-col">
+          <h3 className="font-bold text-lg leading-tight mb-1 truncate">
             {moto.modelo}
             {moto.versao && (
               <span className="text-keu-black/60 font-medium">
@@ -557,17 +570,25 @@ function MotoCard({ moto }: { moto: Moto }) {
               </span>
             )}
           </h3>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-keu-black/60 mb-4">
-            <span>{formatKm(moto.km)}</span>
-            <span>•</span>
-            <span>{moto.cor}</span>
-            <span>•</span>
-            <span>{moto.cilindrada}cc</span>
+
+          {/* Specs em chips */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            <span className="text-[11px] bg-keu-gray-light rounded-md px-2 py-0.5 text-keu-black/70">
+              {formatKm(moto.km)}
+            </span>
+            <span className="text-[11px] bg-keu-gray-light rounded-md px-2 py-0.5 text-keu-black/70">
+              {moto.cilindrada}cc
+            </span>
+            <span className="text-[11px] bg-keu-gray-light rounded-md px-2 py-0.5 text-keu-black/70">
+              {moto.cor}
+            </span>
           </div>
+
+          {/* Preço + CTA */}
           <div className="border-t border-keu-black/5 pt-4 flex items-end justify-between gap-2">
             <div>
-              <div className="text-xs text-keu-black/60">
-                {isAluguel ? "Diária a partir de" : "Por"}
+              <div className="text-[10px] uppercase tracking-wider text-keu-black/50 font-semibold">
+                {isAluguel ? "Diária" : "À vista"}
               </div>
               <div className="text-2xl font-black text-keu-red leading-tight">
                 {formatCurrency(
@@ -575,10 +596,15 @@ function MotoCard({ moto }: { moto: Moto }) {
                     ? moto.valorDiaria
                     : moto.valorAnunciado
                 )}
+                {isAluguel && (
+                  <span className="text-sm font-medium text-keu-black/60">
+                    /dia
+                  </span>
+                )}
               </div>
             </div>
-            <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-xs font-semibold transition-all h-8 px-3 bg-gradient-to-br from-keu-red to-keu-red-dark text-white group-hover:shadow-lg group-hover:shadow-keu-red/30">
-              Ver detalhes <ArrowRight className="h-3 w-3" />
+            <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg text-xs font-semibold h-9 px-3 bg-gradient-to-br from-keu-red to-keu-red-dark text-white shadow-md group-hover:shadow-lg group-hover:shadow-keu-red/40 group-hover:scale-105 transition-all">
+              Ver <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>
         </div>

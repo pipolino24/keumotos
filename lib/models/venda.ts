@@ -60,7 +60,7 @@ export interface IVendaDoc {
   motoValorAnunciado?: number;
   motoValorMinimo?: number;
 
-  clienteId?: mongoose.Types.ObjectId;
+  clienteId?: string; // UUID Supabase (ou ObjectId legacy)
   clienteNome: string;
   clienteTelefone?: string;
   clienteEmail?: string;
@@ -133,7 +133,7 @@ const VendaSchema = new Schema<IVendaDoc>(
     motoValorAnunciado: Number,
     motoValorMinimo: Number,
 
-    clienteId: { type: Schema.Types.ObjectId, ref: "User" },
+    clienteId: { type: String, index: true },
     clienteNome: { type: String, required: true },
     clienteTelefone: String,
     clienteEmail: String,

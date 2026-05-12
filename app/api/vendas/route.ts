@@ -21,11 +21,15 @@ export async function GET(req: NextRequest) {
     const dataFim = searchParams.get("dataFim");
 
     const query: Record<string, unknown> = {};
-    // vendedor só vê o próprio; admin pode filtrar por qualquer
+    // admin: filtra por quem quiser; staff: só as próprias; cliente: as suas compras
     if (auth.role === "admin") {
       if (vendedorIdParam) query.vendedorId = vendedorIdParam;
+      const clienteIdParam = searchParams.get("clienteId");
+      if (clienteIdParam) query.clienteId = clienteIdParam;
     } else if (auth.role === "vendedor" || auth.role === "afiliado") {
       query.vendedorId = auth.userId;
+    } else if (auth.role === "cliente") {
+      query.clienteId = auth.userId;
     } else {
       return NextResponse.json({ vendas: [] });
     }

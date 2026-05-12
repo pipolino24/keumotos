@@ -16,6 +16,10 @@ import {
   ShoppingBag,
   KeyRound,
   Sparkles,
+  Calendar,
+  AlertCircle,
+  Wallet,
+  History,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,18 +47,74 @@ interface MotoCatalogo {
   fotos: string[];
 }
 
+interface VendaCliente {
+  _id: string;
+  motoModelo: string;
+  motoMarca?: string;
+  motoAno?: number;
+  valorVendido: number;
+  status: "pendente" | "concluida" | "cancelada";
+  data: string;
+  pagamentos: Array<{
+    forma: string;
+    valor: number;
+    parcelasLoja?: number;
+    parcelasPagasLoja?: number;
+    valorParcelaLoja?: number;
+    primeiraParcelaEm?: string;
+    proximaParcelaEm?: string;
+  }>;
+}
+
+interface AluguelCliente {
+  _id: string;
+  motoModelo: string;
+  motoMarca?: string;
+  motoAno?: number;
+  dataInicio: string;
+  dataFim: string;
+  dataDevolucao?: string;
+  valorTotal: number;
+  caucao: number;
+  status: "ativo" | "concluido" | "atrasado" | "cancelado";
+  valorAReceberCaucao?: number;
+}
+
 function ClienteDashboard() {
   const me = useCurrentUser();
-  const { data: motosData, loading } = useApi<{ motos: MotoCatalogo[] }>(
+
+  const { data: motosData, loading: lm } = useApi<{ motos: MotoCatalogo[] }>(
     "/api/motos?status=disponivel"
   );
+  const { data: vendasData, loading: lv } = useApi<{ vendas: VendaCliente[] }>(
+    "/api/vendas"
+  );
+  const { data: alugueisData, loading: la } = useApi<{
+    alugueis: AluguelCliente[];
+  }>("/api/alugueis");
+
   const destaques = (motosData?.motos ?? []).slice(0, 3);
+  const minhasCompras = vendasData?.vendas ?? [];
+  const meusAlugueis = alugueisData?.alugueis ?? [];
+  const alugueisAtivos = meusAlugueis.filter(
+    (a) => a.status === "ativo" || a.status === "atrasado"
+  );
+  const alugueisFinalizados = meusAlugueis.filter(
+    (a) => a.status === "concluido"
+  );
+
+  // Calcula próximos pagamentos: parcelas de venda parcelado-loja + aluguéis ativos
+  const proximosPagamentos = calcularProximosPagamentos(
+    minhasCompras,
+    alugueisAtivos
+  );
+  const totalEmAberto = proximosPagamentos.reduce((s, p) => s + p.valor, 0);
 
   return (
     <div>
       <PageHeader
         title={`Olá, ${me.nome.split(" ")[0]}! 👋`}
-        description="Bem-vindo à KEU Motos — encontre sua próxima moto aqui"
+        description="Sua área pessoal — catálogo, compras, aluguéis e pagamentos"
       >
         <Link
           href="/motos"
@@ -67,6 +127,7 @@ function ClienteDashboard() {
         </Link>
       </PageHeader>
 
+      {/* TOP HERO + CTAs */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
         <Card className="p-6 bg-gradient-to-br from-keu-red to-keu-red-dark text-white border-0 overflow-hidden relative lg:col-span-2">
           <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10 blur-2xl" />
@@ -79,15 +140,12 @@ function ClienteDashboard() {
               Mais de 100 modelos seminovos e zero km com FIPE garantida.
               Compra, troca e financiamento na hora.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Link
                 href="/motos"
-                className={cn(
-                  buttonVariants({ variant: "white", size: "lg" })
-                )}
+                className={cn(buttonVariants({ variant: "white", size: "lg" }))}
               >
-                Ver motos disponíveis
-                <ArrowRight className="h-4 w-4" />
+                Ver motos disponíveis <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="https://wa.me/5588998505859"
@@ -98,8 +156,7 @@ function ClienteDashboard() {
                   "bg-white/0 border-white/40 text-white hover:bg-white/10 hover:border-white"
                 )}
               >
-                <Phone className="h-4 w-4" />
-                Falar com vendedor
+                <Phone className="h-4 w-4" /> Falar com vendedor
               </a>
             </div>
           </div>
@@ -124,30 +181,162 @@ function ClienteDashboard() {
         </Card>
       </div>
 
+      {/* STATS */}
       <div className="grid sm:grid-cols-3 gap-4 mb-8">
         <SimpleCard
           icon={<ShoppingBag className="h-5 w-5" />}
           label="Minhas compras"
-          value="0"
+          value={String(minhasCompras.length)}
           color="bg-keu-red"
-          hint="histórico em breve"
+          hint={
+            minhasCompras.length === 0
+              ? "nenhuma compra ainda"
+              : `${minhasCompras.length} ${minhasCompras.length === 1 ? "moto comprada" : "motos compradas"}`
+          }
         />
         <SimpleCard
           icon={<KeyRound className="h-5 w-5" />}
           label="Aluguéis ativos"
-          value="0"
+          value={String(alugueisAtivos.length)}
           color="bg-emerald-500"
-          hint="você não tem aluguel em andamento"
+          hint={
+            alugueisAtivos.length === 0
+              ? "sem aluguel em andamento"
+              : `${alugueisFinalizados.length} já finalizados`
+          }
         />
         <SimpleCard
-          icon={<Heart className="h-5 w-5" />}
-          label="Motos favoritas"
-          value="0"
-          color="bg-blue-500"
-          hint="salve motos pra ver aqui"
+          icon={<Wallet className="h-5 w-5" />}
+          label="Em aberto"
+          value={formatCurrency(totalEmAberto)}
+          color={totalEmAberto > 0 ? "bg-amber-500" : "bg-blue-500"}
+          hint={
+            proximosPagamentos.length === 0
+              ? "nada pra pagar agora"
+              : `${proximosPagamentos.length} ${proximosPagamentos.length === 1 ? "pagamento" : "pagamentos"} pendentes`
+          }
         />
       </div>
 
+      {/* PRÓXIMOS PAGAMENTOS */}
+      <Card className="mb-6">
+        <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-500/10 text-amber-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg">Próximos pagamentos</h2>
+              <p className="text-sm text-keu-black/60">
+                Parcelas de motos compradas e aluguéis a vencer
+              </p>
+            </div>
+          </div>
+        </div>
+        {lv || la ? (
+          <div className="p-12 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
+          </div>
+        ) : proximosPagamentos.length === 0 ? (
+          <div className="p-10 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
+            <p className="text-sm text-keu-black/60">
+              Nenhum pagamento em aberto. 🎉
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-keu-black/5">
+            {proximosPagamentos.map((p) => (
+              <PagamentoRow key={p.id} item={p} />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* GRID: Aluguéis ativos + Minhas compras */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        {/* ALUGUÉIS ATIVOS */}
+        <Card>
+          <div className="p-6 border-b border-keu-black/5 flex items-center gap-3">
+            <div className="bg-emerald-500/10 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg">Meus aluguéis ativos</h2>
+              <p className="text-sm text-keu-black/60">Locações em andamento</p>
+            </div>
+          </div>
+          {la ? (
+            <div className="p-10 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+            </div>
+          ) : alugueisAtivos.length === 0 ? (
+            <div className="p-10 text-center text-sm text-keu-black/60">
+              Você não tem nenhum aluguel em andamento.
+            </div>
+          ) : (
+            <div className="divide-y divide-keu-black/5">
+              {alugueisAtivos.map((a) => (
+                <AluguelRow key={a._id} aluguel={a} />
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* MINHAS COMPRAS */}
+        <Card>
+          <div className="p-6 border-b border-keu-black/5 flex items-center gap-3">
+            <div className="bg-keu-red/10 text-keu-red w-10 h-10 rounded-lg flex items-center justify-center">
+              <ShoppingBag className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg">Minhas compras</h2>
+              <p className="text-sm text-keu-black/60">
+                Motos que você comprou
+              </p>
+            </div>
+          </div>
+          {lv ? (
+            <div className="p-10 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+            </div>
+          ) : minhasCompras.length === 0 ? (
+            <div className="p-10 text-center text-sm text-keu-black/60">
+              Você ainda não comprou nenhuma moto.
+            </div>
+          ) : (
+            <div className="divide-y divide-keu-black/5">
+              {minhasCompras.slice(0, 5).map((v) => (
+                <CompraRow key={v._id} venda={v} />
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* HISTÓRICO DE ALUGUÉIS */}
+      {alugueisFinalizados.length > 0 && (
+        <Card className="mb-6">
+          <div className="p-6 border-b border-keu-black/5 flex items-center gap-3">
+            <div className="bg-blue-500/10 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <History className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg">Histórico de aluguéis</h2>
+              <p className="text-sm text-keu-black/60">
+                Aluguéis já finalizados
+              </p>
+            </div>
+          </div>
+          <div className="divide-y divide-keu-black/5">
+            {alugueisFinalizados.slice(0, 5).map((a) => (
+              <AluguelRow key={a._id} aluguel={a} />
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* DESTAQUES DO CATÁLOGO */}
       <Card>
         <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
           <div>
@@ -163,7 +352,7 @@ function ClienteDashboard() {
             Ver todas <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-        {loading ? (
+        {lm ? (
           <div className="p-12 text-center">
             <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
           </div>
@@ -206,6 +395,171 @@ function ClienteDashboard() {
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+interface ProximoPagamento {
+  id: string;
+  tipo: "parcela-venda" | "aluguel";
+  titulo: string;
+  subtitulo: string;
+  valor: number;
+  vencimento: Date;
+  atrasado: boolean;
+}
+
+function calcularProximosPagamentos(
+  compras: VendaCliente[],
+  alugueisAtivos: AluguelCliente[]
+): ProximoPagamento[] {
+  const out: ProximoPagamento[] = [];
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  for (const v of compras) {
+    for (const p of v.pagamentos) {
+      if (
+        p.forma === "parcelado-loja" &&
+        p.parcelasLoja &&
+        p.valorParcelaLoja
+      ) {
+        const restantes =
+          p.parcelasLoja - (p.parcelasPagasLoja ?? 0);
+        if (restantes <= 0) continue;
+        const venc = p.proximaParcelaEm
+          ? new Date(p.proximaParcelaEm)
+          : p.primeiraParcelaEm
+            ? new Date(p.primeiraParcelaEm)
+            : null;
+        if (!venc) continue;
+        out.push({
+          id: `${v._id}-parcela`,
+          tipo: "parcela-venda",
+          titulo: `${v.motoMarca ?? ""} ${v.motoModelo}`.trim(),
+          subtitulo: `Parcela ${(p.parcelasPagasLoja ?? 0) + 1}/${p.parcelasLoja} — parcelado direto na loja`,
+          valor: p.valorParcelaLoja,
+          vencimento: venc,
+          atrasado: venc < hoje,
+        });
+      }
+    }
+  }
+
+  for (const a of alugueisAtivos) {
+    const fim = new Date(a.dataFim);
+    out.push({
+      id: a._id,
+      tipo: "aluguel",
+      titulo: `${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
+      subtitulo: `Aluguel ativo — devolução prevista`,
+      valor: a.valorTotal,
+      vencimento: fim,
+      atrasado: a.status === "atrasado" || fim < hoje,
+    });
+  }
+
+  return out.sort((a, b) => a.vencimento.getTime() - b.vencimento.getTime());
+}
+
+function PagamentoRow({ item }: { item: ProximoPagamento }) {
+  const dataFmt = item.vencimento.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  return (
+    <div className="p-4 px-6 flex items-center gap-4 hover:bg-keu-gray-light transition">
+      <div
+        className={cn(
+          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+          item.atrasado
+            ? "bg-red-500/10 text-red-600"
+            : "bg-amber-500/10 text-amber-600"
+        )}
+      >
+        {item.atrasado ? (
+          <AlertCircle className="h-5 w-5" />
+        ) : (
+          <Calendar className="h-5 w-5" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold truncate">{item.titulo}</div>
+        <div className="text-xs text-keu-black/60 truncate">
+          {item.subtitulo}
+        </div>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className="font-bold text-keu-black">
+          {formatCurrency(item.valor)}
+        </div>
+        <div
+          className={cn(
+            "text-xs",
+            item.atrasado ? "text-red-600 font-semibold" : "text-keu-black/60"
+          )}
+        >
+          {item.atrasado ? "Atrasado · " : ""}
+          {dataFmt}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
+  const inicio = new Date(aluguel.dataInicio).toLocaleDateString("pt-BR");
+  const fim = new Date(aluguel.dataFim).toLocaleDateString("pt-BR");
+  const variant: "success" | "danger" | "secondary" | "warning" =
+    aluguel.status === "ativo"
+      ? "success"
+      : aluguel.status === "atrasado"
+        ? "danger"
+        : aluguel.status === "concluido"
+          ? "secondary"
+          : "warning";
+  return (
+    <div className="p-4 px-6 flex items-center gap-4">
+      <div className="bg-keu-gray-light w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+        <Bike className="h-5 w-5 text-keu-black/60" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold truncate">
+          {aluguel.motoMarca ?? ""} {aluguel.motoModelo}
+        </div>
+        <div className="text-xs text-keu-black/60">
+          {inicio} → {fim} · {formatCurrency(aluguel.valorTotal)}
+        </div>
+      </div>
+      <Badge variant={variant} className="text-[10px] uppercase">
+        {aluguel.status}
+      </Badge>
+    </div>
+  );
+}
+
+function CompraRow({ venda }: { venda: VendaCliente }) {
+  const dataFmt = new Date(venda.data).toLocaleDateString("pt-BR");
+  return (
+    <div className="p-4 px-6 flex items-center gap-4">
+      <div className="bg-keu-red/10 w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
+        <Bike className="h-5 w-5 text-keu-red" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold truncate">
+          {venda.motoMarca ?? ""} {venda.motoModelo}
+        </div>
+        <div className="text-xs text-keu-black/60">
+          Comprada em {dataFmt} · {formatCurrency(venda.valorVendido)}
+        </div>
+      </div>
+      <Badge
+        variant={venda.status === "concluida" ? "success" : "warning"}
+        className="text-[10px] uppercase"
+      >
+        {venda.status}
+      </Badge>
     </div>
   );
 }
