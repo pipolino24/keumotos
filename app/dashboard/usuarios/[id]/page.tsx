@@ -84,7 +84,9 @@ export default function EditarUsuarioPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (!user) return;
+    // setTimeout(0) evita cascading-render warning do React 19
+    const t = setTimeout(() => {
       setNome(user.nome);
       setTelefone(user.telefone);
       setCidade(user.cidade ?? "");
@@ -92,7 +94,8 @@ export default function EditarUsuarioPage() {
       setRole(user.role);
       setStatus(user.status);
       setSelectedCargoId(user.cargoId ?? "");
-    }
+    }, 0);
+    return () => clearTimeout(t);
   }, [user]);
 
   const selectedRole = useMemo(
@@ -107,7 +110,8 @@ export default function EditarUsuarioPage() {
     const extras = (user.permissoes ?? []).filter(
       (p) => !rolePerms.has(p)
     ) as Permission[];
-    setExtraPermissions(extras);
+    const t = setTimeout(() => setExtraPermissions(extras), 0);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCargoId, user?._id]);
 
@@ -311,7 +315,15 @@ export default function EditarUsuarioPage() {
             )}
 
             <div>
-              <Label htmlFor="cargo">Cargo</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="cargo">Cargo</Label>
+                <Link
+                  href="/dashboard/usuarios/niveis/novo"
+                  className="text-xs font-bold text-keu-red hover:underline inline-flex items-center gap-1"
+                >
+                  + Criar novo cargo
+                </Link>
+              </div>
               <Select
                 id="cargo"
                 value={selectedCargoId}
@@ -324,6 +336,26 @@ export default function EditarUsuarioPage() {
                   </option>
                 ))}
               </Select>
+              {activeRoles.length === 0 && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900">
+                  <strong>Nenhum cargo cadastrado ainda.</strong> Crie um cargo
+                  primeiro pra atribuir permissões de uma vez (ex:{" "}
+                  <em>Vendedor Sênior</em>, <em>Atendente Loca</em>
+                  ).{" "}
+                  <Link
+                    href="/dashboard/usuarios/niveis/novo"
+                    className="font-bold underline"
+                  >
+                    Criar agora →
+                  </Link>
+                </div>
+              )}
+              <Link
+                href="/dashboard/usuarios/niveis"
+                className="text-[11px] text-keu-black/50 hover:text-keu-red mt-2 inline-block"
+              >
+                Gerenciar todos os cargos →
+              </Link>
             </div>
 
             {selectedRole && (
