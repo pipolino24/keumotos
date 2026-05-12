@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   Menu,
   X,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -37,6 +38,7 @@ const staffNavItems = [
 const clienteNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
   { href: "/motos", icon: Bike, label: "Catálogo" },
+  { href: "/dashboard/favoritos", icon: Heart, label: "Favoritos" },
 ];
 
 const adminNavItems = [

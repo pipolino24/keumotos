@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Venda } from "@/lib/models/venda";
+import { Moto } from "@/lib/models/moto";
 import { Notification } from "@/lib/models/notification";
 import { vendaCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
@@ -73,7 +75,44 @@ export async function POST(req: NextRequest) {
       parsed.data.vendedorId = auth.userId;
     }
 
-    const venda = await Venda.create(parsed.data);
+    // Lock atômico da moto: tenta marcar como "vendida" condicionalmente.
+    // Resolve race condition entre dois POSTs simultâneos pra mesma moto.
+    const motoIdStr = String(parsed.data.motoId);
+    if (!mongoose.Types.ObjectId.isValid(motoIdStr)) {
+      return NextResponse.json({ error: "motoId inválido" }, { status: 400 });
+    }
+    const lock = await Moto.findOneAndUpdate(
+      { _id: motoIdStr, status: { $in: ["disponivel", "reservada"] } },
+      { $set: { status: "vendida" } },
+      { new: false }
+    )
+      .select("status")
+      .lean();
+    if (!lock) {
+      const existe = await Moto.exists({ _id: motoIdStr });
+      if (!existe) {
+        return NextResponse.json(
+          { error: "Moto não encontrada" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Moto não está disponível para venda" },
+        { status: 409 }
+      );
+    }
+
+    let venda;
+    try {
+      venda = await Venda.create(parsed.data);
+    } catch (createErr) {
+      // Reverte lock se criação falhou
+      await Moto.updateOne(
+        { _id: motoIdStr, status: "vendida" },
+        { $set: { status: "disponivel" } }
+      ).catch(() => {});
+      throw createErr;
+    }
 
     // Notifica o cliente (se identificado) que a compra foi registrada.
     // Falha silenciosa pra não derrubar a criação.

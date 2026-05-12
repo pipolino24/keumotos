@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LeadFormModal } from "@/components/motos/lead-form-modal";
 import { FinancingSimulator } from "@/components/motos/financing-simulator";
 import { RentalRequestModal } from "@/components/motos/rental-request-modal";
+import { FavoriteButton } from "@/components/motos/favorite-button";
 
 interface Props {
   whatsappUrl: string;
@@ -101,14 +102,17 @@ export function MotoDetailActions({
           <Calculator className="h-4 w-4" />{" "}
           {showSimulador ? "Fechar simulador" : "Simular financiamento"}
         </Button>
-        <Button
-          variant="ghost"
-          size="lg"
-          onClick={handleShare}
-          className="col-span-2"
-        >
-          <Share2 className="h-4 w-4" /> Compartilhar
-        </Button>
+        <div className="col-span-2 flex gap-2">
+          <FavoriteButton motoId={motoId} motoLabel={shareTitle} />
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={handleShare}
+            className="flex-1"
+          >
+            <Share2 className="h-4 w-4" /> Compartilhar
+          </Button>
+        </div>
       </div>
 
       {/* SIMULADOR COLAPSÁVEL */}

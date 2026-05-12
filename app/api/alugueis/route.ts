@@ -72,35 +72,48 @@ export async function POST(req: NextRequest) {
     if (!mongoose.Types.ObjectId.isValid(motoIdStr)) {
       return NextResponse.json({ error: "motoId inválido" }, { status: 400 });
     }
-    const moto = await Moto.findById(motoIdStr).select("status modelo marca");
-    if (!moto) {
-      return NextResponse.json(
-        { error: "Moto não encontrada" },
-        { status: 404 }
-      );
-    }
-    if (moto.status !== "disponivel") {
-      return NextResponse.json(
-        { error: `Moto não está disponível (${moto.status})` },
-        { status: 409 }
-      );
-    }
 
     // Vendedor só pode criar locação em nome próprio
     if (auth.role !== "admin") {
       parsed.data.vendedorId = auth.userId;
     }
 
-    const aluguel = await Aluguel.create(parsed.data);
+    // Lock atômico: tenta marcar moto como "alugada" condicionalmente
+    // (status="disponivel"). Se ninguém pegou antes, prossegue.
+    // Resolve race condition entre dois POSTs simultâneos.
+    const lock = await Moto.findOneAndUpdate(
+      { _id: motoIdStr, status: "disponivel" },
+      { $set: { status: "alugada" } },
+      { new: false }
+    )
+      .select("status modelo marca")
+      .lean();
+    if (!lock) {
+      // Verifica se moto existe pra mensagem amigável
+      const existe = await Moto.exists({ _id: motoIdStr });
+      if (!existe) {
+        return NextResponse.json(
+          { error: "Moto não encontrada" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { error: "Moto não está disponível no momento" },
+        { status: 409 }
+      );
+    }
 
-    // Sincroniza moto.status → "alugada". Falha não rompe o aluguel — log e
-    // segue, admin pode corrigir manualmente.
-    await Moto.updateOne(
-      { _id: moto._id, status: "disponivel" },
-      { $set: { status: "alugada" } }
-    ).catch((err) => {
-      console.error("[alugueis] falha ao sync moto.status:", err);
-    });
+    let aluguel;
+    try {
+      aluguel = await Aluguel.create(parsed.data);
+    } catch (createErr) {
+      // Reverte lock se a criação falhou — best-effort
+      await Moto.updateOne(
+        { _id: motoIdStr, status: "alugada" },
+        { $set: { status: "disponivel" } }
+      ).catch(() => {});
+      throw createErr;
+    }
 
     // Notifica o cliente que tem aluguel ativo
     if (aluguel.clienteId) {

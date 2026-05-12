@@ -71,15 +71,23 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .lean(),
       Venda.find(vendaScope).sort({ data: -1 }).lean(),
       Aluguel.find(alugScope).sort({ dataInicio: -1 }).lean(),
-      Contato.find({
-        $or: [
-          { email: profile?.email },
-          { telefone: profile?.telefone },
-        ].filter(Boolean) as object[],
-      })
-        .sort({ createdAt: -1 })
-        .limit(50)
-        .lean(),
+      (async () => {
+        // Constrói $or apenas com campos não-vazios — evita query com
+        // { email: undefined } que casaria com docs sem o campo.
+        const ors: Array<Record<string, string>> = [];
+        if (profile?.email) ors.push({ email: profile.email });
+        if (profile?.telefone) ors.push({ telefone: profile.telefone });
+        if (!ors.length) return [];
+        // Vendedor só vê contatos que ele é responsável; admin vê tudo.
+        const contatoFilter: Record<string, unknown> = { $or: ors };
+        if (auth.role === "vendedor") {
+          contatoFilter.vendedorResponsavel = auth.userId;
+        }
+        return Contato.find(contatoFilter)
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .lean();
+      })(),
     ]);
 
     const totalGasto = vendas.reduce((sum, v) => sum + (v.valorVendido || 0), 0);

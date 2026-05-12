@@ -212,6 +212,18 @@ export default async function MotoDetailPage({
                   <Badge variant="outline">Ano {moto.anoModelo}</Badge>
                   <Badge variant="outline">{formatKm(moto.km)}</Badge>
                   <Badge variant="outline">{moto.cor}</Badge>
+                  {moto.status === "reservada" && (
+                    <Badge variant="warning">Reservada</Badge>
+                  )}
+                  {moto.status === "vendida" && (
+                    <Badge variant="danger">Vendida</Badge>
+                  )}
+                  {moto.status === "alugada" && (
+                    <Badge variant="info">Alugada</Badge>
+                  )}
+                  {moto.status === "manutencao" && (
+                    <Badge variant="warning">Em manutenção</Badge>
+                  )}
                 </div>
               </div>
 

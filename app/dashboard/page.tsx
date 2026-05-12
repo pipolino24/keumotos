@@ -56,6 +56,8 @@ interface VendaCliente {
   valorVendido: number;
   status: "pendente" | "concluida" | "cancelada";
   data: string;
+  vendedorId?: string;
+  vendedorNome?: string;
   pagamentos: Array<{
     forma: string;
     valor: number;
@@ -79,6 +81,8 @@ interface AluguelCliente {
   caucao: number;
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
   valorAReceberCaucao?: number;
+  vendedorId?: string;
+  vendedorNome?: string;
 }
 
 function ClienteDashboard() {
@@ -633,6 +637,11 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
         <div className="text-xs text-keu-black/60">
           {inicio} → {fim} · {formatCurrency(aluguel.valorTotal)}
         </div>
+        {aluguel.vendedorNome && (
+          <div className="text-[10px] text-keu-black/50 mt-0.5">
+            Atendido por <strong className="text-keu-black/70">{aluguel.vendedorNome}</strong>
+          </div>
+        )}
       </div>
       <Badge variant={variant} className="text-[10px] uppercase">
         {aluguel.status}
@@ -655,6 +664,11 @@ function CompraRow({ venda }: { venda: VendaCliente }) {
         <div className="text-xs text-keu-black/60">
           Comprada em {dataFmt} · {formatCurrency(venda.valorVendido)}
         </div>
+        {venda.vendedorNome && (
+          <div className="text-[10px] text-keu-black/50 mt-0.5">
+            Atendido por <strong className="text-keu-black/70">{venda.vendedorNome}</strong>
+          </div>
+        )}
       </div>
       <Badge
         variant={venda.status === "concluida" ? "success" : "warning"}

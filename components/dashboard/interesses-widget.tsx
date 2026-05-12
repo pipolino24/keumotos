@@ -91,13 +91,26 @@ interface Props {
  * Polling implícito via revalidação ao montar o dashboard.
  */
 export function InteressesWidget({ limit = 6 }: Props) {
-  const { data, loading, error } = useApi<{ interesses: InteresseItem[] }>(
-    `/api/interesses?limit=${limit * 2}`
-  );
+  const { data, loading, error, refetch } = useApi<{
+    interesses: InteresseItem[];
+  }>(`/api/interesses?limit=${limit * 3}`);
 
   const list = (data?.interesses ?? [])
     .filter((i) => i.resultado !== "convertido" && i.resultado !== "perdido")
     .slice(0, limit);
+
+  async function marcarAtendido(id: string) {
+    try {
+      await fetch(`/api/interesses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resultado: "em-atendimento" }),
+      });
+      refetch();
+    } catch {
+      // silent
+    }
+  }
 
   return (
     <Card>
@@ -170,6 +183,7 @@ export function InteressesWidget({ limit = 6 }: Props) {
                       href={`https://wa.me/55${it.clienteTelefone.replace(/\D/g, "")}`}
                       target="_blank"
                       rel="noopener"
+                      onClick={() => marcarAtendido(it._id)}
                       className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 px-2 py-0.5 rounded-full font-bold transition"
                     >
                       <Phone className="h-2.5 w-2.5" /> WhatsApp
@@ -183,6 +197,14 @@ export function InteressesWidget({ limit = 6 }: Props) {
                       Ver perfil
                     </Link>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => marcarAtendido(it._id)}
+                    className="text-[9px] text-keu-black/40 hover:text-keu-black underline"
+                    title="Marca como atendido — some da lista"
+                  >
+                    Atendi
+                  </button>
                 </div>
               </div>
             );

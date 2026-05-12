@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Notification } from "@/lib/models/notification";
-import { requireRole } from "@/lib/auth/api-guards";
+import { requireAdmin } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,9 @@ export const dynamic = "force-dynamic";
  * endpoint com requireAdmin (cron secret).
  */
 export async function POST() {
-  const auth = await requireRole(["admin", "vendedor"]);
+  // Admin-only: a operação faz updateMany + insertMany e gera notificações em
+  // massa. Vendedor não precisa disparar manualmente — admin/cron-job é o caller.
+  const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

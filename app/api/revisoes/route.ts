@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Revisao } from "@/lib/models/revisao";
 import { revisaoCreateSchema } from "@/lib/schemas";
@@ -16,8 +17,11 @@ export async function GET(req: NextRequest) {
     const tipo = searchParams.get("tipo");
 
     const query: Record<string, unknown> = {};
-    if (motoId) query.motoId = motoId;
-    if (tipo) query.tipo = tipo;
+    // Valida motoId como ObjectId — bloqueia NoSQL operator injection
+    if (motoId && typeof motoId === "string" && mongoose.Types.ObjectId.isValid(motoId)) {
+      query.motoId = motoId;
+    }
+    if (tipo && typeof tipo === "string" && tipo.length < 64) query.tipo = tipo;
 
     const revisoes = await Revisao.find(query).sort({ data: -1 }).lean();
     return NextResponse.json({ revisoes });

@@ -200,16 +200,28 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query: Record<string, unknown> = {};
 
+    // Validador local pra ObjectId — evita NoSQL operator injection via param
+    const validarObjectId = (v: string | null): string | undefined => {
+      if (!v || typeof v !== "string") return undefined;
+      return mongoose.Types.ObjectId.isValid(v) ? v : undefined;
+    };
+    // clienteId pode ser UUID Supabase (string), só limitamos tamanho
+    const sanitizarClienteId = (v: string | null): string | undefined => {
+      if (!v || typeof v !== "string") return undefined;
+      if (v.length > 64) return undefined;
+      return v;
+    };
+
     if (auth.role === "cliente") {
       query.clienteId = auth.userId;
     } else if (auth.role === "vendedor" || auth.role === "afiliado") {
-      const clienteIdParam = searchParams.get("clienteId");
-      const motoIdParam = searchParams.get("motoId");
+      const clienteIdParam = sanitizarClienteId(searchParams.get("clienteId"));
+      const motoIdParam = validarObjectId(searchParams.get("motoId"));
       if (clienteIdParam) query.clienteId = clienteIdParam;
       if (motoIdParam) query.motoId = motoIdParam;
     } else if (auth.role === "admin") {
-      const clienteIdParam = searchParams.get("clienteId");
-      const motoIdParam = searchParams.get("motoId");
+      const clienteIdParam = sanitizarClienteId(searchParams.get("clienteId"));
+      const motoIdParam = validarObjectId(searchParams.get("motoId"));
       if (clienteIdParam) query.clienteId = clienteIdParam;
       if (motoIdParam) query.motoId = motoIdParam;
     } else {
@@ -225,7 +237,10 @@ export async function GET(req: NextRequest) {
       query.resultado = resultado;
     }
     const desde = searchParams.get("desde");
-    if (desde) query.createdAt = { $gte: new Date(desde) };
+    if (desde) {
+      const d = new Date(desde);
+      if (!isNaN(d.getTime())) query.createdAt = { $gte: d };
+    }
 
     const limit = Math.min(Number(searchParams.get("limit")) || 50, 200);
     const interesses = await Interesse.find(query)

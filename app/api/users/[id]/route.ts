@@ -73,9 +73,36 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
   // Apenas admin pode mexer em role, setor, status, permissoes
   if (auth.callerRole === "admin") {
-    if (data.role !== undefined) update.role = data.role;
-    if (data.setor !== undefined) update.setor = data.setor;
-    if (data.status !== undefined) update.status = data.status;
+    if (data.role !== undefined) {
+      const rolesValidos = ["admin", "vendedor", "afiliado", "cliente"];
+      if (!rolesValidos.includes(data.role)) {
+        return NextResponse.json(
+          { error: "Role inválido" },
+          { status: 400 }
+        );
+      }
+      update.role = data.role;
+    }
+    if (data.setor !== undefined) {
+      const setoresValidos = ["multimarcas", "loca", "pecas"];
+      if (!setoresValidos.includes(data.setor)) {
+        return NextResponse.json(
+          { error: "Setor inválido" },
+          { status: 400 }
+        );
+      }
+      update.setor = data.setor;
+    }
+    if (data.status !== undefined) {
+      const statusValidos = ["ativo", "inativo", "bloqueado"];
+      if (!statusValidos.includes(data.status)) {
+        return NextResponse.json(
+          { error: "Status inválido" },
+          { status: 400 }
+        );
+      }
+      update.status = data.status;
+    }
     if (Array.isArray(data.permissoes))
       update.permissoes = data.permissoes.filter(
         (p: unknown) => typeof p === "string"
