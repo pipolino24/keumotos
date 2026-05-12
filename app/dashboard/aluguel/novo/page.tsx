@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
-import { getCurrentUser } from "@/lib/current-user";
+import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { apiPost, apiPatch } from "@/lib/api-client";
 
@@ -180,7 +180,7 @@ function diasEntre(inicio: string, fim: string): number {
 
 export default function NovoAluguelPage() {
   const router = useRouter();
-  const me = getCurrentUser();
+  const me = useCurrentUser();
   const [form, setForm] = useState<AluguelForm>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

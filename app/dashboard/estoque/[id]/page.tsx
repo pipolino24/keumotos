@@ -33,7 +33,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { canSeeFinancialData } from "@/lib/current-user";
+import { useCurrentUser, canSeeFinancialData } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 
 interface MotoApi {
@@ -111,7 +111,7 @@ export default function VisualizarMotoPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const verFinanceiro = canSeeFinancialData();
+  const verFinanceiro = canSeeFinancialData(useCurrentUser());
 
   const { data, loading, error } = useApi<{ moto: MotoApi }>(
     id ? `/api/motos/${id}` : null

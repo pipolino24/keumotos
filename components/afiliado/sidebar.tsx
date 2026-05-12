@@ -71,12 +71,14 @@ export function AfiliadoSidebar() {
       </nav>
 
       <div className="p-3 border-t border-keu-black/5">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white"
-        >
-          <LogOut className="h-4 w-4" /> Sair
-        </Link>
+        <form action="/auth/logout" method="post">
+          <button
+            type="submit"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white text-left"
+          >
+            <LogOut className="h-4 w-4" /> Sair
+          </button>
+        </form>
       </div>
     </aside>
   );

@@ -53,8 +53,6 @@ export async function GET(req: Request) {
         role: u.role,
         permissoes: [],
         status: u.status,
-        avatar: u.avatar,
-        endereco: u.endereco,
         cidade: u.cidade,
         estado: u.estado,
         vendasRealizadas: u.vendasRealizadas ?? 0,

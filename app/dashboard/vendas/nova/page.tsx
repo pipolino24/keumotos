@@ -37,7 +37,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
-import { getCurrentUser, isAdmin } from "@/lib/current-user";
+import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { apiPost, apiPatch } from "@/lib/api-client";
 
@@ -245,7 +245,7 @@ const TOLERANCIA = 0.01;
 
 export default function NovaVendaPage() {
   const router = useRouter();
-  const me = getCurrentUser();
+  const me = useCurrentUser();
   const podeOverride = isAdmin(me);
   const [form, setForm] = useState<VendaForm>(initial);
   const [saving, setSaving] = useState(false);

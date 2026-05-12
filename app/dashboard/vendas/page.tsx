@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
-import { getCurrentUser, canSeeFinancialData } from "@/lib/current-user";
+import { useCurrentUser, canSeeFinancialData } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 
 interface MotoApi {
@@ -43,7 +43,7 @@ interface MotoApi {
 }
 
 export default function VendasPage() {
-  const me = getCurrentUser();
+  const me = useCurrentUser();
   const verTudo = canSeeFinancialData(me);
   const [search, setSearch] = useState("");
 

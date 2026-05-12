@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { canSeeFinancialData } from "@/lib/current-user";
+import { useCurrentUser, canSeeFinancialData } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 
 interface MotoApi {
@@ -49,7 +49,7 @@ interface MotoApi {
 }
 
 export default function EstoquePage() {
-  const verFinanceiro = canSeeFinancialData();
+  const verFinanceiro = canSeeFinancialData(useCurrentUser());
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");

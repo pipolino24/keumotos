@@ -13,11 +13,12 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import Image from "next/image";
 import { KeuLogo } from "@/components/keu-logo";
-import { ImageUpload } from "@/components/ui/image-upload";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type RegisterForm = {
   nome: string;
@@ -26,7 +27,6 @@ type RegisterForm = {
   senha: string;
   confirmar: string;
   role: "cliente" | "vendedor";
-  avatar: string[];
 };
 
 export default function RegisterPage() {
@@ -38,10 +38,10 @@ export default function RegisterPage() {
     senha: "",
     confirmar: "",
     role: "cliente",
-    avatar: [],
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   function set<K extends keyof RegisterForm>(key: K, value: RegisterForm[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -55,34 +55,69 @@ export default function RegisterPage() {
       setError("As senhas não conferem");
       return;
     }
-    if (form.senha.length < 6) {
-      setError("Senha deve ter pelo menos 6 caracteres");
+    if (form.senha.length < 8) {
+      setError("Senha deve ter pelo menos 8 caracteres");
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: form.nome,
-          email: form.email,
-          telefone: form.telefone,
-          senha: form.senha,
-          role: form.role,
-          status: form.role === "vendedor" ? "pendente" : "ativo",
-          avatar: form.avatar[0],
-        }),
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: form.email.trim().toLowerCase(),
+        password: form.senha,
+        options: {
+          data: {
+            nome: form.nome,
+            role: form.role,
+            telefone: form.telefone,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Erro ao cadastrar");
-      router.push("/dashboard");
+      if (error) throw error;
+
+      // Salva telefone na profiles (não vai no trigger ainda)
+      if (data.user) {
+        await supabase
+          .from("profiles")
+          .update({ telefone: form.telefone })
+          .eq("id", data.user.id);
+      }
+
+      // Se já há sessão ativa (email confirmation desligada), redireciona
+      if (data.session) {
+        toast.success("Conta criada!");
+        router.push(form.role === "vendedor" ? "/dashboard" : "/dashboard");
+        router.refresh();
+      } else {
+        setSuccess(true);
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      const message =
+        err instanceof Error ? traduzirErro(err.message) : "Erro desconhecido";
       setError(message);
+      toast.error(message);
       setSubmitting(false);
     }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-white">
+        <div className="max-w-md text-center">
+          <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-black mb-2">Conta criada!</h1>
+          <p className="text-keu-black/60 mb-6">
+            Enviamos um e-mail para <strong>{form.email}</strong> com um link de
+            confirmação. Clique nele para ativar sua conta.
+          </p>
+          <Link href="/login">
+            <Button size="lg">Ir para o login</Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -131,23 +166,6 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Avatar */}
-              <div>
-                <Label>Foto de perfil (opcional)</Label>
-                <div className="flex items-center gap-4">
-                  <ImageUpload
-                    value={form.avatar}
-                    onChange={(v) => set("avatar", v)}
-                    max={1}
-                    maxSizeKB={80}
-                    maxWidth={400}
-                    quality={0.8}
-                    shape="round"
-                    hint="Auto-comprimido para ~80KB"
-                  />
-                </div>
-              </div>
-
               <div>
                 <Label htmlFor="nome" required>Nome completo</Label>
                 <div className="relative">
@@ -159,6 +177,7 @@ export default function RegisterPage() {
                     required
                     value={form.nome}
                     onChange={(e) => set("nome", e.target.value)}
+                    autoComplete="name"
                   />
                 </div>
               </div>
@@ -175,6 +194,7 @@ export default function RegisterPage() {
                     required
                     value={form.email}
                     onChange={(e) => set("email", e.target.value)}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -191,6 +211,7 @@ export default function RegisterPage() {
                     required
                     value={form.telefone}
                     onChange={(e) => set("telefone", e.target.value)}
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -206,9 +227,10 @@ export default function RegisterPage() {
                       placeholder="••••••••"
                       className="pl-10"
                       required
-                      minLength={6}
+                      minLength={8}
                       value={form.senha}
                       onChange={(e) => set("senha", e.target.value)}
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
@@ -222,9 +244,10 @@ export default function RegisterPage() {
                       placeholder="••••••••"
                       className="pl-10"
                       required
-                      minLength={6}
+                      minLength={8}
                       value={form.confirmar}
                       onChange={(e) => set("confirmar", e.target.value)}
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>
@@ -232,8 +255,8 @@ export default function RegisterPage() {
 
               {form.role === "vendedor" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
-                  <strong>Atenção:</strong> contas de vendedor passam por
-                  aprovação do administrador antes da ativação.
+                  <strong>Atenção:</strong> contas de vendedor precisam ser
+                  aprovadas pelo administrador antes do acesso completo.
                 </div>
               )}
 
@@ -328,4 +351,12 @@ function Benefit({ text }: { text: string }) {
       <span className="text-white/90">{text}</span>
     </div>
   );
+}
+
+function traduzirErro(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("already registered") || lower.includes("user already")) return "Já existe uma conta com esse e-mail.";
+  if (lower.includes("password should be") || lower.includes("password length")) return "Senha muito curta (mínimo 8 caracteres).";
+  if (lower.includes("invalid email")) return "E-mail inválido.";
+  return msg;
 }

@@ -1,23 +1,65 @@
 export type UserRole = "admin" | "vendedor" | "cliente" | "afiliado";
 
-export type UserStatus = "ativo" | "inativo" | "pendente";
+export type UserStatus = "ativo" | "suspenso" | "bloqueado";
 
-export interface User {
+export type UserSetor = "multimarcas" | "loca" | "pecas";
+
+export interface EnderecoCompleto {
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+}
+
+export interface DadosBancarios {
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  tipo?: "corrente" | "poupanca";
+}
+
+export interface DocumentoUpload {
+  tipo:
+    | "cnh_foto"
+    | "rg_foto"
+    | "cpf_foto"
+    | "comprovante_endereco"
+    | "foto_pessoal"
+    | "outro";
+  url: string;
+  path: string;
+  uploaded_at: string;
+  validade?: string;
+}
+
+/**
+ * Profile = perfil completo do usuário, vive na tabela public.profiles
+ * do Supabase, em relação 1:1 com auth.users. Toda referência a usuário
+ * no resto do sistema usa `id` (UUID).
+ */
+export interface Profile {
   id: string;
   nome: string;
   email: string;
-  telefone: string;
-  cpf?: string;
+  telefone?: string | null;
+  cpf?: string | null;
+  rg?: string | null;
+  cnh?: string | null;
+  cnh_validade?: string | null;
+  endereco?: EnderecoCompleto | null;
+  pix?: string | null;
+  banco?: DadosBancarios | null;
   role: UserRole;
+  setor: UserSetor;
+  permissoes: string[];
+  documentos: DocumentoUpload[];
+  avatar_url?: string | null;
   status: UserStatus;
-  avatar?: string;
-  endereco?: string;
-  cidade?: string;
-  estado?: string;
-  criadoEm: string;
-  ultimoAcesso?: string;
-  vendasRealizadas?: number;
-  comissaoTotal?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export type MotoStatus =

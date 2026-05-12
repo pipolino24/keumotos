@@ -1,11 +1,28 @@
 import type {
   Moto,
-  User,
   Contato,
   Venda,
   Aluguel,
   Proprietario,
 } from "./types";
+
+// Mock user usado apenas pelo /api/seed (legacy Mongo seed). O sistema real
+// usa o tipo Profile (Supabase) — ver lib/types.ts.
+interface MockUser {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  cpf?: string;
+  role: "admin" | "vendedor" | "cliente" | "afiliado";
+  status: "ativo" | "inativo" | "pendente";
+  cidade?: string;
+  estado?: string;
+  criadoEm: string;
+  ultimoAcesso?: string;
+  vendasRealizadas?: number;
+  comissaoTotal?: number;
+}
 
 export const mockProprietarios: Proprietario[] = [
   {
@@ -57,7 +74,7 @@ export const mockProprietarios: Proprietario[] = [
   },
 ];
 
-export const mockUsers: User[] = [
+export const mockUsers: MockUser[] = [
   {
     id: "u1",
     nome: "Antônio Carlos Silva",

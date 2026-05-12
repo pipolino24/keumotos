@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
-import { getCurrentUser, isAdmin } from "@/lib/current-user";
+import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
@@ -130,22 +130,21 @@ function SidebarContent({
 
       <div className="p-3 border-t border-keu-black/5 space-y-0.5">
         <Link
-          href="#"
+          href="/perfil"
           onClick={onItemClick}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
         >
-          <Settings className="h-4 w-4" /> Configurações
+          <Settings className="h-4 w-4" /> Meu perfil
         </Link>
-        <Link
-          href="/"
-          onClick={() => {
-            document.cookie = "keu_role=; path=/; max-age=0";
-            onItemClick?.();
-          }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white"
-        >
-          <LogOut className="h-4 w-4" /> Sair
-        </Link>
+        <form action="/auth/logout" method="post">
+          <button
+            type="submit"
+            onClick={onItemClick}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-keu-black/70 hover:bg-keu-red hover:text-white text-left"
+          >
+            <LogOut className="h-4 w-4" /> Sair
+          </button>
+        </form>
       </div>
 
       <div
@@ -180,7 +179,7 @@ function SidebarContent({
 
 export function Sidebar() {
   const pathname = usePathname();
-  const user = getCurrentUser();
+  const user = useCurrentUser();
   const userIsAdmin = isAdmin(user);
 
   return (
@@ -197,7 +196,7 @@ export function Sidebar() {
 
 export function MobileTopbar() {
   const pathname = usePathname();
-  const user = getCurrentUser();
+  const user = useCurrentUser();
   const userIsAdmin = isAdmin(user);
   const [open, setOpen] = useState(false);
 

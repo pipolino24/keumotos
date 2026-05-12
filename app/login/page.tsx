@@ -1,42 +1,77 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, Bike } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Bike,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import Image from "next/image";
 import { KeuLogo } from "@/components/keu-logo";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "/dashboard";
+
   const [showPassword, setShowPassword] = useState(false);
-  const [accountType, setAccountType] = useState<
-    "cliente" | "vendedor" | "afiliado"
-  >("vendedor");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Seta o cookie de role pra middleware/RBAC reconhecer.
-    // Quando integrar auth real, isso virá do JWT/sessão.
-    document.cookie = `keu_role=${accountType}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
-    if (accountType === "afiliado") {
-      router.push("/afiliado");
-    } else {
-      router.push("/dashboard");
-    }
-  }
+    setError(null);
+    setLoading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Sessão inválida");
 
-  function loginAsAdmin() {
-    document.cookie = `keu_role=admin; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
-    router.push("/dashboard");
+      const role = (data.user.user_metadata?.role as string) || "cliente";
+      toast.success("Login realizado!");
+
+      const target =
+        role === "afiliado" && nextPath === "/dashboard"
+          ? "/afiliado"
+          : nextPath;
+      router.push(target);
+      router.refresh();
+    } catch (err) {
+      const msg =
+        err instanceof Error ? traduzirErro(err.message) : "Erro ao entrar";
+      setError(msg);
+      toast.error(msg);
+      setLoading(false);
+    }
   }
 
   return (
     <div className="min-h-screen flex">
-      {/* LEFT - Form */}
       <div className="flex-1 flex flex-col p-6 md:p-12 bg-white">
         <Link
           href="/"
@@ -57,42 +92,12 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Account type tabs */}
-            <div className="flex bg-keu-gray-light rounded-lg p-1 mb-6 gap-1">
-              <button
-                type="button"
-                onClick={() => setAccountType("vendedor")}
-                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
-                  accountType === "vendedor"
-                    ? "bg-white text-keu-red shadow-sm"
-                    : "text-keu-black/60 hover:text-keu-black"
-                }`}
-              >
-                Vendedor / Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountType("cliente")}
-                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
-                  accountType === "cliente"
-                    ? "bg-white text-keu-red shadow-sm"
-                    : "text-keu-black/60 hover:text-keu-black"
-                }`}
-              >
-                Cliente
-              </button>
-              <button
-                type="button"
-                onClick={() => setAccountType("afiliado")}
-                className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-md transition ${
-                  accountType === "afiliado"
-                    ? "bg-white text-keu-red shadow-sm"
-                    : "text-keu-black/60 hover:text-keu-black"
-                }`}
-              >
-                Afiliado
-              </button>
-            </div>
+            {error && (
+              <div className="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -107,6 +112,9 @@ export default function LoginPage() {
                     placeholder="seu@email.com"
                     className="pl-10"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -131,6 +139,9 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     className="pl-10 pr-10"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -146,74 +157,20 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="rounded border-keu-black/20 text-keu-red focus:ring-keu-red"
-                />
-                Manter conectado
-              </label>
-
-              <Button type="submit" size="lg" className="w-full">
-                Entrar como{" "}
-                {accountType === "vendedor"
-                  ? "Vendedor"
-                  : accountType === "afiliado"
-                    ? "Afiliado"
-                    : "Cliente"}
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
               </Button>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-keu-black/10" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-3 text-keu-black/40 uppercase">
-                    demo
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <div className="text-xs font-semibold text-amber-900 mb-2">
-                  🛠️ Entrar sem senha (modo demonstração)
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={loginAsAdmin}
-                    className="text-xs"
-                  >
-                    👑 Admin
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      document.cookie = `keu_role=vendedor; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
-                      router.push("/dashboard");
-                    }}
-                    className="text-xs"
-                  >
-                    🛒 Vendedor
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      document.cookie = `keu_role=afiliado; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
-                      router.push("/afiliado");
-                    }}
-                    className="text-xs"
-                  >
-                    🤝 Afiliado
-                  </Button>
-                </div>
-              </div>
 
               <p className="text-center text-sm text-keu-black/60">
                 Não tem uma conta?{" "}
@@ -233,7 +190,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT - Visual */}
       <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-keu-gray via-keu-black to-keu-red-dark overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 bg-grid opacity-10" />
         <div
@@ -262,8 +218,8 @@ export default function LoginPage() {
             da <span className="text-keu-red">KEU</span>
           </h2>
           <p className="text-white/70 text-lg mb-8">
-            Gerencie estoque, vendas, aluguéis, contatos e seus clientes em
-            um só lugar.
+            Gerencie estoque, vendas, aluguéis, contatos e seus clientes em um
+            só lugar.
           </p>
 
           <div className="space-y-3">
@@ -292,4 +248,12 @@ function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
       <span className="text-white/90">{text}</span>
     </div>
   );
+}
+
+function traduzirErro(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (lower.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (lower.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+  if (lower.includes("too many requests")) return "Muitas tentativas. Tente novamente em alguns minutos.";
+  return msg;
 }

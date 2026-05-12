@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectMongo } from "@/lib/mongodb";
-import { User } from "@/lib/models/user";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -8,85 +8,116 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
-  try {
-    await connectMongo();
-    const { id } = await params;
-    const user = await User.findById(id, { senhaHash: 0 }).lean();
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json({ user });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro desconhecido";
-    return NextResponse.json({ error: message }, { status: 500 });
+async function ensureCallerOrAdmin(targetId: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
+    };
   }
+  const role = (user.user_metadata?.role as string) || "cliente";
+  if (user.id !== targetId && role !== "admin") {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: "Sem permissão para acessar este perfil" },
+        { status: 403 }
+      ),
+    };
+  }
+  return { ok: true as const, callerRole: role };
+}
+
+export async function GET(_req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
+  const auth = await ensureCallerOrAdmin(id);
+  if (!auth.ok) return auth.response;
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error || !data) {
+    return NextResponse.json(
+      { error: "Usuário não encontrado" },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json({ user: { ...data, _id: data.id } });
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  try {
-    await connectMongo();
-    const { id } = await params;
-    const data = await req.json();
+  const { id } = await params;
+  const auth = await ensureCallerOrAdmin(id);
+  if (!auth.ok) return auth.response;
 
-    const existing = await User.findById(id);
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
+  const data = await req.json();
+  const update: Record<string, unknown> = {};
 
-    const update: Record<string, unknown> = {};
-    if (data.nome !== undefined) update.nome = String(data.nome).trim();
-    if (data.email !== undefined)
-      update.email = String(data.email).trim().toLowerCase();
-    if (data.telefone !== undefined) update.telefone = String(data.telefone);
-    if (data.cpf !== undefined) update.cpf = data.cpf || undefined;
+  if (data.nome !== undefined) update.nome = String(data.nome).trim();
+  if (data.telefone !== undefined) update.telefone = data.telefone || null;
+  if (data.cpf !== undefined) update.cpf = data.cpf || null;
+  if (data.rg !== undefined) update.rg = data.rg || null;
+  if (data.cnh !== undefined) update.cnh = data.cnh || null;
+  if (data.cnh_validade !== undefined) update.cnh_validade = data.cnh_validade || null;
+  if (data.endereco !== undefined) update.endereco = data.endereco;
+  if (data.pix !== undefined) update.pix = data.pix || null;
+  if (data.banco !== undefined) update.banco = data.banco;
+  if (data.avatar_url !== undefined) update.avatar_url = data.avatar_url || null;
+
+  // Apenas admin pode mexer em role, setor, status, permissoes
+  if (auth.callerRole === "admin") {
     if (data.role !== undefined) update.role = data.role;
-    if (data.cargoId !== undefined) update.cargoId = data.cargoId || null;
+    if (data.setor !== undefined) update.setor = data.setor;
+    if (data.status !== undefined) update.status = data.status;
     if (Array.isArray(data.permissoes))
       update.permissoes = data.permissoes.filter(
         (p: unknown) => typeof p === "string"
       );
-    if (data.status !== undefined) update.status = data.status;
-    if (data.avatar !== undefined) update.avatar = data.avatar;
-    if (data.endereco !== undefined) update.endereco = data.endereco;
-    if (data.cidade !== undefined) update.cidade = data.cidade;
-    if (data.estado !== undefined) update.estado = data.estado;
-
-    const user = await User.findByIdAndUpdate(id, update, {
-      new: true,
-      runValidators: true,
-      projection: { senhaHash: 0 },
-    }).lean();
-
-    return NextResponse.json({ user });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Erro ao atualizar usuário";
-    return NextResponse.json({ error: message }, { status: 400 });
   }
+
+  const admin = createSupabaseAdminClient();
+  const { data: updated, error } = await admin
+    .from("profiles")
+    .update(update)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  // Se admin mudou o role, atualiza user_metadata pra o proxy/middleware ler
+  if (auth.callerRole === "admin" && data.role !== undefined) {
+    await admin.auth.admin.updateUserById(id, {
+      user_metadata: { role: data.role },
+    });
+  }
+
+  return NextResponse.json({ user: { ...updated, _id: updated.id } });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  try {
-    await connectMongo();
-    const { id } = await params;
-    const user = await User.findByIdAndDelete(id).lean();
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Erro ao deletar usuário";
-    return NextResponse.json({ error: message }, { status: 500 });
+  const { id } = await params;
+  const auth = await ensureCallerOrAdmin(id);
+  if (!auth.ok) return auth.response;
+  if (auth.callerRole !== "admin") {
+    return NextResponse.json(
+      { error: "Apenas admin pode deletar" },
+      { status: 403 }
+    );
   }
+
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ ok: true });
 }

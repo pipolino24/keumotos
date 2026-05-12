@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
-import { getCurrentUser } from "@/lib/current-user";
+import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 
 interface MotoApi {
@@ -39,7 +39,7 @@ interface ContatoApi {
 }
 
 export default function DashboardPage() {
-  const me = getCurrentUser();
+  const me = useCurrentUser();
 
   const { data: motosData, loading: lm } = useApi<{ motos: MotoApi[] }>(
     "/api/motos"

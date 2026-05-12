@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
 import { toast } from "sonner";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,11 +17,23 @@ export default function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    // Em produção: POST /api/auth/forgot-password
-    await new Promise((r) => setTimeout(r, 1000));
-    setSubmitting(false);
-    setSent(true);
-    toast.success("Se o e-mail existir, você receberá instruções em instantes");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      );
+      if (error) throw error;
+      setSent(true);
+      toast.success("Se o e-mail existir, você receberá instruções em instantes");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao enviar e-mail";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
