@@ -20,9 +20,12 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
     await connectMongo();
     const { id } = await params;
+    // Filtro inclui arquivado=false pra evitar info leak via ID direto
+    // de notificações que o usuário "deletou" (soft delete).
     const notification = await Notification.findOne({
       _id: id,
       destinatarioId: auth.userId,
+      arquivado: false,
     }).lean();
     if (!notification) {
       return NextResponse.json(

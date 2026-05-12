@@ -10,6 +10,11 @@ interface UseApiResult<T> {
   refetch: () => void;
 }
 
+/**
+ * Hook genérico pra GET de API. Cancela a request em flight quando a URL
+ * muda ou o componente desmonta — evita race condition onde resposta
+ * antiga sobrescreve estado novo.
+ */
 export function useApi<T>(
   url: string | null,
   deps: unknown[] = []
@@ -23,15 +28,21 @@ export function useApi<T>(
 
   useEffect(() => {
     if (!url) {
-      setLoading(false);
-      return;
+      const t = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(t);
     }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    apiGet<T>(url).then((r) => {
-      if (cancelled) return;
+    const controller = new AbortController();
+    // setState diferido pra evitar cascading render warning
+    const initial = setTimeout(() => {
+      setLoading(true);
+      setError(null);
+    }, 0);
+
+    apiGet<T>(url, { signal: controller.signal }).then((r) => {
+      if (controller.signal.aborted) return;
       if (r.error) {
+        // Aborted requests não devem virar error visível pro usuário
+        if (r.error === "AbortError" || r.error.includes("aborted")) return;
         setError(r.error);
         setData(null);
       } else {
@@ -39,8 +50,10 @@ export function useApi<T>(
       }
       setLoading(false);
     });
+
     return () => {
-      cancelled = true;
+      clearTimeout(initial);
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, tick, ...deps]);

@@ -16,7 +16,8 @@ export type TipoInteresse =
   | "enviou_lead"
   | "solicitou_aluguel"
   | "solicitou_compra"
-  | "favoritou";
+  | "favoritou"
+  | "agendar_visita";
 
 export interface IInteresseDoc {
   // Quem (opcional pra visualizações anônimas)
@@ -83,6 +84,7 @@ const InteresseSchema = new Schema<IInteresseDoc>(
         "solicitou_aluguel",
         "solicitou_compra",
         "favoritou",
+        "agendar_visita",
       ],
       required: true,
       index: true,

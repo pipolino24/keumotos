@@ -16,6 +16,7 @@ const TIPOS_VALIDOS = [
   "solicitou_aluguel",
   "solicitou_compra",
   "favoritou",
+  "agendar_visita",
 ] as const;
 
 const ORIGENS_VALIDAS = new Set([
@@ -105,7 +106,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cliente autenticado opcional
+    // Cliente autenticado opcional. clienteEmail vem SEMPRE do auth.email
+    // (never confia em body) pra evitar spoof.
     const auth = await requireAuth();
     const cliente = auth.ok && auth.role === "cliente"
       ? { clienteId: auth.userId, clienteEmail: auth.email }

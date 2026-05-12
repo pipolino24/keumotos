@@ -13,6 +13,12 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
+  // Defesa em profundidade: bloqueia se userId sumir do payload por algum
+  // motivo. Sem isso, query falha para `{ clienteId: undefined }` que
+  // casaria com docs sem clienteId (vazamento de aluguéis órfãos).
+  if (!auth.userId || typeof auth.userId !== "string") {
+    return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
+  }
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);
@@ -79,11 +85,10 @@ export async function POST(req: NextRequest) {
       parsed.data.vendedorId = auth.userId;
     }
 
-    // Lock atômico: tenta marcar moto como "alugada" condicionalmente
-    // (status="disponivel"). Se ninguém pegou antes, prossegue.
-    // Resolve race condition entre dois POSTs simultâneos.
+    // Lock atômico: tenta marcar moto como "alugada" se está disponivel OU
+    // reservada (reservada também é elegível pra fechar aluguel).
     const lock = await Moto.findOneAndUpdate(
-      { _id: motoIdStr, status: "disponivel" },
+      { _id: motoIdStr, status: { $in: ["disponivel", "reservada"] } },
       { $set: { status: "alugada" } },
       { new: false }
     )

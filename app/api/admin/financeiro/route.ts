@@ -23,11 +23,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const rangeRaw = searchParams.get("range") || "30d";
     const RANGES: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
-    const dias = RANGES[rangeRaw] ?? 30;
+    if (!RANGES[rangeRaw]) {
+      return NextResponse.json(
+        { error: "range inválido (use 7d, 30d ou 90d)" },
+        { status: 400 }
+      );
+    }
+    const dias = RANGES[rangeRaw];
     const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
 
-    // Receita: soma de vendas concluídas + total de aluguéis (qualquer status,
-    // representando contrato fechado).
+    // $limit no início de cada pipeline pra evitar full scan em coleções
+    // grandes (100k+ docs). 50k é suficiente pra qualquer dashboard razoável.
+    const PIPELINE_CAP = 50000;
     const [vendasAgreg, alugAgreg, vendasParcelado] = await Promise.all([
       Venda.aggregate([
         {
@@ -36,6 +43,7 @@ export async function GET(req: NextRequest) {
             data: { $gte: desde },
           },
         },
+        { $limit: PIPELINE_CAP },
         {
           $group: {
             _id: null,
@@ -53,6 +61,7 @@ export async function GET(req: NextRequest) {
             dataInicio: { $gte: desde },
           },
         },
+        { $limit: PIPELINE_CAP },
         {
           $group: {
             _id: null,
@@ -78,6 +87,7 @@ export async function GET(req: NextRequest) {
             "pagamentos.forma": "parcelado-loja",
           },
         },
+        { $limit: PIPELINE_CAP },
         { $unwind: "$pagamentos" },
         {
           $match: { "pagamentos.forma": "parcelado-loja" },
