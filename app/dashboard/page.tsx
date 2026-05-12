@@ -31,6 +31,7 @@ import { InteressesWidget } from "@/components/dashboard/interesses-widget";
 import { ConversaoWidget } from "@/components/dashboard/conversao-widget";
 import { TopMotosWidget } from "@/components/dashboard/top-motos-widget";
 import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget";
+import { ColdLeadsWidget } from "@/components/dashboard/cold-leads-widget";
 import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
@@ -1021,8 +1022,9 @@ function StaffDashboard() {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
         <LeadsQuentesWidget limit={6} />
+        <ColdLeadsWidget limit={6} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

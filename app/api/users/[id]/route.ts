@@ -81,6 +81,30 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
           { status: 400 }
         );
       }
+      // Bloqueia self-demotion: se admin tenta tirar próprio role de admin,
+      // verifica que existe outro admin no sistema (anti-lockout).
+      const supabaseSrv = await createSupabaseServerClient();
+      const { data: callerUser } = await supabaseSrv.auth.getUser();
+      if (
+        callerUser.user &&
+        callerUser.user.id === id &&
+        data.role !== "admin"
+      ) {
+        const adminCheck = createSupabaseAdminClient();
+        const { count } = await adminCheck
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "admin");
+        if (!count || count <= 1) {
+          return NextResponse.json(
+            {
+              error:
+                "Você é o último admin — promova outro usuário antes de mudar seu role",
+            },
+            { status: 409 }
+          );
+        }
+      }
       update.role = data.role;
     }
     if (data.setor !== undefined) {

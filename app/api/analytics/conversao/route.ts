@@ -13,12 +13,16 @@ export const dynamic = "force-dynamic";
  * Funil simples dos últimos 30 dias: visualizações → leads "quentes" →
  * vendas + aluguéis concluídos. Vendedor vê só os próprios; admin tudo.
  */
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireRole(["admin", "vendedor"]);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
-    const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const { searchParams } = new URL(req.url);
+    const rangeRaw = searchParams.get("range") || "30d";
+    const RANGES: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
+    const dias = RANGES[rangeRaw] ?? 30;
+    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
 
     // FilterQuery tipos do Mongoose 9 são muito estritos pra spreads —
     // usamos Record<string, unknown> e Mongoose castea no runtime.
@@ -61,7 +65,7 @@ export async function GET() {
     const taxaConversao = leads > 0 ? conversoes / leads : 0;
 
     return NextResponse.json({
-      janela: "30d",
+      janela: `${dias}d`,
       visualizacoes,
       leads,
       conversoes,

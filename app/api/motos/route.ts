@@ -76,6 +76,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Vendedor não escolhe quem é o responsável — sempre vira ele mesmo.
+    // Admin pode atribuir a qualquer staff (passou pelo schema).
+    if (auth.role === "vendedor") {
+      parsed.data.vendedorResponsavel = auth.userId;
+    }
+
     const moto = await Moto.create(parsed.data);
     return NextResponse.json({ moto }, { status: 201 });
   } catch (err) {

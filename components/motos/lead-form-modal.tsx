@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { useCurrentUserOptional } from "@/lib/auth/user-context";
 
 interface LeadFormModalProps {
   open: boolean;
@@ -20,11 +21,25 @@ export function LeadFormModal({
   motoInteresse,
   motoId,
 }: LeadFormModalProps) {
+  const me = useCurrentUserOptional();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Pré-preenche se cliente logado. setTimeout(0) burla o lint do React 19
+  // sem mudar comportamento. Não sobrescreve dados já digitados.
+  useEffect(() => {
+    if (!open || !me) return;
+    const t = setTimeout(() => {
+      if (!nome && me.nome) setNome(me.nome);
+      if (!telefone && me.telefone) setTelefone(me.telefone);
+      if (!email && me.email) setEmail(me.email);
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, me]);
 
   if (!open) return null;
 

@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Eye, Phone, TrendingUp, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useApi } from "@/lib/hooks/use-api";
+import { cn } from "@/lib/utils";
 
 interface ConversaoData {
   janela: string;
@@ -15,12 +17,18 @@ interface ConversaoData {
   taxaConversao: number;
 }
 
+type Range = "7d" | "30d" | "90d";
+
 /**
- * Funil de conversão dos últimos 30 dias — visualizações → leads quentes →
- * vendas/aluguéis concluídos. Vendedor vê só os próprios; admin tudo.
+ * Funil de conversão — visualizações → leads quentes → vendas/aluguéis
+ * concluídos. Toggle entre janelas (7d / 30d / 90d). Vendedor scope; admin tudo.
  */
 export function ConversaoWidget() {
-  const { data, loading } = useApi<ConversaoData>("/api/analytics/conversao");
+  const [range, setRange] = useState<Range>("30d");
+  const { data, loading } = useApi<ConversaoData>(
+    `/api/analytics/conversao?range=${range}`,
+    [range]
+  );
 
   if (loading) {
     return (
@@ -36,16 +44,40 @@ export function ConversaoWidget() {
   const leadsPct = Math.min(100, (data.leads / maxVal) * 100);
   const conversoesPct = Math.min(100, (data.conversoes / maxVal) * 100);
 
+  const rangeLabel: Record<Range, string> = {
+    "7d": "7 dias",
+    "30d": "30 dias",
+    "90d": "90 dias",
+  };
+
   return (
     <Card className="p-6 card-hover">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div>
           <h3 className="font-bold text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-keu-red" /> Funil — últimos 30d
+            <TrendingUp className="h-4 w-4 text-keu-red" /> Funil — últimos{" "}
+            {rangeLabel[range]}
           </h3>
           <p className="text-xs text-keu-black/50">
             Visualizações → Leads → Conversões
           </p>
+        </div>
+        <div className="flex gap-1">
+          {(["7d", "30d", "90d"] as const).map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRange(r)}
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full transition",
+                range === r
+                  ? "bg-keu-red text-white"
+                  : "bg-keu-gray-light text-keu-black/60 hover:bg-keu-black/10"
+              )}
+            >
+              {r}
+            </button>
+          ))}
         </div>
       </div>
 
