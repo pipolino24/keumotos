@@ -102,9 +102,14 @@ export async function GET() {
       telefone?: string;
       email?: string;
     }) {
-      const key =
-        row._id.clienteId ||
-        (row._id.clienteNome ? `nome:${row._id.clienteNome}` : "");
+      // Chave preferida: clienteId (UUID Supabase). Sem isso, monta uma
+      // composta com nome+telefone OU nome+email pra evitar merge de
+      // homônimos diferentes.
+      const key = row._id.clienteId
+        ? `id:${row._id.clienteId}`
+        : row._id.clienteNome
+          ? `n:${row._id.clienteNome.toLowerCase()}|${row.telefone ?? ""}|${row.email ?? ""}`
+          : "";
       if (!key) return null;
       if (!byKey.has(key)) {
         byKey.set(key, {

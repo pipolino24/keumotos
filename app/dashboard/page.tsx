@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   TrendingUp,
   Bike,
@@ -27,6 +28,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { InteressesWidget } from "@/components/dashboard/interesses-widget";
 import { ConversaoWidget } from "@/components/dashboard/conversao-widget";
+import { TopMotosWidget } from "@/components/dashboard/top-motos-widget";
+import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget";
+import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
@@ -341,8 +345,10 @@ function ClienteDashboard() {
           </div>
         </div>
         {lv || la ? (
-          <div className="p-12 text-center">
-            <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
+          <div>
+            <SkeletonListRow />
+            <SkeletonListRow />
+            <SkeletonListRow />
           </div>
         ) : proximosPagamentos.length === 0 ? (
           <div className="p-10 text-center">
@@ -374,8 +380,9 @@ function ClienteDashboard() {
             </div>
           </div>
           {la ? (
-            <div className="p-10 text-center">
-              <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+            <div>
+              <SkeletonListRow />
+              <SkeletonListRow />
             </div>
           ) : alugueisAtivos.length === 0 ? (
             <div className="p-10 text-center text-sm text-keu-black/60">
@@ -404,8 +411,9 @@ function ClienteDashboard() {
             </div>
           </div>
           {lv ? (
-            <div className="p-10 text-center">
-              <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+            <div>
+              <SkeletonListRow />
+              <SkeletonListRow />
             </div>
           ) : minhasCompras.length === 0 ? (
             <div className="p-10 text-center text-sm text-keu-black/60">
@@ -629,6 +637,7 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
 
   // Captura now via useEffect — evita warning react-hooks/purity (React 19)
   const [now, setNow] = useState<number>(0);
+  const [requestSent, setRequestSent] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setNow(Date.now()), 0);
     return () => clearTimeout(t);
@@ -648,6 +657,28 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
       countdown = { label: `vence em ${dias}d`, tone: "warning" };
     } else {
       countdown = { label: `${dias}d restantes`, tone: "info" };
+    }
+  }
+
+  async function solicitarDevolucao() {
+    try {
+      const res = await fetch(
+        `/api/alugueis/${aluguel._id}/solicitar-devolucao`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Erro ao solicitar devolução");
+        return;
+      }
+      toast.success("Solicitação enviada! O vendedor vai te responder em breve.");
+      setRequestSent(true);
+    } catch {
+      toast.error("Erro de rede");
     }
   }
 
@@ -685,6 +716,21 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
             )}
           >
             {countdown.label}
+          </span>
+        )}
+        {ativo && !requestSent && (
+          <button
+            type="button"
+            onClick={solicitarDevolucao}
+            className="text-[10px] text-keu-black/50 hover:text-keu-red font-semibold underline"
+            title="Avisa o vendedor que você quer devolver a moto"
+          >
+            Quero devolver
+          </button>
+        )}
+        {requestSent && (
+          <span className="text-[10px] text-emerald-700 font-semibold">
+            ✓ vendedor avisado
           </span>
         )}
       </div>
@@ -940,7 +986,14 @@ function StaffDashboard() {
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 mb-6">
         <InteressesWidget limit={6} />
-        <ConversaoWidget />
+        <div className="space-y-6">
+          <ConversaoWidget />
+          <TopMotosWidget limit={5} />
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <LeadsQuentesWidget limit={6} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

@@ -44,6 +44,29 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       );
     }
 
+    // Vendedor só pode marcar interesse se já é o atendente ou se a moto
+    // pertence ao seu portfólio (vendedorResponsavel). Admin sempre.
+    if (auth.role === "vendedor") {
+      const existing = await Interesse.findById(id)
+        .select("vendedorAtendeu motoId")
+        .lean();
+      if (!existing) {
+        return NextResponse.json(
+          { error: "Interesse não encontrado" },
+          { status: 404 }
+        );
+      }
+      if (
+        existing.vendedorAtendeu &&
+        existing.vendedorAtendeu !== auth.userId
+      ) {
+        return NextResponse.json(
+          { error: "Esse interesse já está com outro vendedor" },
+          { status: 403 }
+        );
+      }
+    }
+
     const update: Record<string, unknown> = {
       resultado: data.resultado,
       vendedorAtendeu: auth.userId,

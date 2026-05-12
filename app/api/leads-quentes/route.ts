@@ -51,10 +51,13 @@ export async function GET(req: NextRequest) {
       },
       {
         $group: {
+          // Inclui clienteTelefone e email no _id pra evitar mergir clientes
+          // distintos que compartilham só o nome (homonimia).
           _id: {
             clienteId: "$clienteId",
             clienteNome: "$clienteNome",
             clienteTelefone: "$clienteTelefone",
+            clienteEmail: "$clienteEmail",
           },
           totalInteresses: { $sum: 1 },
           eventosQuentes: {
@@ -89,6 +92,7 @@ export async function GET(req: NextRequest) {
           clienteId: "$_id.clienteId",
           clienteNome: "$_id.clienteNome",
           clienteTelefone: "$_id.clienteTelefone",
+          clienteEmail: "$_id.clienteEmail",
           totalInteresses: 1,
           eventosQuentes: 1,
           motosCount: 1,

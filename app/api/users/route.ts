@@ -173,19 +173,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(
-      {
-        user: {
-          _id: created.user.id,
-          id: created.user.id,
-          email: created.user.email,
-          nome: data.nome,
-          role: data.role || "cliente",
-        },
-        senhaTemporaria: data.senha ? undefined : senha,
+    // ATENÇÃO: senhaTemporaria só é devolvida quando o admin não passou
+    // senha customizada. No futuro substituir por envio via Supabase
+    // password-reset email (out-of-band). Por ora retornamos pra admin
+    // copiar e repassar manualmente, com flag `senhaTemporariaSensivel`
+    // que sinaliza pro frontend mostrar warning de "anote agora".
+    const response: Record<string, unknown> = {
+      user: {
+        _id: created.user.id,
+        id: created.user.id,
+        email: created.user.email,
+        nome: data.nome,
+        role: data.role || "cliente",
       },
-      { status: 201 }
-    );
+    };
+    if (!data.senha) {
+      response.senhaTemporaria = senha;
+      response.senhaTemporariaSensivel = true;
+    }
+    return NextResponse.json(response, { status: 201 });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Erro ao criar usuário";

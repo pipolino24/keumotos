@@ -3,6 +3,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Notification } from "@/lib/models/notification";
 import { requireAuth } from "@/lib/auth/api-guards";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   try {
     await connectMongo();
     const { id } = await params;
+
+    // Rate limit: 3 solicitações por hora por usuário por aluguel
+    const rl = rateLimit({
+      key: `solicitar-devolucao:${auth.userId}:${id}`,
+      limit: 3,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: "Você já solicitou recentemente. Aguarde a resposta do vendedor." },
+        { status: 429 }
+      );
+    }
+
     const data = await req.json().catch(() => ({}));
 
     const aluguel = await Aluguel.findById(id);

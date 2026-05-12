@@ -119,6 +119,33 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
+
+    // Bloqueia delete se a moto tem aluguel ativo ou venda concluída.
+    // Imports tardios pra não criar ciclo no top-level.
+    const [{ Aluguel }, { Venda }] = await Promise.all([
+      import("@/lib/models/aluguel"),
+      import("@/lib/models/venda"),
+    ]);
+    const [temAluguel, temVenda] = await Promise.all([
+      Aluguel.exists({
+        motoId: id,
+        status: { $in: ["ativo", "atrasado"] },
+      }),
+      Venda.exists({ motoId: id, status: "concluida" }),
+    ]);
+    if (temAluguel) {
+      return NextResponse.json(
+        { error: "Moto tem aluguel ativo — encerre antes de deletar" },
+        { status: 409 }
+      );
+    }
+    if (temVenda) {
+      return NextResponse.json(
+        { error: "Moto tem venda concluída registrada — não pode ser deletada" },
+        { status: 409 }
+      );
+    }
+
     const moto = await Moto.findByIdAndDelete(id).lean();
     if (!moto) {
       return NextResponse.json({ error: "Moto não encontrada" }, { status: 404 });
