@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
   Bike,
   ArrowRight,
@@ -58,103 +57,131 @@ interface SearchParams {
 const PAGE_SIZE = 12;
 
 /**
- * Lê motos direto do Mongo (sem HTTP intermediário pra própria API)
- * e projeta apenas a primeira foto pra reduzir o payload — fotos base64
- * podem ter 200KB+ cada e antes o servidor mandava o array inteiro.
+ * Constrói o filter do Mongo a partir dos searchParams. Empurra TODOS os
+ * filtros pra DB (antes era load total + filter JS em memória — lento e
+ * caro de RAM quando o estoque cresce).
  */
-async function getMotos(): Promise<Moto[]> {
-  try {
-    await connectMongo();
-    const docs = await MotoModel.find(
-      { status: "disponivel" },
-      {
-        marca: 1,
-        modelo: 1,
-        versao: 1,
-        anoFabricacao: 1,
-        anoModelo: 1,
-        cor: 1,
-        km: 1,
-        cilindrada: 1,
-        combustivel: 1,
-        cambio: 1,
-        valorAnunciado: 1,
-        valorDiaria: 1,
-        valorMensal: 1,
-        tipo: 1,
-        status: 1,
-        destaque: 1,
-        descricao: 1,
-        fotos: { $slice: 1 }, // só a capa
-      }
-    )
-      .sort({ createdAt: -1 })
-      .lean();
-    return docs.map((d) => ({
-      ...d,
-      _id: String(d._id),
-    })) as unknown as Moto[];
-  } catch {
-    return [];
-  }
-}
+function buildMongoFilter(sp: SearchParams): Record<string, unknown> {
+  const filter: Record<string, unknown> = { status: "disponivel" };
 
-function applyFilters(motos: Moto[], sp: SearchParams): Moto[] {
-  let result = motos;
   if (sp.q) {
-    const q = sp.q.toLowerCase();
-    result = result.filter(
-      (m) =>
-        m.marca.toLowerCase().includes(q) ||
-        m.modelo.toLowerCase().includes(q) ||
-        (m.versao ?? "").toLowerCase().includes(q)
-    );
+    const q = sp.q.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.$or = [
+      { marca: { $regex: q, $options: "i" } },
+      { modelo: { $regex: q, $options: "i" } },
+      { versao: { $regex: q, $options: "i" } },
+    ];
   }
-  if (sp.tipo && sp.tipo !== "todos") {
-    if (sp.tipo === "venda") {
-      result = result.filter((m) => m.tipo === "venda" || m.tipo === "ambos");
-    } else if (sp.tipo === "aluguel") {
-      result = result.filter((m) => m.tipo === "aluguel" || m.tipo === "ambos");
-    }
-  }
+  if (sp.tipo === "venda") filter.tipo = { $in: ["venda", "ambos"] };
+  else if (sp.tipo === "aluguel") filter.tipo = { $in: ["aluguel", "ambos"] };
+
   if (sp.marca) {
-    result = result.filter(
-      (m) => m.marca.toLowerCase() === sp.marca!.toLowerCase()
-    );
+    filter.marca = { $regex: `^${sp.marca}$`, $options: "i" };
   }
+  const preco: Record<string, number> = {};
   if (sp.precoMin) {
     const v = parseFloat(sp.precoMin);
-    if (!isNaN(v)) result = result.filter((m) => m.valorAnunciado >= v);
+    if (!isNaN(v)) preco.$gte = v;
   }
   if (sp.precoMax) {
     const v = parseFloat(sp.precoMax);
-    if (!isNaN(v)) result = result.filter((m) => m.valorAnunciado <= v);
+    if (!isNaN(v)) preco.$lte = v;
   }
+  if (Object.keys(preco).length) filter.valorAnunciado = preco;
+
+  const ano: Record<string, number> = {};
   if (sp.anoMin) {
     const v = parseInt(sp.anoMin, 10);
-    if (!isNaN(v)) result = result.filter((m) => m.anoModelo >= v);
+    if (!isNaN(v)) ano.$gte = v;
   }
   if (sp.anoMax) {
     const v = parseInt(sp.anoMax, 10);
-    if (!isNaN(v)) result = result.filter((m) => m.anoModelo <= v);
+    if (!isNaN(v)) ano.$lte = v;
   }
-  // Ordenação (default: mais recentes via createdAt já vem do query, então
-  // não altera). Outras opções deslocam-na.
-  switch (sp.sort) {
+  if (Object.keys(ano).length) filter.anoModelo = ano;
+
+  return filter;
+}
+
+function buildMongoSort(sortKey?: string): Record<string, 1 | -1> {
+  switch (sortKey) {
     case "preco-asc":
-      result = [...result].sort((a, b) => a.valorAnunciado - b.valorAnunciado);
-      break;
+      return { valorAnunciado: 1 };
     case "preco-desc":
-      result = [...result].sort((a, b) => b.valorAnunciado - a.valorAnunciado);
-      break;
+      return { valorAnunciado: -1 };
     case "ano-desc":
-      result = [...result].sort((a, b) => b.anoModelo - a.anoModelo);
-      break;
+      return { anoModelo: -1 };
     case "km-asc":
-      result = [...result].sort((a, b) => a.km - b.km);
-      break;
+      return { km: 1 };
+    default:
+      return { destaque: -1, createdAt: -1 };
   }
-  return result;
+}
+
+interface ListResult {
+  motos: Moto[];
+  total: number;
+  marcas: string[];
+}
+
+/**
+ * Faz duas queries paralelas:
+ * 1) página de motos com filtros e paginação no Mongo
+ * 2) distinct marcas dentro do filtro (pra montar dropdown contextual)
+ * Conta total também — necessário pra paginação.
+ * Aborta após 5s pra não travar a página.
+ */
+async function getMotosPage(sp: SearchParams): Promise<ListResult> {
+  try {
+    await connectMongo();
+    const filter = buildMongoFilter(sp);
+    const sort = buildMongoSort(sp.sort);
+    const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
+    const skip = (page - 1) * PAGE_SIZE;
+
+    const projection = {
+      marca: 1,
+      modelo: 1,
+      versao: 1,
+      anoFabricacao: 1,
+      anoModelo: 1,
+      cor: 1,
+      km: 1,
+      cilindrada: 1,
+      combustivel: 1,
+      cambio: 1,
+      valorAnunciado: 1,
+      valorDiaria: 1,
+      valorMensal: 1,
+      tipo: 1,
+      status: 1,
+      destaque: 1,
+      descricao: 1,
+      fotos: { $slice: 1 },
+    };
+
+    const [docs, total, marcasDistinct] = await Promise.all([
+      MotoModel.find(filter, projection)
+        .sort(sort)
+        .skip(skip)
+        .limit(PAGE_SIZE)
+        .maxTimeMS(5000)
+        .lean(),
+      MotoModel.countDocuments(filter).maxTimeMS(5000),
+      MotoModel.distinct("marca", { status: "disponivel" }),
+    ]);
+
+    return {
+      motos: docs.map((d) => ({
+        ...(d as unknown as Moto),
+        _id: String(d._id),
+      })),
+      total,
+      marcas: (marcasDistinct as string[]).filter(Boolean).sort(),
+    };
+  } catch {
+    return { motos: [], total: 0, marcas: [] };
+  }
 }
 
 function buildPageHref(sp: SearchParams, page: number): string {
@@ -192,17 +219,13 @@ export default async function MotosPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const allMotos = await getMotos();
+  const { motos: pageItems, total, marcas } = await getMotosPage(sp);
 
-  const marcas = Array.from(new Set(allMotos.map((m) => m.marca))).sort();
-  const filtered = applyFilters(allMotos, sp);
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageItems = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE
-  );
+  // Mantido por compat com partes do JSX original que falavam de `filtered`
+  const filtered = { length: total };
 
   return (
     <div className="min-h-screen flex flex-col bg-keu-gray-light">
@@ -251,8 +274,7 @@ export default async function MotosPage({
               Motos <span className="text-keu-red">KEU Multimarcas</span>
             </h1>
             <p className="text-keu-black/70 text-lg max-w-2xl mx-auto">
-              Encontre a moto perfeita pra você. FIPE garantida, documentação em
-              dia e os melhores preços do Cariri.
+              Encontre a moto perfeita pra você — os melhores preços do Cariri.
             </p>
             <form
               action="/motos"
@@ -592,18 +614,26 @@ function MotoCard({ moto }: { moto: Moto }) {
   const isNova = moto.anoModelo >= anoCorrente - 1;
 
   return (
-    <Link href={`/motos/${moto._id}`} className="group block">
+    <Link
+      href={`/motos/${moto._id}`}
+      className="group block"
+      prefetch={false}
+    >
       <Card className="overflow-hidden h-full card-hover border border-keu-black/5 relative">
         {/* IMAGEM */}
         <div className="aspect-[4/3] bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
           {moto.fotos?.[0] ? (
-            <Image
+            // base64 (data:) ou URL externa: usa <img> nativo + lazy load
+            // pra não baixar imagens fora do viewport. Image do Next com
+            // unoptimized=true também serve toda a string base64 no HTML
+            // do server-side render, inflando o payload inicial.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={moto.fotos[0]}
               alt={`${moto.marca} ${moto.modelo}`}
-              fill
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-              unoptimized
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-keu-red/15">
