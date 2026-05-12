@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Proprietario } from "@/lib/models/proprietario";
 import { proprietarioCreateSchema } from "@/lib/schemas";
+import { requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);
@@ -31,6 +34,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const raw = await req.json();

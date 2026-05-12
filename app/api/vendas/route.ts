@@ -2,20 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Venda } from "@/lib/models/venda";
 import { vendaCreateSchema } from "@/lib/schemas";
+import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET: vendedores veem só as próprias vendas; admin vê todas.
+ */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);
-    const vendedorId = searchParams.get("vendedorId");
+    const vendedorIdParam = searchParams.get("vendedorId");
     const status = searchParams.get("status");
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
 
     const query: Record<string, unknown> = {};
-    if (vendedorId) query.vendedorId = vendedorId;
+    // vendedor só vê o próprio; admin pode filtrar por qualquer
+    if (auth.role === "admin") {
+      if (vendedorIdParam) query.vendedorId = vendedorIdParam;
+    } else if (auth.role === "vendedor" || auth.role === "afiliado") {
+      query.vendedorId = auth.userId;
+    } else {
+      return NextResponse.json({ vendas: [] });
+    }
     if (status) query.status = status;
     if (dataInicio || dataFim) {
       const range: Record<string, Date> = {};
@@ -33,6 +46,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const raw = await req.json();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
 import { motoCreateSchema } from "@/lib/schemas";
+import { requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const raw = await req.json();

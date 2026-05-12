@@ -3,10 +3,13 @@ import { connectMongo } from "@/lib/mongodb";
 import { Afiliado } from "@/lib/models/afiliado";
 import { User } from "@/lib/models/user";
 import { gerarCodigoAfiliadoUnico } from "@/lib/utils-server";
+import { requireAdmin } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);
@@ -34,6 +37,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const data = await req.json();

@@ -20,6 +20,10 @@ export const dynamic = "force-dynamic";
  * GET /api/seed?reset=1 → limpa + popula
  */
 export async function GET(req: Request) {
+  // Seed só funciona em dev. Em produção é 404 (parece que a rota não existe).
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);

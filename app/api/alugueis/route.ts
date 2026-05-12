@@ -2,24 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { aluguelCreateSchema } from "@/lib/schemas";
+import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);
-    const vendedorId = searchParams.get("vendedorId");
+    const vendedorIdParam = searchParams.get("vendedorId");
     const status = searchParams.get("status");
-    const clienteId = searchParams.get("clienteId");
+    const clienteIdParam = searchParams.get("clienteId");
     const motoId = searchParams.get("motoId");
     const dataInicio = searchParams.get("dataInicio");
     const dataFim = searchParams.get("dataFim");
 
     const query: Record<string, unknown> = {};
-    if (vendedorId) query.vendedorId = vendedorId;
+    if (auth.role === "admin") {
+      if (vendedorIdParam) query.vendedorId = vendedorIdParam;
+      if (clienteIdParam) query.clienteId = clienteIdParam;
+    } else if (auth.role === "vendedor") {
+      query.vendedorId = auth.userId;
+    } else if (auth.role === "cliente") {
+      query.clienteId = auth.userId;
+    } else {
+      return NextResponse.json({ alugueis: [] });
+    }
     if (status) query.status = status;
-    if (clienteId) query.clienteId = clienteId;
     if (motoId) query.motoId = motoId;
     if (dataInicio || dataFim) {
       const range: Record<string, Date> = {};
@@ -37,6 +48,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const raw = await req.json();
