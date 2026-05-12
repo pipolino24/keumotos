@@ -48,7 +48,6 @@ type MotoForm = {
   valorDiaria: number | "";
   valorSemanal: number | "";
   valorMensal: number | "";
-  caucao: number | "";
   tipo: "venda" | "aluguel" | "ambos";
   status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
   setor: "multimarcas" | "loca" | "pecas";
@@ -85,7 +84,6 @@ const initial: MotoForm = {
   valorDiaria: "",
   valorSemanal: "",
   valorMensal: "",
-  caucao: "",
   tipo: "venda",
   status: "disponivel",
   setor: "multimarcas",
@@ -141,10 +139,17 @@ export default function NovoMotoPage() {
     setSaving(true);
     setError(null);
     try {
+      // Campos tipados `number | ""` viram string vazia no JSON.stringify
+      // e o Zod do servidor rejeita ("expected number, received string").
+      // Converte "" → undefined pra cada chave antes de enviar.
+      const payload: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(form)) {
+        payload[k] = v === "" ? undefined : v;
+      }
       const res = await fetch("/api/motos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erro ao salvar");
@@ -610,12 +615,6 @@ export default function NovoMotoPage() {
                   label="Mensal"
                   value={form.valorMensal}
                   onChange={(v) => set("valorMensal", v)}
-                />
-                <ValueInput
-                  id="caucao"
-                  label="Caução"
-                  value={form.caucao}
-                  onChange={(v) => set("caucao", v)}
                 />
               </div>
             </Card>
