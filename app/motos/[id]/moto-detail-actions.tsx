@@ -18,6 +18,7 @@ interface Props {
   motoInteresse: string;
   shareTitle: string;
   valorMoto: number;
+  motoId: string;
 }
 
 export function MotoDetailActions({
@@ -25,6 +26,7 @@ export function MotoDetailActions({
   motoInteresse,
   shareTitle,
   valorMoto,
+  motoId,
 }: Props) {
   const [showLead, setShowLead] = useState(false);
   const [showSimulador, setShowSimulador] = useState(false);
@@ -126,6 +128,7 @@ export function MotoDetailActions({
         open={showLead}
         onClose={() => setShowLead(false)}
         motoInteresse={motoInteresse}
+        motoId={motoId}
       />
     </>
   );

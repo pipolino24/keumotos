@@ -25,6 +25,47 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   }
 }
 
+// Campos que vendedor/admin podem editar via PATCH. Tudo que não estiver
+// aqui (origem, compra, proprietarioId, createdAt, etc.) precisa de
+// endpoint dedicado pra evitar tampering.
+const CAMPOS_EDITAVEIS = [
+  "marca",
+  "modelo",
+  "versao",
+  "anoFabricacao",
+  "anoModelo",
+  "cor",
+  "placa",
+  "chassi",
+  "renavam",
+  "numeroMotor",
+  "cilindrada",
+  "combustivel",
+  "cambio",
+  "partida",
+  "km",
+  "potencia",
+  "valorFipe",
+  "valorAnunciado",
+  "valorMinimo",
+  "comissao",
+  "valorDiaria",
+  "valorSemanal",
+  "valorMensal",
+  "caucao",
+  "tipo",
+  "status",
+  "destaque",
+  "fotos",
+  "descricao",
+  "observacoes",
+  "vendedorResponsavel",
+  "setor",
+] as const;
+
+// Campos que SÓ admin pode editar (preço de compra, comissão repasse)
+const CAMPOS_ADMIN = ["valorCompra"] as const;
+
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const auth = await requireRole(["admin", "vendedor"]);
   if (!auth.ok) return auth.response;
@@ -32,7 +73,18 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     await connectMongo();
     const { id } = await params;
     const data = await req.json();
-    const moto = await Moto.findByIdAndUpdate(id, data, {
+
+    const update: Record<string, unknown> = {};
+    for (const k of CAMPOS_EDITAVEIS) {
+      if (data[k] !== undefined) update[k] = data[k];
+    }
+    if (auth.role === "admin") {
+      for (const k of CAMPOS_ADMIN) {
+        if (data[k] !== undefined) update[k] = data[k];
+      }
+    }
+
+    const moto = await Moto.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
     }).lean();

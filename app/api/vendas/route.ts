@@ -65,6 +65,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Vendedor só pode registrar venda em nome próprio.
+    // Admin pode atribuir a qualquer vendedor.
+    if (auth.role !== "admin") {
+      parsed.data.vendedorId = auth.userId;
+    }
+
     const venda = await Venda.create(parsed.data);
     return NextResponse.json({ venda }, { status: 201 });
   } catch (err) {

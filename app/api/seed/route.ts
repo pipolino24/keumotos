@@ -4,15 +4,14 @@ import { Moto } from "@/lib/models/moto";
 import { Contato } from "@/lib/models/contato";
 import { Proprietario } from "@/lib/models/proprietario";
 import { mockMotos, mockContatos, mockProprietarios } from "@/lib/mock-data";
+import { requireAdmin } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Popula o MongoDB com mock-data quando vazio (apenas motos, proprietários
- * e contatos — usuários agora vivem só no Supabase Auth e são criados via
- * scripts/seed-users.ts).
- *
- * Só funciona em desenvolvimento — em produção retorna 404.
+ * Popula o MongoDB com mock-data quando vazio. Endpoint é destrutivo
+ * (`?reset=1` apaga TUDO), então exige admin autenticado SEMPRE — não basta
+ * `NODE_ENV !== "production"`, porque preview/staging também caem nessa branch.
  *
  *   GET /api/seed          → popula coleções vazias
  *   GET /api/seed?reset=1  → limpa + popula
@@ -21,6 +20,8 @@ export async function GET(req: Request) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { searchParams } = new URL(req.url);

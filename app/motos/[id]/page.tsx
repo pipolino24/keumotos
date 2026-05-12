@@ -24,6 +24,7 @@ import { formatCurrency, formatKm } from "@/lib/utils";
 import { MotoDetailActions } from "./moto-detail-actions";
 import { MotoPhotoGallery } from "./moto-photo-gallery";
 import { AffiliateTracker } from "./affiliate-tracker";
+import { InterestTracker } from "@/components/motos/interest-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +134,7 @@ export default async function MotoDetailPage({
   return (
     <div className="min-h-screen flex flex-col bg-keu-gray-light">
       <AffiliateTracker motoId={moto._id} />
+      <InterestTracker motoId={moto._id} />
 
       {/* HEADER */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-keu-black/5">
@@ -261,6 +263,7 @@ export default async function MotoDetailPage({
                 motoInteresse={`${tituloModelo} ${moto.anoModelo}`}
                 shareTitle={tituloModelo}
                 valorMoto={moto.valorAnunciado}
+                motoId={moto._id}
               />
 
               {/* SPECS */}

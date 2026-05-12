@@ -11,12 +11,14 @@ interface LeadFormModalProps {
   open: boolean;
   onClose: () => void;
   motoInteresse: string;
+  motoId?: string;
 }
 
 export function LeadFormModal({
   open,
   onClose,
   motoInteresse,
+  motoId,
 }: LeadFormModalProps) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -52,6 +54,25 @@ export function LeadFormModal({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Erro ao enviar");
       }
+
+      // Em paralelo: registra Interesse pra vendedor receber notificação
+      // imediata com nome/contato do lead. Falha silenciosa — o contato
+      // principal já foi salvo via /api/contatos.
+      if (motoId) {
+        fetch("/api/interesses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            motoId,
+            tipo: "enviou_lead",
+            clienteNome: nome.trim(),
+            clienteTelefone: telefone.trim(),
+            mensagem: mensagem.trim() || undefined,
+            origem: "site",
+          }),
+        }).catch(() => {});
+      }
+
       toast.success(
         "Recebemos seu contato! Em breve um vendedor falará com você."
       );

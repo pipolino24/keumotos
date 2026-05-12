@@ -51,6 +51,7 @@ interface SearchParams {
   precoMax?: string;
   anoMin?: string;
   anoMax?: string;
+  sort?: string;
   page?: string;
 }
 
@@ -137,6 +138,22 @@ function applyFilters(motos: Moto[], sp: SearchParams): Moto[] {
     const v = parseInt(sp.anoMax, 10);
     if (!isNaN(v)) result = result.filter((m) => m.anoModelo <= v);
   }
+  // Ordenação (default: mais recentes via createdAt já vem do query, então
+  // não altera). Outras opções deslocam-na.
+  switch (sp.sort) {
+    case "preco-asc":
+      result = [...result].sort((a, b) => a.valorAnunciado - b.valorAnunciado);
+      break;
+    case "preco-desc":
+      result = [...result].sort((a, b) => b.valorAnunciado - a.valorAnunciado);
+      break;
+    case "ano-desc":
+      result = [...result].sort((a, b) => b.anoModelo - a.anoModelo);
+      break;
+    case "km-asc":
+      result = [...result].sort((a, b) => a.km - b.km);
+      break;
+  }
   return result;
 }
 
@@ -149,7 +166,22 @@ function buildPageHref(sp: SearchParams, page: number): string {
   if (sp.precoMax) params.set("precoMax", sp.precoMax);
   if (sp.anoMin) params.set("anoMin", sp.anoMin);
   if (sp.anoMax) params.set("anoMax", sp.anoMax);
+  if (sp.sort) params.set("sort", sp.sort);
   if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return `/motos${qs ? `?${qs}` : ""}`;
+}
+
+function buildSortHref(sp: SearchParams, sort: string): string {
+  const params = new URLSearchParams();
+  if (sp.q) params.set("q", sp.q);
+  if (sp.tipo) params.set("tipo", sp.tipo);
+  if (sp.marca) params.set("marca", sp.marca);
+  if (sp.precoMin) params.set("precoMin", sp.precoMin);
+  if (sp.precoMax) params.set("precoMax", sp.precoMax);
+  if (sp.anoMin) params.set("anoMin", sp.anoMin);
+  if (sp.anoMax) params.set("anoMax", sp.anoMax);
+  if (sort && sort !== "recente") params.set("sort", sort);
   const qs = params.toString();
   return `/motos${qs ? `?${qs}` : ""}`;
 }
@@ -339,13 +371,42 @@ export default async function MotosPage({
 
             {/* GRID */}
             <div>
-              <div className="flex items-end justify-between mb-6 flex-wrap gap-2">
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h2 className="text-2xl font-black">
                   {filtered.length}{" "}
                   {filtered.length === 1 ? "moto encontrada" : "motos encontradas"}
                 </h2>
-                <div className="text-sm text-keu-black/60">
-                  Página {safePage} de {totalPages}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <span className="text-keu-black/50">Ordenar:</span>
+                    {(
+                      [
+                        ["recente", "Recentes"],
+                        ["preco-asc", "Menor preço"],
+                        ["preco-desc", "Maior preço"],
+                        ["ano-desc", "Mais novo"],
+                        ["km-asc", "Menor KM"],
+                      ] as const
+                    ).map(([key, label]) => {
+                      const active = (sp.sort ?? "recente") === key;
+                      return (
+                        <Link key={key} href={buildSortHref(sp, key)}>
+                          <span
+                            className={
+                              active
+                                ? "px-3 py-1 rounded-full bg-keu-red text-white text-xs font-bold shadow-md shadow-keu-red/20"
+                                : "px-3 py-1 rounded-full bg-white text-keu-black/70 hover:bg-keu-gray-light text-xs font-medium border border-keu-black/10 transition"
+                            }
+                          >
+                            {label}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <div className="text-sm text-keu-black/60">
+                    Página {safePage} de {totalPages}
+                  </div>
                 </div>
               </div>
 
@@ -366,7 +427,7 @@ export default async function MotosPage({
                   </Link>
                 </Card>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
                   {pageItems.map((moto) => (
                     <MotoCard key={moto._id} moto={moto} />
                   ))}
@@ -506,10 +567,13 @@ export default async function MotosPage({
 function MotoCard({ moto }: { moto: Moto }) {
   const isAluguel = moto.tipo === "aluguel";
   const isAmbos = moto.tipo === "ambos";
+  // "NOVO" — moto seminova com até 1 ano de fabricação até o ano atual
+  const anoCorrente = new Date().getFullYear();
+  const isNova = moto.anoModelo >= anoCorrente - 1;
 
   return (
     <Link href={`/motos/${moto._id}`} className="group block">
-      <Card className="overflow-hidden h-full hover:shadow-2xl hover:shadow-keu-red/15 transition-all hover:-translate-y-1 border border-keu-black/5">
+      <Card className="overflow-hidden h-full card-hover border border-keu-black/5 relative">
         {/* IMAGEM */}
         <div className="aspect-[4/3] bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
           {moto.fotos?.[0] ? (
@@ -518,7 +582,7 @@ function MotoCard({ moto }: { moto: Moto }) {
               alt={`${moto.marca} ${moto.modelo}`}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover group-hover:scale-110 transition-transform duration-700"
+              className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
               unoptimized
             />
           ) : (
@@ -532,9 +596,14 @@ function MotoCard({ moto }: { moto: Moto }) {
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
             {moto.destaque && (
-              <Badge variant="default" className="shadow-lg">
+              <span className="shine-on-hover inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-keu-red text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-lg">
                 ★ Destaque
-              </Badge>
+              </span>
+            )}
+            {isNova && !moto.destaque && (
+              <span className="inline-flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-full shadow-lg">
+                NOVO
+              </span>
             )}
             {isAluguel && (
               <Badge variant="dark" className="shadow-lg">
@@ -555,6 +624,13 @@ function MotoCard({ moto }: { moto: Moto }) {
           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
             <span className="bg-white/95 backdrop-blur rounded-md px-2.5 py-1 text-xs font-bold text-keu-red shadow">
               {moto.marca}
+            </span>
+          </div>
+
+          {/* Hover overlay: "Ver detalhes" */}
+          <div className="absolute inset-0 bg-keu-red/0 group-hover:bg-keu-red/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="bg-white/95 backdrop-blur px-4 py-2 rounded-full text-sm font-bold text-keu-red shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+              Ver detalhes →
             </span>
           </div>
         </div>

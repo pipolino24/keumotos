@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = {};
     if (search) {
+      // Limita e escapa metacaracteres (anti-ReDoS e contra "$gt"-style injection)
+      const termo = search.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { nome: { $regex: search, $options: "i" } },
-        { cpf: { $regex: search, $options: "i" } },
-        { telefone: { $regex: search, $options: "i" } },
+        { nome: { $regex: termo, $options: "i" } },
+        { cpf: { $regex: termo, $options: "i" } },
+        { telefone: { $regex: termo, $options: "i" } },
       ];
     }
 

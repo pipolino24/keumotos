@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
 import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
+import { NotificationsBell } from "@/components/dashboard/notifications-bell";
 
 const staffNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
@@ -206,7 +207,10 @@ export function MobileTopbar() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    setOpen(false);
+    // setTimeout 0 evita "setState in effect" do React 19; comportamento
+    // prático é fechar o menu quando a rota muda.
+    const t = setTimeout(() => setOpen(false), 0);
+    return () => clearTimeout(t);
   }, [pathname]);
 
   return (
@@ -224,15 +228,18 @@ export function MobileTopbar() {
             <Bike className="h-5 w-5 text-keu-red" />
             <span className="font-black text-xl">KEU</span>
           </Link>
-          <div
-            className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs",
-              userIsAdmin
-                ? "bg-gradient-to-br from-amber-500 to-amber-600"
-                : "bg-gradient-to-br from-keu-red to-keu-red-dark"
-            )}
-          >
-            {user.nome.charAt(0)}
+          <div className="flex items-center gap-2">
+            {user.role !== "cliente" && <NotificationsBell />}
+            <div
+              className={cn(
+                "w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs",
+                userIsAdmin
+                  ? "bg-gradient-to-br from-amber-500 to-amber-600"
+                  : "bg-gradient-to-br from-keu-red to-keu-red-dark"
+              )}
+            >
+              {user.nome.charAt(0)}
+            </div>
           </div>
         </div>
       </div>
