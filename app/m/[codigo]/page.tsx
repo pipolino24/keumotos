@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { use } from "react";
 import {
   Bike,
@@ -159,13 +158,13 @@ export default function AfiliadoPublicPage({
             <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 text-center md:text-left">
               <div className="relative flex-shrink-0">
                 {afiliado.avatar ? (
-                  <Image
+                  // Avatar do afiliado — pode ser base64 ou URL. Eager (hero).
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={afiliado.avatar}
                     alt={afiliado.nome}
-                    width={140}
-                    height={140}
+                    decoding="async"
                     className="w-32 h-32 md:w-36 md:h-36 rounded-full object-cover ring-4 ring-keu-red shadow-2xl"
-                    unoptimized
                   />
                 ) : (
                   <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-keu-red to-keu-red-dark flex items-center justify-center text-5xl md:text-6xl font-black ring-4 ring-keu-red shadow-2xl">
@@ -266,13 +265,13 @@ export default function AfiliadoPublicPage({
                 >
                   <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden">
                     {moto.fotos?.[0] ? (
-                      <Image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={moto.fotos[0]}
                         alt={`${moto.marca} ${moto.modelo}`}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        unoptimized
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-white/30">

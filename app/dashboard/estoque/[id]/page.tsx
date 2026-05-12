@@ -238,6 +238,7 @@ export default function VisualizarMotoPage() {
                 <img
                   src={fotos[fotoAtual]}
                   alt={`${moto.marca} ${moto.modelo} - foto ${fotoAtual + 1}`}
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
                 {fotos.length > 1 && (
@@ -289,6 +290,8 @@ export default function VisualizarMotoPage() {
                       <img
                         src={foto}
                         alt={`Thumb ${i + 1}`}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                       />
                     </button>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { Bike, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -62,15 +61,16 @@ export function MotoPhotoGallery({ fotos, alt, destaque, tipo, ano }: Props) {
     <div className="space-y-3">
       <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden group">
         {current && !currentErrou ? (
-          <Image
+          // Foto principal — eager (não-lazy) porque está acima da dobra.
+          // <img> nativo evita o problema do Image do Next inlinar a base64
+          // toda no SSR HTML.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             key={`${active}-${current.slice(0, 16)}`}
             src={current}
             alt={alt}
-            fill
-            sizes="(max-width: 1024px) 100vw, 60vw"
-            className="object-cover"
-            priority
-            unoptimized
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
             onError={() => marcarErro(active)}
           />
         ) : (
@@ -137,13 +137,14 @@ export function MotoPhotoGallery({ fotos, alt, destaque, tipo, ano }: Props) {
                   <Bike className="h-4 w-4 text-keu-black/30" />
                 </div>
               ) : (
-                <Image
+                // Miniatura — lazy load porque só a ativa é vista de cara
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={foto}
                   alt={`${alt} - foto ${i + 1}`}
-                  fill
-                  sizes="120px"
-                  className="object-cover"
-                  unoptimized
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 w-full h-full object-cover"
                   onError={() => marcarErro(i)}
                 />
               )}

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
+import mongoose from "mongoose";
+import { connectMongo } from "@/lib/mongodb";
+import { Moto as MotoModel } from "@/lib/models/moto";
 import {
   Bike,
   ArrowLeft,
@@ -27,7 +29,10 @@ import { AffiliateTracker } from "./affiliate-tracker";
 import { VendedorCard } from "./vendedor-card";
 import { InterestTracker } from "@/components/motos/interest-tracker";
 
-export const dynamic = "force-dynamic";
+// ISR — detalhe da moto cacheia por 60s. PATCH/POST de moto invalidam
+// indiretamente pela próxima revalidação (não precisa de tag dinâmica
+// agora porque o estoque muda pouco fora dos horários comerciais).
+export const revalidate = 60;
 
 interface Moto {
   _id: string;
@@ -55,38 +60,75 @@ interface Moto {
   descricao?: string;
 }
 
+/**
+ * Lê a moto direto do Mongo — antes esta página fazia fetch HTTP pra própria
+ * API (`/api/motos/[id]`), o que dobrava latência (serializa, envia, parse).
+ * Com query direta pulamos esse round-trip.
+ */
 async function fetchMoto(id: string): Promise<Moto | null> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
   try {
-    const res = await fetch(`${base}/api/motos/${id}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.moto as Moto) ?? null;
+    await connectMongo();
+    const doc = await MotoModel.findById(id).lean().maxTimeMS(5000);
+    if (!doc) return null;
+    return {
+      ...(doc as unknown as Moto),
+      _id: String(doc._id),
+    };
   } catch {
     return null;
   }
 }
 
+/**
+ * Similares: query direta filtrando por mesma marca OU faixa de preço (±25%),
+ * apenas 4 resultados, status disponível, ordenado por destaque + preço próximo.
+ * Antes baixava TODAS as motos disponíveis e filtrava em memória — desperdício
+ * massivo de banda em catálogos com fotos base64.
+ */
 async function fetchSimilares(moto: Moto): Promise<Moto[]> {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   try {
-    const res = await fetch(`${base}/api/motos?status=disponivel`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const all = ((data.motos as Moto[]) ?? []).filter(
-      (m) => m._id !== moto._id
-    );
-    const sameMarca = all.filter((m) => m.marca === moto.marca);
-    const byPrice = all
-      .filter((m) => m.marca !== moto.marca)
-      .sort(
-        (a, b) =>
-          Math.abs(a.valorAnunciado - moto.valorAnunciado) -
-          Math.abs(b.valorAnunciado - moto.valorAnunciado)
-      );
-    return [...sameMarca, ...byPrice].slice(0, 4);
+    await connectMongo();
+    const banda = moto.valorAnunciado * 0.25;
+    const min = Math.max(0, moto.valorAnunciado - banda);
+    const max = moto.valorAnunciado + banda;
+    const docs = await MotoModel.find(
+      {
+        _id: { $ne: moto._id },
+        status: "disponivel",
+        $or: [
+          { marca: moto.marca },
+          { valorAnunciado: { $gte: min, $lte: max } },
+        ],
+      },
+      {
+        marca: 1,
+        modelo: 1,
+        anoModelo: 1,
+        anoFabricacao: 1,
+        cor: 1,
+        km: 1,
+        valorAnunciado: 1,
+        valorDiaria: 1,
+        valorMensal: 1,
+        cilindrada: 1,
+        combustivel: 1,
+        cambio: 1,
+        tipo: 1,
+        status: 1,
+        destaque: 1,
+        // Só a foto-capa — economiza ~200KB/card em base64
+        fotos: { $slice: 1 },
+      }
+    )
+      .sort({ destaque: -1, createdAt: -1 })
+      .limit(4)
+      .lean()
+      .maxTimeMS(5000);
+    return docs.map((d) => ({
+      ...(d as unknown as Moto),
+      _id: String(d._id),
+    }));
   } catch {
     return [];
   }
@@ -514,13 +556,13 @@ function SimilarCard({ moto }: { moto: Moto }) {
       <Card className="overflow-hidden h-full hover:shadow-xl transition-all hover:-translate-y-1">
         <div className="aspect-video bg-gradient-to-br from-keu-black to-keu-gray relative overflow-hidden">
           {moto.fotos?.[0] ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={moto.fotos[0]}
               alt={`${moto.marca} ${moto.modelo}`}
-              fill
-              sizes="(max-width: 768px) 100vw, 25vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-              unoptimized
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-white/30">

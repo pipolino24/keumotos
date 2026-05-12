@@ -49,6 +49,10 @@ export async function GET(req: NextRequest) {
           ],
         },
       },
+      // Cap defensivo: leads-quentes nunca processa mais que 20k interesses
+      // mesmo se algum cliente foi bot-flood. Janela já é 30d, então em
+      // operação normal isso fica muito abaixo do limit.
+      { $limit: 20000 },
       {
         $group: {
           // Inclui clienteTelefone e email no _id pra evitar mergir clientes
@@ -102,7 +106,7 @@ export async function GET(req: NextRequest) {
           score: 1,
         },
       },
-    ]);
+    ]).option({ maxTimeMS: 5000 });
 
     return NextResponse.json({ leads: rows });
   } catch (err) {

@@ -245,12 +245,25 @@ export async function GET(req: NextRequest) {
     }
 
     const limit = Math.min(Number(searchParams.get("limit")) || 50, 200);
-    const interesses = await Interesse.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const skip = Math.max(0, Number(searchParams.get("skip")) || 0);
 
-    return NextResponse.json({ interesses });
+    const [interesses, total] = await Promise.all([
+      Interesse.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .maxTimeMS(5000),
+      // Conta total só quando paginação é usada — economiza um round-trip
+      skip > 0 || searchParams.get("withCount") === "1"
+        ? Interesse.countDocuments(query).maxTimeMS(3000)
+        : Promise.resolve(undefined),
+    ]);
+
+    return NextResponse.json({
+      interesses,
+      ...(total !== undefined ? { total, hasMore: skip + limit < total } : {}),
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";
     return NextResponse.json({ error: message }, { status: 500 });

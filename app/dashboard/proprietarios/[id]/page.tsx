@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -575,13 +574,14 @@ export default function PessoaDetailPage() {
           <Card className="p-6 text-center">
             <div className="relative w-32 h-32 mx-auto mb-4">
               {proprietario.fotoPessoal ? (
-                <Image
+                // Foto pessoal — provavelmente base64; lazy + decoding async
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={proprietario.fotoPessoal}
                   alt={proprietario.nome}
-                  width={128}
-                  height={128}
+                  loading="lazy"
+                  decoding="async"
                   className="w-32 h-32 rounded-full object-cover ring-4 ring-keu-red/20"
-                  unoptimized
                 />
               ) : (
                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-keu-red to-keu-red-dark text-white flex items-center justify-center text-5xl font-black ring-4 ring-keu-red/20">

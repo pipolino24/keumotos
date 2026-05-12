@@ -84,22 +84,22 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         ? { clienteId: id, vendedorId: auth.userId }
         : { clienteId: id };
 
-    const [interesses, vendas, alugueis, contatos] = await Promise.all([
+    // allSettled: se uma query falhar (timeout, índice ausente), as outras
+    // ainda retornam. Antes era Promise.all → uma falha derrubava o page todo.
+    const settled = await Promise.allSettled([
       Interesse.find({ clienteId: id })
         .sort({ createdAt: -1 })
         .limit(100)
-        .lean(),
-      Venda.find(vendaScope).sort({ data: -1 }).lean(),
-      Aluguel.find(alugScope).sort({ dataInicio: -1 }).lean(),
+        .lean()
+        .maxTimeMS(5000),
+      Venda.find(vendaScope).sort({ data: -1 }).limit(200).lean().maxTimeMS(5000),
+      Aluguel.find(alugScope).sort({ dataInicio: -1 }).limit(200).lean().maxTimeMS(5000),
       (async () => {
-        // Constrói $or apenas com campos não-vazios — evita query com
-        // { email: undefined } que casaria com docs sem o campo.
         const p = profile as { email?: string; telefone?: string };
         const ors: Array<Record<string, string>> = [];
         if (p.email) ors.push({ email: p.email });
         if (p.telefone) ors.push({ telefone: p.telefone });
         if (!ors.length) return [];
-        // Vendedor só vê contatos que ele é responsável; admin vê tudo.
         const contatoFilter: Record<string, unknown> = { $or: ors };
         if (auth.role === "vendedor") {
           contatoFilter.vendedorResponsavel = auth.userId;
@@ -107,9 +107,14 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         return Contato.find(contatoFilter)
           .sort({ createdAt: -1 })
           .limit(50)
-          .lean();
+          .lean()
+          .maxTimeMS(5000);
       })(),
     ]);
+    const interesses = settled[0].status === "fulfilled" ? settled[0].value : [];
+    const vendas = settled[1].status === "fulfilled" ? settled[1].value : [];
+    const alugueis = settled[2].status === "fulfilled" ? settled[2].value : [];
+    const contatos = settled[3].status === "fulfilled" ? settled[3].value : [];
 
     const totalGasto = vendas.reduce((sum, v) => sum + (v.valorVendido || 0), 0);
     const alugueisAtivos = alugueis.filter(

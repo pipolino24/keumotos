@@ -47,16 +47,28 @@ export async function GET(req: NextRequest) {
       Number.isFinite(limitRaw) && limitRaw > 0
         ? Math.min(Math.floor(limitRaw), 100)
         : 30;
+    const skipRaw = Number(searchParams.get("skip"));
+    const skip = Number.isFinite(skipRaw) && skipRaw > 0 ? Math.floor(skipRaw) : 0;
+
     const [notifications, unreadCount] = await Promise.all([
-      Notification.find(query).sort({ createdAt: -1 }).limit(limit).lean(),
+      Notification.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .maxTimeMS(4000),
       Notification.countDocuments({
         destinatarioId: auth.userId,
         lido: false,
         arquivado: false,
-      }),
+      }).maxTimeMS(3000),
     ]);
 
-    return NextResponse.json({ notifications, unreadCount });
+    return NextResponse.json({
+      notifications,
+      unreadCount,
+      hasMore: notifications.length === limit,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";
     return NextResponse.json({ error: message }, { status: 500 });
