@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { connectMongo } from "@/lib/mongodb";
+import { emitNotification } from "@/lib/notifications/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +145,31 @@ export async function POST(req: NextRequest) {
     if (data.pix) extras.pix = data.pix;
     if (Object.keys(extras).length > 0) {
       await admin.from("profiles").update(extras).eq("id", created.user.id);
+    }
+
+    // Notifica admins sobre o novo cadastro (vendedor/cliente/afiliado todos
+    // disparam — admin escolhe se cuidar). Falha silenciosa.
+    const novoRole = data.role || "cliente";
+    if (novoRole === "cliente" || novoRole === "vendedor" || novoRole === "afiliado") {
+      try {
+        await connectMongo();
+        await emitNotification({
+          tipo: "novo_cliente",
+          titulo: `Novo ${novoRole} cadastrado: ${data.nome}`,
+          descricao: data.telefone
+            ? `${data.email} · ${data.telefone}`
+            : data.email,
+          clienteId: created.user.id,
+          clienteNome: data.nome,
+          origemTipo: "user",
+          origemId: created.user.id,
+          link: `/dashboard/usuarios/${created.user.id}`,
+          prioridade: "normal",
+          // sem vendedorIdEspecifico → vai pra todos admins + vendedores
+        });
+      } catch (notifErr) {
+        console.error("[users] notification fail:", notifErr);
+      }
     }
 
     return NextResponse.json(

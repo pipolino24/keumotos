@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
  *  - quem tem qualquer Interesse, Venda ou Aluguel registrado
  *  - agrega contadores e a última atividade
  *
- * Restrito a admin/vendedor.
+ * Vendedor só vê clientes que ele atendeu (vendedorId match em venda/aluguel).
+ * Admin vê todos.
  */
 export async function GET() {
   const auth = await requireRole(["admin", "vendedor"]);
@@ -21,10 +22,19 @@ export async function GET() {
   try {
     await connectMongo();
 
+    // Filtro de scope: vendedor só vê os próprios; admin vê tudo
+    const vendaScope =
+      auth.role === "vendedor" ? { vendedorId: auth.userId } : {};
+    const alugScope =
+      auth.role === "vendedor" ? { vendedorId: auth.userId } : {};
+    const interesseScope =
+      auth.role === "vendedor" ? { vendedorAtendeu: auth.userId } : {};
+
     const [interesses, vendas, alugueis] = await Promise.all([
       Interesse.aggregate([
         {
           $match: {
+            ...interesseScope,
             $or: [
               { clienteId: { $exists: true, $ne: null } },
               { clienteNome: { $exists: true, $ne: null } },
@@ -45,6 +55,7 @@ export async function GET() {
         },
       ]),
       Venda.aggregate([
+        { $match: vendaScope },
         {
           $group: {
             _id: { clienteId: "$clienteId", clienteNome: "$clienteNome" },
@@ -57,6 +68,7 @@ export async function GET() {
         },
       ]),
       Aluguel.aggregate([
+        { $match: alugScope },
         {
           $group: {
             _id: { clienteId: "$clienteId", clienteNome: "$clienteNome" },

@@ -29,6 +29,34 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   }
 }
 
+// Campos editáveis via PATCH. Bloqueia tampering em createdAt/proprietarioId
+// (FK reversa em Moto) e qualquer outro campo undocumented adicionado depois.
+const CAMPOS_EDITAVEIS = [
+  "nome",
+  "cpf",
+  "rg",
+  "cnh",
+  "dataNascimento",
+  "email",
+  "telefone",
+  "whatsapp",
+  "cep",
+  "endereco",
+  "numero",
+  "complemento",
+  "bairro",
+  "cidade",
+  "estado",
+  "pixTipo",
+  "pixChave",
+  "banco",
+  "agencia",
+  "conta",
+  "contaTipo",
+  "cpfTitular",
+  "observacoes",
+] as const;
+
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await requireRole(["admin", "vendedor"]);
   if (!auth.ok) return auth.response;
@@ -36,7 +64,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     await connectMongo();
     const { id } = await params;
     const data = await req.json();
-    const proprietario = await Proprietario.findByIdAndUpdate(id, data, {
+
+    const update: Record<string, unknown> = {};
+    for (const k of CAMPOS_EDITAVEIS) {
+      if (data[k] !== undefined) update[k] = data[k];
+    }
+
+    const proprietario = await Proprietario.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
     }).lean();

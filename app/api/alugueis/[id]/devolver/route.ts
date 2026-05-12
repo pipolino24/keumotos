@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Moto } from "@/lib/models/moto";
+import { Notification } from "@/lib/models/notification";
 import { aluguelDevolucaoSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
 
@@ -49,6 +50,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       return NextResponse.json(
         { error: "Aluguel já foi devolvido" },
         { status: 409 }
+      );
+    }
+    // Vendedor só pode encerrar aluguéis próprios — admin pode todos
+    if (auth.role === "vendedor" && aluguel.vendedorId !== auth.userId) {
+      return NextResponse.json(
+        { error: "Sem permissão para encerrar esse aluguel" },
+        { status: 403 }
       );
     }
 
@@ -124,6 +132,26 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     }
 
     const aluguelFinal = await Aluguel.findById(id).lean();
+
+    // Notifica cliente que a devolução foi confirmada (com resumo financeiro)
+    if (aluguel.clienteId) {
+      const valorRetorno = valorAReceberCaucao;
+      const descricao = custoTotalAvarias > 0
+        ? `Avarias: R$ ${custoTotalAvarias}. Caução a devolver: R$ ${valorRetorno}.`
+        : `Sem avarias. Caução integral a devolver: R$ ${valorRetorno}.`;
+      Notification.create({
+        destinatarioId: aluguel.clienteId,
+        tipo: "aluguel",
+        titulo: `Devolução confirmada — ${aluguel.motoMarca ?? ""} ${aluguel.motoModelo}`.trim(),
+        descricao,
+        origemTipo: "aluguel",
+        origemId: aluguel._id.toString(),
+        link: "/dashboard",
+        prioridade: "normal",
+        lido: false,
+        arquivado: false,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       aluguel: aluguelFinal,

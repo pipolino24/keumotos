@@ -30,9 +30,17 @@ export async function GET(req: NextRequest) {
       "simulou_financiamento",
     ];
 
+    // Vendedor só vê leads que ele atendeu OU clientes que tenham
+    // venda/aluguel atribuída a ele. Admin vê tudo.
+    const scope =
+      auth.role === "vendedor"
+        ? { vendedorAtendeu: auth.userId }
+        : {};
+
     const rows = await Interesse.aggregate([
       {
         $match: {
+          ...scope,
           createdAt: { $gte: desde },
           // só conta quem identificou (clienteId ou nome+telefone)
           $or: [

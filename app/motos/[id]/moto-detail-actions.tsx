@@ -7,11 +7,13 @@ import {
   Calculator,
   Share2,
   ChevronDown,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LeadFormModal } from "@/components/motos/lead-form-modal";
 import { FinancingSimulator } from "@/components/motos/financing-simulator";
+import { RentalRequestModal } from "@/components/motos/rental-request-modal";
 
 interface Props {
   whatsappUrl: string;
@@ -19,6 +21,7 @@ interface Props {
   shareTitle: string;
   valorMoto: number;
   motoId: string;
+  motoTipo?: "venda" | "aluguel" | "ambos";
 }
 
 export function MotoDetailActions({
@@ -27,9 +30,12 @@ export function MotoDetailActions({
   shareTitle,
   valorMoto,
   motoId,
+  motoTipo,
 }: Props) {
   const [showLead, setShowLead] = useState(false);
   const [showSimulador, setShowSimulador] = useState(false);
+  const [showRental, setShowRental] = useState(false);
+  const aceitaAluguel = motoTipo === "aluguel" || motoTipo === "ambos";
 
   async function handleShare() {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -77,6 +83,16 @@ export function MotoDetailActions({
         >
           <Heart className="h-4 w-4" /> Tenho interesse
         </Button>
+        {aceitaAluguel && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setShowRental(true)}
+            className="col-span-2 bg-emerald-500/5 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
+          >
+            <KeyRound className="h-4 w-4" /> Solicitar aluguel
+          </Button>
+        )}
         <Button
           variant="outline"
           size="lg"
@@ -130,6 +146,12 @@ export function MotoDetailActions({
         onClose={() => setShowLead(false)}
         motoInteresse={motoInteresse}
         motoId={motoId}
+      />
+      <RentalRequestModal
+        open={showRental}
+        onClose={() => setShowRental(false)}
+        motoId={motoId}
+        motoLabel={shareTitle}
       />
     </>
   );

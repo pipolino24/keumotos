@@ -264,6 +264,7 @@ export default async function MotoDetailPage({
                 shareTitle={tituloModelo}
                 valorMoto={moto.valorAnunciado}
                 motoId={moto._id}
+                motoTipo={moto.tipo}
               />
 
               {/* SPECS */}
