@@ -17,7 +17,11 @@ export const dynamic = "force-dynamic";
  *   GET /api/seed?reset=1  → limpa + popula
  */
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === "production") {
+  // Whitelist explícita: só roda em "development". Qualquer outro ambiente
+  // (production, preview, staging, test) bloqueia. NODE_ENV unset também
+  // não passa — fail-safe.
+  const env = process.env.NODE_ENV;
+  if (env !== "development") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const auth = await requireAdmin();

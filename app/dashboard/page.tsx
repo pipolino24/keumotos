@@ -122,7 +122,11 @@ function ClienteDashboard() {
   const totalEmAberto = proximosPagamentos.reduce((s, p) => s + p.valor, 0);
 
   // Timeline de ações do próprio cliente (Interesses registrados)
-  const { data: interessesData, loading: li } = useApi<{
+  const {
+    data: interessesData,
+    loading: li,
+    refetch: refetchInteresses,
+  } = useApi<{
     interesses: Array<{
       _id: string;
       tipo: string;
@@ -328,12 +332,16 @@ function ClienteDashboard() {
                       <button
                         type="button"
                         onClick={async () => {
-                          await fetch(`/api/interesses/${a._id}`, {
+                          const res = await fetch(`/api/interesses/${a._id}`, {
                             method: "DELETE",
-                          }).catch(() => {});
+                          }).catch(() => null);
+                          if (!res || !res.ok) {
+                            toast.error("Erro ao remover");
+                            return;
+                          }
                           toast.success("Interesse removido do histórico");
-                          // Refetch via reload — useApi não tem refetch público fácil aqui
-                          window.location.reload();
+                          // refetch via useApi (sem destruir estado da página)
+                          refetchInteresses();
                         }}
                         title="Remover do histórico"
                         aria-label="Remover do histórico"

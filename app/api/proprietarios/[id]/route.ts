@@ -94,6 +94,21 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   try {
     await connectMongo();
     const { id } = await params;
+
+    // Bloqueia delete se proprietário ainda tem motos vinculadas — evita
+    // orfanizar motos (Moto.proprietarioId ficaria apontando pra nada).
+    const { Moto } = await import("@/lib/models/moto");
+    const temMoto = await Moto.exists({ proprietarioId: id });
+    if (temMoto) {
+      return NextResponse.json(
+        {
+          error:
+            "Proprietário tem motos vinculadas — reatribua antes de deletar",
+        },
+        { status: 409 }
+      );
+    }
+
     const proprietario = await Proprietario.findByIdAndDelete(id).lean();
     if (!proprietario) {
       return NextResponse.json(

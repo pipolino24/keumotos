@@ -44,7 +44,12 @@ export const motoCreateSchema = z.object({
     .enum(["disponivel", "reservada", "vendida", "alugada", "manutencao", "devolvida"])
     .optional(),
   destaque: z.boolean().optional(),
-  fotos: z.array(z.string()).default([]),
+  // Cada foto pode ser URL ou base64. Limita 8MB por foto + 20 fotos
+  // máximo pra prevenir DOS via payload gigante.
+  fotos: z
+    .array(z.string().max(8_000_000, "Foto muito grande (>8MB)"))
+    .max(20, "Máximo 20 fotos")
+    .default([]),
   descricao: z.string().optional(),
   observacoes: z.string().optional(),
   origem: z.enum(["propria", "comprada", "repasse"]).default("comprada"),
@@ -247,7 +252,12 @@ export const aluguelCreateSchema = z.object({
 
 export const avariaSchema = z.object({
   descricao: z.string().min(2, "Descrição obrigatória"),
-  fotos: z.array(z.string()).default([]),
+  // Cada foto pode ser URL ou base64. Limita 8MB por foto + 20 fotos
+  // máximo pra prevenir DOS via payload gigante.
+  fotos: z
+    .array(z.string().max(8_000_000, "Foto muito grande (>8MB)"))
+    .max(20, "Máximo 20 fotos")
+    .default([]),
   custoEstimado: z.number().min(0).optional(),
   cobradoCaucao: z.boolean().optional(),
   reparado: z.boolean().optional(),
@@ -290,7 +300,12 @@ export const revisaoCreateSchema = z.object({
   kmNaRevisao: z.number().min(0),
   responsavel: z.string().optional(),
   notaFiscal: z.string().optional(),
-  fotos: z.array(z.string()).default([]),
+  // Cada foto pode ser URL ou base64. Limita 8MB por foto + 20 fotos
+  // máximo pra prevenir DOS via payload gigante.
+  fotos: z
+    .array(z.string().max(8_000_000, "Foto muito grande (>8MB)"))
+    .max(20, "Máximo 20 fotos")
+    .default([]),
   observacoes: z.string().optional(),
   aluguelOrigemId: z.string().optional(),
   avariaOrigemId: z.string().optional(),

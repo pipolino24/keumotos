@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   KeyRound,
   Clock,
@@ -40,42 +40,60 @@ interface MotoApi {
 
 interface AluguelApi {
   _id: string;
+  motoMarca?: string;
   motoModelo: string;
   clienteNome: string;
+  clienteTelefone?: string;
   dataInicio: string;
   dataFim: string;
   valorTotal: number;
   caucao: number;
   status: string;
+  vendedorId?: string;
 }
 
 export default function AluguelPage() {
   const [search, setSearch] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState<string>("");
+  const [now, setNow] = useState<number>(0);
+  useEffect(() => {
+    const t = setTimeout(() => setNow(Date.now()), 0);
+    return () => clearTimeout(t);
+  }, []);
 
-  // Busca frota de aluguel (tipo=aluguel ou ambos)
-  // O endpoint /api/motos aceita ?tipo=aluguel mas precisamos cobrir "ambos" também.
-  // Estratégia: pedimos tipo=aluguel e tipo=ambos via parametro composto não suportado;
-  // como alternativa pegamos tudo e filtramos. Aqui usamos tipo=aluguel e complementamos.
-  const params = new URLSearchParams();
-  if (search) params.set("q", search);
-  // Não filtramos por tipo no servidor para conseguir "aluguel" + "ambos" no mesmo response.
-  const url = `/api/motos${params.toString() ? `?${params}` : ""}`;
-  const { data, loading, error } = useApi<{ motos: MotoApi[] }>(url, [search]);
+  const motosParams = new URLSearchParams();
+  if (search) motosParams.set("q", search);
+  const motosUrl = `/api/motos${motosParams.toString() ? `?${motosParams}` : ""}`;
+  const { data: motosData, loading, error } = useApi<{ motos: MotoApi[] }>(motosUrl, [search]);
 
-  const todasMotos = data?.motos ?? [];
+  // Aluguéis reais do /api/alugueis (scoped pelo backend por role)
+  const alugParams = new URLSearchParams();
+  if (statusFiltro) alugParams.set("status", statusFiltro);
+  const { data: alugData } = useApi<{
+    alugueis: AluguelApi[];
+  }>(`/api/alugueis${alugParams.toString() ? `?${alugParams}` : ""}`, [
+    statusFiltro,
+  ]);
+
+  const todasMotos = motosData?.motos ?? [];
   const motosAluguel = todasMotos.filter(
     (m) => m.tipo === "aluguel" || m.tipo === "ambos"
   );
 
-  // TODO: criar endpoint /api/alugueis e consumir aqui.
-  // Por enquanto não há fonte de dados para locações ativas.
-  const alugueis: AluguelApi[] = [];
-  const ativosCount = 0;
+  const alugueis = alugData?.alugueis ?? [];
+  const ativosCount = alugueis.filter(
+    (a) => a.status === "ativo" || a.status === "atrasado"
+  ).length;
   const motosAlugadas = motosAluguel.filter((m) => m.status === "alugada").length;
   const motosDisponiveisLocacao = motosAluguel.filter(
     (m) => m.status === "disponivel"
   ).length;
-  const receitaMes = 0;
+  // Receita do mês: soma valorTotal de aluguéis com dataInicio no mês atual
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const receitaMes = alugueis
+    .filter((a) => new Date(a.dataInicio) >= inicioMes)
+    .reduce((s, a) => s + (a.valorTotal || 0), 0);
 
   return (
     <div>
@@ -91,13 +109,12 @@ export default function AluguelPage() {
       </PageHeader>
 
       {/* STATS */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         <StatBox
           icon={<KeyRound />}
           label="Locações ativas"
           value={ativosCount.toString()}
           color="from-keu-red to-keu-red-dark"
-          note="API pendente"
         />
         <StatBox
           icon={<Bike />}
@@ -116,8 +133,36 @@ export default function AluguelPage() {
           label="Receita do mês"
           value={formatCurrency(receitaMes)}
           color="from-amber-500 to-amber-600"
-          note="API pendente"
         />
+      </div>
+
+      {/* FILTROS DE STATUS */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {(
+          [
+            ["", "Todos"],
+            ["ativo", "Ativos"],
+            ["atrasado", "Atrasados"],
+            ["concluido", "Concluídos"],
+            ["cancelado", "Cancelados"],
+          ] as const
+        ).map(([k, label]) => {
+          const active = statusFiltro === k;
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setStatusFiltro(k)}
+              className={
+                active
+                  ? "px-3 py-1.5 rounded-full bg-keu-red text-white text-xs font-bold shadow-md shadow-keu-red/20"
+                  : "px-3 py-1.5 rounded-full bg-white text-keu-black/70 hover:bg-keu-gray-light text-xs font-medium border border-keu-black/10 transition"
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* LOCAÇÕES ATIVAS */}
@@ -146,51 +191,107 @@ export default function AluguelPage() {
               {alugueis.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-12 text-center">
-                    {/* TODO: criar endpoint /api/alugueis (GET para listar, POST para criar)
-                        no backend e trocar este placeholder pelo consumo real via useApi. */}
                     <KeyRound className="h-10 w-10 text-keu-black/20 mx-auto mb-3" />
                     <h3 className="font-bold mb-1">
-                      Nenhuma locação para exibir
+                      Nenhuma locação{statusFiltro ? ` ${statusFiltro}` : ""}
                     </h3>
                     <p className="text-sm text-keu-black/60 max-w-md mx-auto">
-                      O endpoint <code className="font-mono bg-keu-gray-light px-1 py-0.5 rounded">/api/alugueis</code>{" "}
-                      ainda não foi criado. Assim que estiver disponível, os
-                      contratos ativos aparecerão aqui.
+                      {statusFiltro
+                        ? "Mude o filtro de status pra ver outros aluguéis."
+                        : "Quando você criar uma locação, ela aparece aqui."}
                     </p>
                   </td>
                 </tr>
               ) : (
-                alugueis.map((a) => (
-                  <tr key={a._id} className="hover:bg-keu-gray-light transition">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-keu-red/10 text-keu-red w-9 h-9 rounded-lg flex items-center justify-center">
-                          <Bike className="h-4 w-4" />
+                alugueis.map((a) => {
+                  const dataFim = new Date(a.dataFim);
+                  const diasRest =
+                    now > 0
+                      ? Math.ceil((dataFim.getTime() - now) / 86400000)
+                      : 0;
+                  const ativoOuAtrasado =
+                    a.status === "ativo" || a.status === "atrasado";
+                  const urgente =
+                    ativoOuAtrasado && (diasRest <= 0 || diasRest <= 3);
+                  return (
+                    <tr key={a._id} className="hover:bg-keu-gray-light transition">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-keu-red/10 text-keu-red w-9 h-9 rounded-lg flex items-center justify-center">
+                            <Bike className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="font-semibold">
+                              {a.motoMarca ? `${a.motoMarca} ` : ""}
+                              {a.motoModelo}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">{a.motoModelo}</div>
+                      </td>
+                      <td className="p-4">
+                        <div>{a.clienteNome}</div>
+                        {a.clienteTelefone && (
+                          <div className="text-[10px] text-keu-black/50">
+                            {a.clienteTelefone}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-sm">{formatDate(a.dataInicio)}</td>
+                      <td className="p-4 text-sm">
+                        {formatDate(a.dataFim)}
+                        {ativoOuAtrasado && (
+                          <div
+                            className={
+                              urgente
+                                ? "text-[10px] font-bold text-red-600 mt-0.5"
+                                : "text-[10px] text-keu-black/50 mt-0.5"
+                            }
+                          >
+                            {diasRest < 0
+                              ? `${Math.abs(diasRest)}d atraso`
+                              : diasRest === 0
+                              ? "vence hoje"
+                              : `${diasRest}d restantes`}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-right font-bold text-keu-red">
+                        {formatCurrency(a.valorTotal)}
+                      </td>
+                      <td className="p-4 text-right text-sm">
+                        {formatCurrency(a.caucao)}
+                      </td>
+                      <td className="p-4">
+                        <AluguelStatusBadge status={a.status} />
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {ativoOuAtrasado && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (
+                                  !confirm(
+                                    `Marcar devolução de ${a.motoModelo}? Use a página de detalhe pra registrar avarias.`
+                                  )
+                                ) return;
+                                window.location.href = `/dashboard/aluguel/${a._id}/devolver`;
+                              }}
+                              className="text-xs text-emerald-700 hover:underline font-semibold"
+                            >
+                              Devolver
+                            </button>
+                          )}
+                          <Link href={`/dashboard/aluguel/${a._id}`}>
+                            <Button variant="ghost" size="sm">
+                              Ver <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </Link>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">{a.clienteNome}</td>
-                    <td className="p-4 text-sm">{formatDate(a.dataInicio)}</td>
-                    <td className="p-4 text-sm">{formatDate(a.dataFim)}</td>
-                    <td className="p-4 text-right font-bold text-keu-red">
-                      {formatCurrency(a.valorTotal)}
-                    </td>
-                    <td className="p-4 text-right text-sm">
-                      {formatCurrency(a.caucao)}
-                    </td>
-                    <td className="p-4">
-                      <AluguelStatusBadge status={a.status} />
-                    </td>
-                    <td className="p-4 text-right">
-                      <Button variant="ghost" size="sm">
-                        Ver <ArrowRight className="h-3 w-3" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

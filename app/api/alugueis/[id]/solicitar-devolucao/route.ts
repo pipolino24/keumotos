@@ -68,9 +68,27 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       );
     }
 
-    const dataStr = data.dataPretendida
-      ? new Date(data.dataPretendida).toLocaleDateString("pt-BR")
-      : "em breve";
+    // Valida dataPretendida: precisa ser data válida e estar entre hoje e
+    // +1 ano (evita texto "Invalid Date" ou datas absurdas na notif).
+    let dataStr = "em breve";
+    if (data.dataPretendida) {
+      const d = new Date(data.dataPretendida);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json(
+          { error: "dataPretendida inválida" },
+          { status: 400 }
+        );
+      }
+      const agoraMs = Date.now();
+      const umAnoFrente = agoraMs + 365 * 24 * 60 * 60 * 1000;
+      if (d.getTime() < agoraMs - 24 * 60 * 60 * 1000 || d.getTime() > umAnoFrente) {
+        return NextResponse.json(
+          { error: "dataPretendida fora do intervalo permitido" },
+          { status: 400 }
+        );
+      }
+      dataStr = d.toLocaleDateString("pt-BR");
+    }
     const obs = typeof data.observacao === "string"
       ? String(data.observacao).slice(0, 1000)
       : undefined;
