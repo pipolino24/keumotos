@@ -175,8 +175,8 @@ function ClienteDashboard() {
               Procurando sua próxima moto?
             </h2>
             <p className="text-white/85 mb-5 max-w-md">
-              Mais de 100 modelos seminovos e zero km com FIPE garantida.
-              Compra, troca e financiamento na hora.
+              Modelos seminovos e zero km. Compra, troca e plano Conquista
+              (entrada + parcelas quinzenais).
             </p>
             <div className="flex gap-3 flex-wrap">
               <Link

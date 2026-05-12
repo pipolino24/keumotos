@@ -27,6 +27,7 @@ import {
 import { cn, formatCurrency, formatKm } from "@/lib/utils";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto as MotoModel } from "@/lib/models/moto";
+import { HeaderUserButton } from "@/components/motos/header-user-button";
 
 // ISR — cache de 60s. Editou destaque? Aparece em até 1 min.
 export const revalidate = 60;
@@ -118,10 +119,14 @@ export default async function HomePage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Entrar
-            </Link>
-            <Link href="/register" className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")}>
+            <HeaderUserButton />
+            <Link
+              href="/register"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "hidden sm:inline-flex"
+              )}
+            >
               Cadastre-se
             </Link>
           </div>
@@ -239,7 +244,7 @@ export default async function HomePage() {
             <UnidadeCard
               brand={<KeuMultimarcas width={220} height={180} className="max-h-[180px] w-auto mx-auto object-contain" />}
               title="Compra, Vende e Troca"
-              description="Multimarcas: as melhores motos seminovas e zero km com FIPE garantida."
+              description="Multimarcas: motos seminovas e zero km — compra, venda e troca."
               phone="(88) 99850-5859"
               instagram="@keumultimarcass"
               gradient="from-keu-black/5 to-keu-red/10"

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
 import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 import { NotificationsBell } from "@/components/dashboard/notifications-bell";
+import { AvatarMenu } from "@/components/dashboard/avatar-menu";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 
 const staffNavItems = [
@@ -270,16 +271,7 @@ export function MobileTopbar() {
           </Link>
           <div className="flex items-center gap-2">
             {user.role !== "cliente" && <NotificationsBell />}
-            <div
-              className={cn(
-                "w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-xs",
-                userIsAdmin
-                  ? "bg-gradient-to-br from-amber-500 to-amber-600"
-                  : "bg-gradient-to-br from-keu-red to-keu-red-dark"
-              )}
-            >
-              {user.nome.charAt(0)}
-            </div>
+            <AvatarMenu compact />
           </div>
         </div>
       </div>

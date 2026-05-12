@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input, Select } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
+import { HeaderUserButton } from "@/components/motos/header-user-button";
 import { formatCurrency, formatKm } from "@/lib/utils";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto as MotoModel } from "@/lib/models/moto";
@@ -242,11 +243,7 @@ export default async function MotosPage({
             <ArrowLeft className="h-4 w-4" /> Voltar pra home
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                Entrar
-              </Button>
-            </Link>
+            <HeaderUserButton />
             <a
               href="https://wa.me/5588998505859?text=Quero%20vender%20minha%20moto"
               target="_blank"
