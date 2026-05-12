@@ -33,6 +33,7 @@ import { TopMotosWidget } from "@/components/dashboard/top-motos-widget";
 import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget";
 import { ColdLeadsWidget } from "@/components/dashboard/cold-leads-widget";
 import { ProximasAcoesWidget } from "@/components/dashboard/proximas-acoes-widget";
+import { MeuVendedorWidget } from "@/components/dashboard/meu-vendedor-widget";
 import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
@@ -256,9 +257,10 @@ function ClienteDashboard() {
         />
       </div>
 
-      {/* PRÓXIMAS AÇÕES — devoluções, parcelas, revisões */}
-      <div className="mb-6">
+      {/* PRÓXIMAS AÇÕES + MEU VENDEDOR — grid 2 col em desktop */}
+      <div className="mb-6 grid lg:grid-cols-[1fr_360px] gap-6">
         <ProximasAcoesWidget clienteId={me.id} />
+        <MeuVendedorWidget clienteId={me.id} />
       </div>
 
       {/* MINHAS AÇÕES — timeline de Interesses */}

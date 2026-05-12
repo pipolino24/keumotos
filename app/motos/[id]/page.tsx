@@ -175,7 +175,7 @@ export default async function MotoDetailPage({
   const whatsappUrl = `https://wa.me/5588998505859?text=${encodeURIComponent(whatsappTexto)}`;
 
   return (
-    <div className="min-h-screen flex flex-col bg-keu-gray-light">
+    <div className="min-h-screen flex flex-col bg-keu-gray-light pb-20 md:pb-0">
       <AffiliateTracker motoId={moto._id} />
       <InterestTracker motoId={moto._id} />
 

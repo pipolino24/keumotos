@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
-  Handshake,
   Save,
   Loader2,
   DollarSign,
@@ -79,21 +78,33 @@ export default function EditarAfiliadoPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetchAfiliado();
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`/api/afiliados/${id}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (controller.signal.aborted) return;
+        if (!res.ok) throw new Error(data.error);
+        setAfiliado(data.afiliado);
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Erro ao carregar");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
   }, [id]);
 
-  async function fetchAfiliado() {
-    try {
-      const res = await fetch(`/api/afiliados/${id}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setAfiliado(data.afiliado);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao carregar");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Ref pro setTimeout do success flash — cleanup ao desmontar
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   function update<K extends keyof Afiliado>(key: K, value: Afiliado[K]) {
     setAfiliado((a) => (a ? { ...a, [key]: value } : a));
@@ -115,7 +126,8 @@ export default function EditarAfiliadoPage() {
       if (!res.ok) throw new Error(json.error);
       setAfiliado(json.afiliado);
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 2000);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccess(false), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {

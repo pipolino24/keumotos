@@ -19,7 +19,8 @@ export type TipoNotificacao =
   | "devolucao_proxima"
   | "devolucao_atrasada"
   | "novo_cliente"
-  | "documento_pendente";
+  | "documento_pendente"
+  | "sistema";
 
 export interface INotificationDoc {
   // Destinatário (admin, vendedor ou afiliado)
@@ -31,7 +32,14 @@ export interface INotificationDoc {
   descricao?: string; // detalhes opcionais
 
   // Recurso de origem
-  origemTipo?: "interesse" | "contato" | "venda" | "aluguel" | "user";
+  origemTipo?:
+    | "interesse"
+    | "contato"
+    | "venda"
+    | "aluguel"
+    | "user"
+    | "afiliado"
+    | "sistema";
   origemId?: string;
 
   // Cliente envolvido (pra agrupar por pessoa)
@@ -74,6 +82,7 @@ const NotificationSchema = new Schema<INotificationDoc>(
         "devolucao_atrasada",
         "novo_cliente",
         "documento_pendente",
+        "sistema",
       ],
       required: true,
       index: true,
@@ -84,7 +93,7 @@ const NotificationSchema = new Schema<INotificationDoc>(
 
     origemTipo: {
       type: String,
-      enum: ["interesse", "contato", "venda", "aluguel", "user"],
+      enum: ["interesse", "contato", "venda", "aluguel", "user", "afiliado", "sistema"],
     },
     origemId: String,
 

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
 import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 import { NotificationsBell } from "@/components/dashboard/notifications-bell";
+import { useNotifications } from "@/lib/hooks/use-notifications";
 
 const staffNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
@@ -48,6 +49,36 @@ const adminNavItems = [
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];
+
+/**
+ * Wrapper que injeta o count de notificações não lidas no item "Meu painel"
+ * do sidebar — sem precisar de NotificationsBell visível em mobile.
+ */
+function NavLinkInner({
+  icon: Icon,
+  label,
+  showBadge,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  showBadge?: boolean;
+}) {
+  const { unreadCount } = useNotifications();
+  const unread = showBadge ? unreadCount : 0;
+  return (
+    <>
+      <span className="relative flex-shrink-0">
+        <Icon className="h-4 w-4" />
+        {unread > 0 && (
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-keu-red text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
+      </span>
+      <span className="flex-1">{label}</span>
+    </>
+  );
+}
 
 function SidebarContent({
   pathname,
@@ -78,6 +109,8 @@ function SidebarContent({
           const isActive =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          // Badge de notificações não lidas ao lado de "Meu painel"
+          const showBadge = item.href === "/dashboard";
           return (
             <Link
               key={item.href}
@@ -90,8 +123,7 @@ function SidebarContent({
                   : "text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
               )}
             >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              <span className="flex-1">{item.label}</span>
+              <NavLinkInner icon={item.icon} label={item.label} showBadge={showBadge} />
               {isActive && (
                 <span className="h-1.5 w-1.5 rounded-full bg-white" />
               )}

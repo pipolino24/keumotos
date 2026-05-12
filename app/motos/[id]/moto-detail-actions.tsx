@@ -157,6 +157,38 @@ export function MotoDetailActions({
         motoId={motoId}
         motoLabel={shareTitle}
       />
+
+      {/* MOBILE STICKY CTA — visível só em telas <md, fica acima do footer */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-keu-black/10 px-4 py-3 flex gap-2 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] safe-bottom">
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener"
+          className="flex-1"
+        >
+          <Button size="lg" className="w-full">
+            <MessageCircle className="h-4 w-4" /> WhatsApp
+          </Button>
+        </a>
+        {aceitaAluguel ? (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setShowRental(true)}
+            className="bg-emerald-500/5 border-emerald-500/30 text-emerald-700"
+          >
+            <KeyRound className="h-4 w-4" /> Alugar
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setShowLead(true)}
+          >
+            <Heart className="h-4 w-4" /> Quero
+          </Button>
+        )}
+      </div>
     </>
   );
 }

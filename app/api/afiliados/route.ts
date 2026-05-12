@@ -4,6 +4,7 @@ import { Afiliado } from "@/lib/models/afiliado";
 import { gerarCodigoAfiliadoUnico } from "@/lib/utils-server";
 import { requireAdmin } from "@/lib/auth/api-guards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { emitNotification } from "@/lib/notifications/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,19 @@ export async function POST(req: NextRequest) {
       status: data.status ?? "ativo",
       observacoes: data.observacoes,
     });
+
+    // Fanout pra admins se não veio pré-aprovado — pendente precisa atenção
+    if (!afiliado.aprovado) {
+      await emitNotification({
+        tipo: "sistema",
+        titulo: `Novo afiliado aguardando aprovação: ${afiliado.nome}`,
+        descricao: `${afiliado.email} se cadastrou com código ${afiliado.codigo}`,
+        origemTipo: "afiliado",
+        origemId: afiliado._id.toString(),
+        link: `/dashboard/afiliados/${afiliado._id}`,
+        prioridade: "alta",
+      });
+    }
 
     return NextResponse.json({ afiliado }, { status: 201 });
   } catch (err) {

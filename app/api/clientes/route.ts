@@ -33,7 +33,9 @@ export async function GET() {
     // $limit por pipeline pra evitar full scan quando collections crescerem.
     // 5000 docs por aggregation é o suficiente pra dashboard razoável.
     const PIPELINE_LIMIT = 5000;
-    const [interesses, vendas, alugueis] = await Promise.all([
+    // allSettled: se uma aggregation falhar (timeout, índice), as outras
+    // continuam e a lista é entregue parcial em vez de cair toda.
+    const settled = await Promise.allSettled([
       Interesse.aggregate([
         {
           $match: {
@@ -57,7 +59,7 @@ export async function GET() {
             ultimoAt: { $max: "$createdAt" },
           },
         },
-      ]),
+      ]).option({ maxTimeMS: 5000 }),
       Venda.aggregate([
         { $match: vendaScope },
         { $limit: PIPELINE_LIMIT },
@@ -71,7 +73,7 @@ export async function GET() {
             ultimoAt: { $max: "$data" },
           },
         },
-      ]),
+      ]).option({ maxTimeMS: 5000 }),
       Aluguel.aggregate([
         { $match: alugScope },
         { $limit: PIPELINE_LIMIT },
@@ -84,8 +86,11 @@ export async function GET() {
             ultimoAt: { $max: "$dataInicio" },
           },
         },
-      ]),
+      ]).option({ maxTimeMS: 5000 }),
     ]);
+    const interesses = settled[0].status === "fulfilled" ? settled[0].value : [];
+    const vendas = settled[1].status === "fulfilled" ? settled[1].value : [];
+    const alugueis = settled[2].status === "fulfilled" ? settled[2].value : [];
 
     // Unifica por (clienteId || clienteNome) — vendedor vê tudo num só
     const byKey = new Map<

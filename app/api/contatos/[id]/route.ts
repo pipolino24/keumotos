@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Contato } from "@/lib/models/contato";
 import { requireRole } from "@/lib/auth/api-guards";
 import { emitAuditLog } from "@/lib/audit/emit";
+
+function invalidId(id: string) {
+  return !mongoose.Types.ObjectId.isValid(id);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +21,9 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
+    if (invalidId(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
     const contato = await Contato.findById(id).lean();
     if (!contato) {
       return NextResponse.json(
@@ -44,6 +52,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
+    if (invalidId(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
     const data = await req.json();
 
     // Verifica ownership antes de update (vendedor não muda contato de outro)
@@ -113,6 +124,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
+    if (invalidId(id)) {
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    }
     const contato = await Contato.findByIdAndDelete(id).lean();
     if (!contato) {
       return NextResponse.json(

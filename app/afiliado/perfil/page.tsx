@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   User,
   Mail,
@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Instagram } from "@/components/icons";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -54,6 +53,17 @@ export default function AfiliadoPerfilPage() {
   const [me, setMe] = useState(initialMe);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Refs pros timers — cleanup ao desmontar evita setState após unmount
+  const fakeSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (fakeSaveRef.current) clearTimeout(fakeSaveRef.current);
+      if (flashRef.current) clearTimeout(flashRef.current);
+    };
+  }, []);
 
   function update<K extends keyof typeof me>(key: K, value: (typeof me)[K]) {
     setMe((m) => ({ ...m, [key]: value }));
@@ -63,10 +73,16 @@ export default function AfiliadoPerfilPage() {
     e.preventDefault();
     setSaving(true);
     // Em produção: PATCH /api/afiliados/me
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise<void>((resolve) => {
+      fakeSaveRef.current = setTimeout(resolve, 800);
+    });
+    if (!mountedRef.current) return;
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (flashRef.current) clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => {
+      if (mountedRef.current) setSaved(false);
+    }, 2000);
   }
 
   return (

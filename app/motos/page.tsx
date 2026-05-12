@@ -393,6 +393,9 @@ export default async function MotosPage({
 
             {/* GRID */}
             <div>
+              {/* CHIPS de filtros ativos — clicáveis pra remover */}
+              <ActiveFilterChips sp={sp} />
+
               <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h2 className="text-2xl font-black">
                   {filtered.length}{" "}
@@ -602,6 +605,76 @@ export default async function MotosPage({
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * Renderiza chips clicáveis dos filtros ativos.
+ * Cada chip leva pra /motos com aquele filtro REMOVIDO.
+ */
+function ActiveFilterChips({ sp }: { sp: SearchParams }) {
+  const chips: Array<{ label: string; remove: keyof SearchParams }> = [];
+  if (sp.q) chips.push({ label: `Busca: "${sp.q}"`, remove: "q" });
+  if (sp.tipo && sp.tipo !== "todos") {
+    chips.push({ label: `Tipo: ${sp.tipo}`, remove: "tipo" });
+  }
+  if (sp.marca) chips.push({ label: `Marca: ${sp.marca}`, remove: "marca" });
+  if (sp.precoMin || sp.precoMax) {
+    const min = sp.precoMin ? `R$${sp.precoMin}` : "min";
+    const max = sp.precoMax ? `R$${sp.precoMax}` : "max";
+    chips.push({ label: `Preço: ${min} – ${max}`, remove: "precoMin" });
+  }
+  if (sp.anoMin || sp.anoMax) {
+    const min = sp.anoMin ?? "min";
+    const max = sp.anoMax ?? "max";
+    chips.push({ label: `Ano: ${min} – ${max}`, remove: "anoMin" });
+  }
+
+  if (chips.length === 0) return null;
+
+  function hrefWithout(remove: keyof SearchParams) {
+    const next: SearchParams = { ...sp };
+    delete next[remove];
+    // Preço e ano: remover ambos os limites quando o chip combinado é removido
+    if (remove === "precoMin") delete next.precoMax;
+    if (remove === "anoMin") delete next.anoMax;
+    // Sempre volta pra página 1
+    delete next.page;
+    const params = new URLSearchParams();
+    Object.entries(next).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") params.set(k, String(v));
+    });
+    const qs = params.toString();
+    return `/motos${qs ? `?${qs}` : ""}`;
+  }
+
+  return (
+    <div className="mb-4 flex items-center gap-2 flex-wrap">
+      <span className="text-xs font-bold uppercase tracking-wide text-keu-black/50">
+        Filtros ativos:
+      </span>
+      {chips.map((c) => (
+        <Link
+          key={c.label}
+          href={hrefWithout(c.remove)}
+          className="inline-flex items-center gap-1.5 bg-keu-red/10 text-keu-red hover:bg-keu-red hover:text-white px-3 py-1 rounded-full text-xs font-bold transition group"
+          aria-label={`Remover filtro ${c.label}`}
+        >
+          {c.label}
+          <span className="text-base leading-none opacity-60 group-hover:opacity-100">
+            ×
+          </span>
+        </Link>
+      ))}
+      {chips.length > 1 && (
+        <Link
+          href="/motos"
+          className="text-xs text-keu-black/50 hover:text-keu-red font-semibold underline-offset-2 hover:underline"
+        >
+          limpar todos
+        </Link>
+      )}
     </div>
   );
 }
