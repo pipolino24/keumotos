@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const alvoTipo = searchParams.get("alvoTipo");
     if (
       alvoTipo &&
-      ["user", "moto", "aluguel", "venda", "role"].includes(alvoTipo)
+      ["user", "moto", "aluguel", "venda", "role", "contato", "afiliado", "interesse"].includes(alvoTipo)
     ) {
       query.alvoTipo = alvoTipo;
     }

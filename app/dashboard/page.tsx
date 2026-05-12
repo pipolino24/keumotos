@@ -32,6 +32,7 @@ import { ConversaoWidget } from "@/components/dashboard/conversao-widget";
 import { TopMotosWidget } from "@/components/dashboard/top-motos-widget";
 import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget";
 import { ColdLeadsWidget } from "@/components/dashboard/cold-leads-widget";
+import { ProximasAcoesWidget } from "@/components/dashboard/proximas-acoes-widget";
 import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
@@ -253,6 +254,11 @@ function ClienteDashboard() {
               : `${proximosPagamentos.length} ${proximosPagamentos.length === 1 ? "pagamento" : "pagamentos"} pendentes`
           }
         />
+      </div>
+
+      {/* PRÓXIMAS AÇÕES — devoluções, parcelas, revisões */}
+      <div className="mb-6">
+        <ProximasAcoesWidget clienteId={me.id} />
       </div>
 
       {/* MINHAS AÇÕES — timeline de Interesses */}
@@ -912,15 +918,64 @@ function StaffDashboard() {
     .filter((v) => v.status !== "cancelada")
     .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 
-  // Comissão do mês corrente
+  // Comissão do mês corrente + mês anterior (pra trend indicator)
   const agora = new Date();
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const inicioMesAnt = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+  const fimMesAnt = new Date(agora.getFullYear(), agora.getMonth(), 0);
   const minhaComissao = minhasVendas
     .filter((v) => new Date(v.data) >= inicioMes)
+    .reduce((sum, v) => sum + (v.comissao || 0), 0);
+  const comissaoMesAnt = minhasVendas
+    .filter((v) => {
+      const d = new Date(v.data);
+      return d >= inicioMesAnt && d <= fimMesAnt;
+    })
     .reduce((sum, v) => sum + (v.comissao || 0), 0);
   const vendasMes = minhasVendas.filter(
     (v) => new Date(v.data) >= inicioMes
   ).length;
+  const vendasMesAnt = minhasVendas.filter((v) => {
+    const d = new Date(v.data);
+    return d >= inicioMesAnt && d <= fimMesAnt;
+  }).length;
+  // Trends — direção e % delta
+  const trendVendas =
+    vendasMesAnt === 0
+      ? vendasMes > 0
+        ? { dir: "up" as const, val: "novo" }
+        : null
+      : vendasMes > vendasMesAnt
+      ? {
+          dir: "up" as const,
+          val: `+${Math.round(((vendasMes - vendasMesAnt) / vendasMesAnt) * 100)}%`,
+        }
+      : vendasMes < vendasMesAnt
+      ? {
+          dir: "down" as const,
+          val: `-${Math.round(((vendasMesAnt - vendasMes) / vendasMesAnt) * 100)}%`,
+        }
+      : { dir: "flat" as const, val: "estável" };
+  const trendComissao =
+    comissaoMesAnt === 0
+      ? minhaComissao > 0
+        ? { dir: "up" as const, val: "novo" }
+        : null
+      : minhaComissao > comissaoMesAnt
+      ? {
+          dir: "up" as const,
+          val: `+${Math.round(
+            ((minhaComissao - comissaoMesAnt) / comissaoMesAnt) * 100
+          )}%`,
+        }
+      : minhaComissao < comissaoMesAnt
+      ? {
+          dir: "down" as const,
+          val: `-${Math.round(
+            ((comissaoMesAnt - minhaComissao) / comissaoMesAnt) * 100
+          )}%`,
+        }
+      : { dir: "flat" as const, val: "estável" };
 
   // Próximas devoluções de aluguel (ativo/atrasado, ordenado por dataFim)
   const hoje = new Date();
@@ -990,6 +1045,8 @@ function StaffDashboard() {
           value={vendasMes.toString()}
           trend={`${minhasVendas.length} no histórico`}
           color="bg-emerald-500"
+          trendDirection={trendVendas?.dir}
+          trendValue={trendVendas?.val}
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5" />}
@@ -997,6 +1054,8 @@ function StaffDashboard() {
           value={formatCurrency(minhaComissao)}
           trend="acumulado no mês corrente"
           color="bg-keu-red"
+          trendDirection={trendComissao?.dir}
+          trendValue={trendComissao?.val}
         />
         <StatCard
           icon={<Phone className="h-5 w-5" />}
@@ -1363,23 +1422,44 @@ function StatCard({
   value,
   trend,
   color,
+  trendDirection,
+  trendValue,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   trend: string;
   color: string;
+  trendDirection?: "up" | "down" | "flat";
+  trendValue?: string;
 }) {
+  const trendColor =
+    trendDirection === "up"
+      ? "text-emerald-600 bg-emerald-50"
+      : trendDirection === "down"
+      ? "text-red-600 bg-red-50"
+      : "text-keu-black/50 bg-keu-gray-light";
+  const trendArrow =
+    trendDirection === "up" ? "↑" : trendDirection === "down" ? "↓" : "—";
   return (
-    <Card className="p-6 hover:shadow-lg transition-all">
+    <Card className="p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden group">
       <div
-        className={`${color} text-white w-10 h-10 rounded-lg flex items-center justify-center mb-4`}
+        className={`${color} text-white w-10 h-10 rounded-lg flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform`}
       >
         {icon}
       </div>
-      <div className="text-3xl font-black mb-1">{value}</div>
+      <div className="text-3xl font-black mb-1 leading-none">{value}</div>
       <div className="text-sm text-keu-black/60">{label}</div>
-      <div className="text-xs text-keu-black/40 mt-2">{trend}</div>
+      <div className="flex items-center gap-2 mt-3">
+        {trendDirection && trendValue && (
+          <span
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trendColor} inline-flex items-center gap-0.5`}
+          >
+            {trendArrow} {trendValue}
+          </span>
+        )}
+        <span className="text-xs text-keu-black/40 truncate">{trend}</span>
+      </div>
     </Card>
   );
 }

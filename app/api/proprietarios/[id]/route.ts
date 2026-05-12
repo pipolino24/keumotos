@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Proprietario } from "@/lib/models/proprietario";
 import { requireRole } from "@/lib/auth/api-guards";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,17 @@ const CAMPOS_EDITAVEIS = [
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const auth = await requireRole(["admin", "vendedor"]);
   if (!auth.ok) return auth.response;
+  const rl = rateLimit({
+    key: `proprietarios-write:${auth.userId}`,
+    limit: 60,
+    windowMs: 60 * 1000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas atualizações em sequência. Aguarde." },
+      { status: 429 }
+    );
+  }
   try {
     await connectMongo();
     const { id } = await params;
@@ -91,6 +103,17 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const auth = await requireRole(["admin"]);
   if (!auth.ok) return auth.response;
+  const rl = rateLimit({
+    key: `proprietarios-delete:${auth.userId}`,
+    limit: 20,
+    windowMs: 60 * 1000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas exclusões em sequência. Aguarde." },
+      { status: 429 }
+    );
+  }
   try {
     await connectMongo();
     const { id } = await params;

@@ -112,28 +112,28 @@ export const proprietarioCreateSchema = z.object({
 });
 
 export const afiliadoCreateSchema = z.object({
-  nome: z.string().min(2),
+  nome: z.string().min(2).max(120),
   email: z.email(),
-  telefone: z.string().min(8),
-  avatar: z.string().optional(),
-  cidade: z.string().optional(),
+  telefone: z.string().min(8).max(20),
+  avatar: z.string().max(8_000_000, "Avatar muito grande (>8MB)").optional(),
+  cidade: z.string().max(80).optional(),
   estado: z.string().max(2).optional(),
-  bio: z.string().optional(),
-  instagram: z.string().optional(),
-  whatsapp: z.string().optional(),
+  bio: z.string().max(1000).optional(),
+  instagram: z.string().max(80).optional(),
+  whatsapp: z.string().max(20).optional(),
   tipoComissao: z.enum(["percentual", "fixo"]),
   comissaoPercentual: z.number().min(0).max(100).optional(),
-  comissaoFixa: z.number().min(0).optional(),
-  valorMinimoVenda: z.number().min(0).optional(),
-  comissaoMaxima: z.number().min(0).optional(),
+  comissaoFixa: z.number().min(0).max(10_000_000).optional(),
+  valorMinimoVenda: z.number().min(0).max(100_000_000).optional(),
+  comissaoMaxima: z.number().min(0).max(10_000_000).optional(),
   pixTipo: z.enum(["cpf", "email", "telefone", "aleatoria"]).optional(),
-  pixChave: z.string().optional(),
-  banco: z.string().optional(),
-  agencia: z.string().optional(),
-  conta: z.string().optional(),
+  pixChave: z.string().max(80).optional(),
+  banco: z.string().max(80).optional(),
+  agencia: z.string().max(20).optional(),
+  conta: z.string().max(20).optional(),
   aprovado: z.boolean().default(true),
   status: z.enum(["ativo", "pausado", "bloqueado"]).optional(),
-  observacoes: z.string().optional(),
+  observacoes: z.string().max(2000).optional(),
 });
 
 export const contatoCreateSchema = z.object({
@@ -151,10 +151,13 @@ export const contatoCreateSchema = z.object({
 });
 
 export const roleCreateSchema = z.object({
-  nome: z.string().min(2),
-  descricao: z.string().optional(),
-  cor: z.string().optional(),
-  permissoes: z.array(z.string()).default([]),
+  nome: z.string().min(2).max(80, "Nome muito longo (>80 caracteres)"),
+  descricao: z.string().max(500, "Descrição muito longa (>500 caracteres)").optional(),
+  cor: z.string().max(16).optional(),
+  permissoes: z
+    .array(z.string().max(64, "Permissão muito longa"))
+    .max(200, "Máximo 200 permissões")
+    .default([]),
   ativo: z.boolean().default(true),
 });
 
@@ -187,68 +190,99 @@ export const pagamentoSchema = z.object({
   observacao: z.string().optional(),
 });
 
-export const vendaCreateSchema = z.object({
-  motoId: z.string().min(1, "Moto obrigatória"),
-  motoModelo: z.string().min(1),
-  motoMarca: z.string().optional(),
-  motoAno: z.number().int().optional(),
-  motoValorAnunciado: z.number().min(0).optional(),
-  motoValorMinimo: z.number().min(0).optional(),
+export const vendaCreateSchema = z
+  .object({
+    motoId: z.string().min(1, "Moto obrigatória"),
+    motoModelo: z.string().min(1),
+    motoMarca: z.string().optional(),
+    motoAno: z.number().int().optional(),
+    motoValorAnunciado: z.number().min(0).optional(),
+    motoValorMinimo: z.number().min(0).optional(),
 
-  clienteId: z.string().optional(),
-  clienteNome: z.string().min(1, "Cliente obrigatório"),
-  clienteTelefone: z.string().optional(),
-  clienteEmail: z.string().optional(),
-  clienteCpf: z.string().optional(),
+    clienteId: z.string().optional(),
+    clienteNome: z.string().min(1, "Cliente obrigatório"),
+    clienteTelefone: z.string().optional(),
+    clienteEmail: z.string().optional(),
+    clienteCpf: z.string().optional(),
 
-  vendedorId: z.string().min(1, "Vendedor obrigatório"),
-  vendedorNome: z.string().min(1),
+    vendedorId: z.string().min(1, "Vendedor obrigatório"),
+    vendedorNome: z.string().min(1),
 
-  valorVendido: z.number().min(0, "Valor inválido"),
-  pagamentos: z.array(pagamentoSchema).min(1, "Adicione ao menos uma forma de pagamento"),
+    valorVendido: z.number().min(0, "Valor inválido"),
+    pagamentos: z.array(pagamentoSchema).min(1, "Adicione ao menos uma forma de pagamento"),
 
-  comissao: z.number().min(0).default(0),
+    comissao: z.number().min(0).default(0),
 
-  status: z.enum(["pendente", "concluida", "cancelada"]).optional(),
-  data: z.union([z.string(), z.date()]).optional(),
-  observacoes: z.string().optional(),
-});
+    status: z.enum(["pendente", "concluida", "cancelada"]).optional(),
+    data: z.union([z.string(), z.date()]).optional(),
+    observacoes: z.string().max(2000, "Observação muito longa").optional(),
+  })
+  .refine(
+    (d) =>
+      !d.motoValorMinimo ||
+      d.motoValorMinimo <= 0 ||
+      d.valorVendido >= d.motoValorMinimo,
+    {
+      message: "Valor da venda abaixo do valor mínimo da moto",
+      path: ["valorVendido"],
+    }
+  )
+  .refine(
+    (d) => {
+      const total = d.pagamentos.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+      // Tolerância de 1 centavo pra arredondamento
+      return Math.abs(total - d.valorVendido) < 0.01;
+    },
+    {
+      message: "Soma dos pagamentos deve igualar o valor da venda",
+      path: ["pagamentos"],
+    }
+  );
 
-export const aluguelCreateSchema = z.object({
-  motoId: z.string().min(1, "Moto obrigatória"),
-  motoModelo: z.string().min(1),
-  motoMarca: z.string().optional(),
-  motoAno: z.number().int().optional(),
+export const aluguelCreateSchema = z
+  .object({
+    motoId: z.string().min(1, "Moto obrigatória"),
+    motoModelo: z.string().min(1),
+    motoMarca: z.string().optional(),
+    motoAno: z.number().int().optional(),
 
-  clienteId: z.string().optional(),
-  clienteNome: z.string().min(1, "Cliente obrigatório"),
-  clienteTelefone: z.string().optional(),
-  clienteEmail: z.string().optional(),
-  clienteCpf: z.string().optional(),
+    clienteId: z.string().optional(),
+    clienteNome: z.string().min(1, "Cliente obrigatório"),
+    clienteTelefone: z.string().optional(),
+    clienteEmail: z.string().optional(),
+    clienteCpf: z.string().optional(),
 
-  vendedorId: z.string().optional(),
-  vendedorNome: z.string().optional(),
+    vendedorId: z.string().optional(),
+    vendedorNome: z.string().optional(),
 
-  dataInicio: z.union([z.string(), z.date()]),
-  dataFim: z.union([z.string(), z.date()]),
+    dataInicio: z.union([z.string(), z.date()]),
+    dataFim: z.union([z.string(), z.date()]),
 
-  valorDiariaUsada: z.number().min(0).optional(),
-  valorSemanalUsada: z.number().min(0).optional(),
-  valorMensalUsada: z.number().min(0).optional(),
-  modalidadeAplicada: z.enum(["diaria", "semanal", "mensal"]).optional(),
-  diasContratados: z.number().int().min(1),
-  valorTotal: z.number().min(0),
-  caucao: z.number().min(0).default(0),
+    valorDiariaUsada: z.number().min(0).optional(),
+    valorSemanalUsada: z.number().min(0).optional(),
+    valorMensalUsada: z.number().min(0).optional(),
+    modalidadeAplicada: z.enum(["diaria", "semanal", "mensal"]).optional(),
+    diasContratados: z.number().int().min(1),
+    valorTotal: z.number().min(0),
+    caucao: z.number().min(0).default(0),
 
-  km_inicial: z.number().min(0),
-  km_final: z.number().min(0).optional(),
+    km_inicial: z.number().min(0),
+    km_final: z.number().min(0).optional(),
 
-  fotosInicio: z.array(z.string()).default([]),
-  observacoesInicio: z.string().optional(),
+    fotosInicio: z.array(z.string()).default([]),
+    observacoesInicio: z.string().optional(),
 
-  status: z.enum(["ativo", "concluido", "atrasado", "cancelado"]).optional(),
-  observacoes: z.string().optional(),
-});
+    status: z.enum(["ativo", "concluido", "atrasado", "cancelado"]).optional(),
+    observacoes: z.string().optional(),
+  })
+  .refine(
+    (d) => {
+      const inicio = new Date(d.dataInicio as string | Date).getTime();
+      const fim = new Date(d.dataFim as string | Date).getTime();
+      return Number.isFinite(inicio) && Number.isFinite(fim) && fim > inicio;
+    },
+    { message: "dataFim deve ser posterior a dataInicio", path: ["dataFim"] }
+  );
 
 export const avariaSchema = z.object({
   descricao: z.string().min(2, "Descrição obrigatória"),

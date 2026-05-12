@@ -151,8 +151,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ venda }, { status: 201 });
   } catch (err) {
+    // Erros não-validation são internos (DB, network, etc.) → 500.
+    // Validation já foi tratada acima com 400 explícito.
     const message =
       err instanceof Error ? err.message : "Erro ao registrar venda";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

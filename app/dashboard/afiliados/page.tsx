@@ -56,23 +56,29 @@ export default function AfiliadosPage() {
   const [filtroStatus, setFiltroStatus] = useState<string>("");
 
   useEffect(() => {
-    fetchAfiliados();
+    const controller = new AbortController();
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/afiliados", {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (!controller.signal.aborted && res.ok) setAfiliados(data.afiliados);
+      } catch (err) {
+        // AbortError em cleanup é esperado — silencia
+        if (err instanceof Error && err.name === "AbortError") return;
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
   }, []);
 
-  async function fetchAfiliados() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/afiliados");
-      const data = await res.json();
-      if (res.ok) setAfiliados(data.afiliados);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   function copyLink(codigo: string) {
+    if (typeof window === "undefined") return;
     const link = `${window.location.origin}/m/${codigo}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(link).catch(() => {});
   }
 
   const filtered = afiliados.filter((a) => {

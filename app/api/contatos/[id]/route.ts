@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Contato } from "@/lib/models/contato";
 import { requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,19 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
         { status: 404 }
       );
     }
+    emitAuditLog({
+      acao: "contato.delete",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "contato",
+      alvoId: id,
+      alvoLabel: contato.nome || contato.email || id,
+      estadoAnterior: {
+        nome: contato.nome,
+        status: contato.status,
+        vendedorResponsavel: contato.vendedorResponsavel,
+      },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao deletar";

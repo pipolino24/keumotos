@@ -6,6 +6,7 @@ import { Moto } from "@/lib/models/moto";
 import { Notification } from "@/lib/models/notification";
 import { aluguelDevolucaoSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,22 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       }).catch(() => {});
     }
 
+    // Audit trail — devolução com refund é evento financeiro sensível
+    emitAuditLog({
+      acao: "aluguel.devolver",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "aluguel",
+      alvoId: id,
+      alvoLabel: `${aluguel.motoMarca ?? ""} ${aluguel.motoModelo}`.trim() || id,
+      estadoNovo: {
+        custoTotalAvarias,
+        multaAtraso,
+        valorAReceberCaucao,
+        novoStatusMoto,
+      },
+    });
+
     return NextResponse.json({
       aluguel: aluguelFinal,
       resumoFinanceiro: {
@@ -166,6 +183,6 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Erro ao registrar devolução";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

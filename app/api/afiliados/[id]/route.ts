@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Afiliado } from "@/lib/models/afiliado";
 import { requireAdmin } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -87,10 +88,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     // Se está sendo aprovado agora
+    let acabouDeAprovar = false;
     if (update.aprovado === true) {
       const current = await Afiliado.findById(id);
       if (current && !current.aprovado) {
         update.aprovadoEm = new Date();
+        acabouDeAprovar = true;
       }
     }
 
@@ -104,6 +107,17 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         { error: "Afiliado não encontrado" },
         { status: 404 }
       );
+    }
+
+    if (acabouDeAprovar) {
+      emitAuditLog({
+        acao: "afiliado.aprovar",
+        ator: auth.userId,
+        atorRole: auth.role,
+        alvoTipo: "afiliado",
+        alvoId: id,
+        alvoLabel: afiliado.nome || id,
+      });
     }
     return NextResponse.json({ afiliado });
   } catch (err) {
@@ -126,6 +140,15 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
         { status: 404 }
       );
     }
+    emitAuditLog({
+      acao: "afiliado.delete",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "afiliado",
+      alvoId: id,
+      alvoLabel: afiliado.nome || id,
+      estadoAnterior: { status: afiliado.status, aprovado: afiliado.aprovado },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message =

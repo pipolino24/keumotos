@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,12 @@ async function ensureCallerOrAdmin(targetId: string) {
       ),
     };
   }
-  return { ok: true as const, callerRole: role };
+  return {
+    ok: true as const,
+    callerId: user.id,
+    callerRole: role,
+    callerNome: (user.user_metadata?.nome as string) || user.email || "?",
+  };
 }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
@@ -149,6 +155,30 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     await admin.auth.admin.updateUserById(id, {
       user_metadata: { role: data.role },
     });
+    // Audit trail — mudança de role é evento sensível
+    emitAuditLog({
+      acao: "user.role_change",
+      ator: auth.callerId,
+      atorNome: auth.callerNome,
+      atorRole: "admin",
+      alvoTipo: "user",
+      alvoId: id,
+      alvoLabel: (updated.nome as string) || (updated.email as string) || id,
+      estadoNovo: { role: data.role },
+    });
+  }
+  // Auditoria de status_change separada — admin desabilitando/bloqueando
+  if (auth.callerRole === "admin" && data.status !== undefined) {
+    emitAuditLog({
+      acao: "user.status_change",
+      ator: auth.callerId,
+      atorNome: auth.callerNome,
+      atorRole: "admin",
+      alvoTipo: "user",
+      alvoId: id,
+      alvoLabel: (updated.nome as string) || (updated.email as string) || id,
+      estadoNovo: { status: data.status },
+    });
   }
 
   return NextResponse.json({ user: { ...updated, _id: updated.id } });
@@ -212,10 +242,39 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     );
   }
 
+  // Captura snapshot do alvo ANTES do delete pra rastreabilidade
+  let alvoLabel = id;
+  let alvoRole: string | undefined;
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data: prev } = await admin
+      .from("profiles")
+      .select("nome,email,role")
+      .eq("id", id)
+      .single();
+    if (prev) {
+      alvoLabel = (prev.nome as string) || (prev.email as string) || id;
+      alvoRole = prev.role as string | undefined;
+    }
+  } catch {
+    // ignora — snapshot best-effort
+  }
+
   const admin = createSupabaseAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // Audit trail — exclusão é evento crítico
+  emitAuditLog({
+    acao: "user.delete",
+    ator: auth.callerId,
+    atorNome: auth.callerNome,
+    atorRole: "admin",
+    alvoTipo: "user",
+    alvoId: id,
+    alvoLabel,
+    estadoAnterior: alvoRole ? { role: alvoRole } : undefined,
+  });
   return NextResponse.json({ ok: true });
 }

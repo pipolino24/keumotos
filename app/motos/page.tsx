@@ -411,20 +411,40 @@ export default async function MotosPage({
               </div>
 
               {pageItems.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <div className="bg-keu-red/10 text-keu-red w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bike className="h-8 w-8" />
+                <Card className="p-12 text-center overflow-hidden relative">
+                  {/* Background decoration */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-keu-red/5 via-transparent to-transparent pointer-events-none" />
+                  <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-keu-red/5 blur-3xl pointer-events-none" />
+                  <div className="relative">
+                    <div className="relative w-20 h-20 mx-auto mb-5">
+                      <div className="absolute inset-0 bg-keu-red/10 rounded-full animate-pulse-soft" />
+                      <div className="relative w-full h-full bg-gradient-to-br from-keu-red/20 to-keu-red/5 rounded-full flex items-center justify-center">
+                        <Bike className="h-10 w-10 text-keu-red" />
+                      </div>
+                    </div>
+                    <h3 className="font-black text-xl mb-2">
+                      Nenhuma moto encontrada
+                    </h3>
+                    <p className="text-sm text-keu-black/60 max-w-md mx-auto mb-6">
+                      Tente ajustar os filtros ou volte mais tarde — nosso estoque
+                      é renovado toda semana. Você também pode falar direto com a gente:
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      <Link href="/motos">
+                        <Button>Limpar filtros</Button>
+                      </Link>
+                      <a
+                        href="https://wa.me/5588998505859?text=Procuro%20uma%20moto%20espec%C3%ADfica"
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex"
+                      >
+                        <Button variant="outline">
+                          Falar no WhatsApp
+                        </Button>
+                      </a>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-1">
-                    Nenhuma moto encontrada
-                  </h3>
-                  <p className="text-sm text-keu-black/60 max-w-md mx-auto mb-6">
-                    Tente ajustar os filtros ou volte mais tarde — nosso estoque
-                    é renovado toda semana.
-                  </p>
-                  <Link href="/motos">
-                    <Button>Ver todas as motos</Button>
-                  </Link>
                 </Card>
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">

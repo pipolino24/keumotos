@@ -3,6 +3,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Proprietario } from "@/lib/models/proprietario";
 import { proprietarioCreateSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,18 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"]);
   if (!auth.ok) return auth.response;
+  // Rate limit por usuário (não IP — staff frequentemente compartilha NAT)
+  const rl = rateLimit({
+    key: `proprietarios-post:${auth.userId}`,
+    limit: 30,
+    windowMs: 5 * 60 * 1000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas criações em sequência. Aguarde alguns minutos." },
+      { status: 429 }
+    );
+  }
   try {
     await connectMongo();
     const raw = await req.json();
