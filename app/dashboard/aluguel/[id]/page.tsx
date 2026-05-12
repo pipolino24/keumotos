@@ -887,7 +887,7 @@ function DevolucaoModal({
                             <Input
                               type="number"
                               min="0"
-                              step="10"
+                              step="any"
                               className="pl-9"
                               value={av.custoEstimado}
                               onChange={(e) =>
@@ -945,7 +945,7 @@ function DevolucaoModal({
                 <Input
                   type="number"
                   min="0"
-                  step="10"
+                  step="any"
                   className="pl-9"
                   value={multaAtraso}
                   onChange={(e) =>

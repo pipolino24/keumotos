@@ -792,7 +792,7 @@ export default function NovoAluguelPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="10"
+                    step="any"
                     required
                     className="pl-9"
                     value={valorTotalExibido}
@@ -878,7 +878,7 @@ export default function NovoAluguelPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="50"
+                    step="any"
                     className="pl-9"
                     placeholder="0"
                     value={form.valorEntrada}
@@ -910,7 +910,7 @@ export default function NovoAluguelPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="10"
+                    step="any"
                     className="pl-9"
                     placeholder="0"
                     value={form.valorParcela}

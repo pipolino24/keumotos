@@ -869,7 +869,10 @@ function ValueInput({
           id={id}
           type="number"
           min="0"
-          step="100"
+          // step="any" aceita qualquer valor numérico (incluindo centavos).
+          // step="100" rejeitava valores FIPE reais como R$ 11.814,00 com
+          // a mensagem "valores válidos próximos são 11800 e 11900".
+          step="any"
           placeholder="0,00"
           className={`pl-9 ${
             highlight ? "border-keu-red/30 focus:border-keu-red" : ""

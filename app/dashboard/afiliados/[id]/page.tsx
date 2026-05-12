@@ -377,7 +377,7 @@ export default function EditarAfiliadoPage() {
                       id="fixo"
                       type="number"
                       min="0"
-                      step="50"
+                      step="any"
                       className="pl-9"
                       value={afiliado.comissaoFixa}
                       onChange={(e) =>
@@ -428,7 +428,7 @@ export default function EditarAfiliadoPage() {
                       id="cmax"
                       type="number"
                       min="0"
-                      step="100"
+                      step="any"
                       placeholder="Sem teto"
                       className="pl-9"
                       value={afiliado.comissaoMaxima ?? ""}

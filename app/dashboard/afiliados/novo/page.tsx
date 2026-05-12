@@ -364,7 +364,7 @@ export default function NovoAfiliadoPage() {
                       id="fixo"
                       type="number"
                       min="0"
-                      step="50"
+                      step="any"
                       placeholder="200"
                       className="pl-9"
                       value={form.comissaoFixa}
@@ -423,7 +423,7 @@ export default function NovoAfiliadoPage() {
                       id="cmax"
                       type="number"
                       min="0"
-                      step="100"
+                      step="any"
                       placeholder="Sem teto"
                       className="pl-9"
                       value={form.comissaoMaxima}

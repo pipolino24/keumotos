@@ -947,7 +947,7 @@ export default function NovaVendaPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     required
                     className="pl-9"
                     value={form.valorVendido}
@@ -988,7 +988,7 @@ export default function NovaVendaPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="10"
+                    step="any"
                     className="pl-9"
                     placeholder={
                       motoSelecionada?.comissao !== undefined

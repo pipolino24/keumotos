@@ -827,7 +827,7 @@ export default function NovaAquisicaoPage() {
                     <Input
                       type="number"
                       min="0"
-                      step="100"
+                      step="any"
                       required
                       className="pl-9"
                       value={form.compraValor}
@@ -901,7 +901,7 @@ export default function NovaAquisicaoPage() {
                     <Input
                       type="number"
                       min="0"
-                      step="100"
+                      step="any"
                       required
                       placeholder="Valor que o dono receberá"
                       className="pl-9"
@@ -986,7 +986,7 @@ export default function NovaAquisicaoPage() {
                       <Input
                         type="number"
                         min="0"
-                        step="100"
+                        step="any"
                         required
                         className="pl-9"
                         value={form.repasseComissaoFixa}
@@ -1112,7 +1112,7 @@ export default function NovaAquisicaoPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     required
                     className="pl-9 border-keu-red/30"
                     value={form.valorAnunciado}
@@ -1134,7 +1134,7 @@ export default function NovaAquisicaoPage() {
                   <Input
                     type="number"
                     min="0"
-                    step="100"
+                    step="any"
                     required
                     className="pl-9"
                     value={form.valorMinimo}
