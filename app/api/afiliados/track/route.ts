@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Afiliado } from "@/lib/models/afiliado";
 import { Indicacao } from "@/lib/models/indicacao";
@@ -16,11 +17,23 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const { codigo, motoId } = data as { codigo?: string; motoId?: string };
 
-    if (!codigo) {
+    if (typeof codigo !== "string" || !codigo || codigo.length > 64) {
       return NextResponse.json(
         { error: "Código do afiliado obrigatório" },
         { status: 400 }
       );
+    }
+
+    // motoId precisa ser ObjectId válido (evita injeção de operadores Mongo)
+    let motoIdSeguro: string | undefined;
+    if (motoId !== undefined && motoId !== null) {
+      if (typeof motoId !== "string" || !mongoose.Types.ObjectId.isValid(motoId)) {
+        return NextResponse.json(
+          { error: "motoId inválido" },
+          { status: 400 }
+        );
+      }
+      motoIdSeguro = motoId;
     }
 
     const afiliado = await Afiliado.findOne({ codigo, status: "ativo" });
@@ -41,7 +54,7 @@ export async function POST(req: NextRequest) {
     await Indicacao.create({
       afiliadoId: afiliado._id,
       afiliadoCodigo: afiliado.codigo,
-      motoId: motoId || undefined,
+      motoId: motoIdSeguro,
       origem: "link",
       status: "clique",
       ip,

@@ -22,21 +22,60 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
+    const callerRole = (user.user_metadata?.role as string) || "cliente";
     const { searchParams } = new URL(req.url);
     const role = searchParams.get("role");
     const status = searchParams.get("status");
     const q = searchParams.get("q");
 
-    let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    // Cliente nunca pode listar terceiros. Vendedor pode ver lista
+    // reduzida (sem CPF/RG/CNH/endereço/pix) — útil para autocomplete de
+    // clientes em formulários. Admin tem acesso completo.
+    if (callerRole === "cliente") {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+
+    // Limita tamanho do termo de busca para evitar payload pesado
+    const qSeguro = q && q.length > 80 ? q.slice(0, 80) : q;
+    // Escapa wildcards do PostgREST (.ilike) — % e _
+    const qEsc = qSeguro?.replace(/[%_]/g, (m) => `\\${m}`);
+
+    const isAdmin = callerRole === "admin";
+
+    let query = supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (role) query = query.eq("role", role);
     if (status) query = query.eq("status", status);
-    if (q) query = query.or(`nome.ilike.%${q}%,email.ilike.%${q}%,cpf.ilike.%${q}%`);
+    if (qEsc) {
+      query = isAdmin
+        ? query.or(`nome.ilike.%${qEsc}%,email.ilike.%${qEsc}%,cpf.ilike.%${qEsc}%`)
+        : query.or(`nome.ilike.%${qEsc}%,email.ilike.%${qEsc}%`);
+    }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // Mapeia para compat com componentes antigos (_id = id)
-    const users = (data ?? []).map((p) => ({ ...p, _id: p.id }));
+    // Para não-admin, removemos campos sensíveis no servidor antes de
+    // devolver o payload (defesa em profundidade — a RLS já restringe).
+    const PII_FIELDS = [
+      "cpf",
+      "rg",
+      "cnh",
+      "endereco",
+      "pix",
+      "banco",
+      "agencia",
+      "conta",
+    ] as const;
+
+    const users = (data ?? []).map((p: Record<string, unknown>) => {
+      if (!isAdmin) {
+        for (const f of PII_FIELDS) delete p[f];
+      }
+      return { ...p, _id: p.id };
+    });
     return NextResponse.json({ users });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

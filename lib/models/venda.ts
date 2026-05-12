@@ -159,5 +159,12 @@ const VendaSchema = new Schema<IVendaDoc>(
   { timestamps: true }
 );
 
+// Índices compostos para os dashboards (cliente/vendedor/admin)
+VendaSchema.index({ vendedorId: 1, data: -1 });
+VendaSchema.index({ clienteId: 1, data: -1 });
+VendaSchema.index({ status: 1, data: -1 });
+// Acelera a busca por parcelado-loja com parcela pendente (dashboard financeiro)
+VendaSchema.index({ "pagamentos.forma": 1, "pagamentos.proximaParcelaEm": 1 });
+
 export const Venda: Model<IVendaDoc> =
   mongoose.models.Venda || mongoose.model<IVendaDoc>("Venda", VendaSchema);

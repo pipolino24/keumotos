@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
+import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,8 @@ interface RouteContext {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;
@@ -19,6 +22,13 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
         { status: 404 }
       );
     }
+    // cliente só vê os próprios; vendedor só os que originou; admin vê tudo
+    if (auth.role === "cliente" && aluguel.clienteId !== auth.userId) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
+    if (auth.role === "vendedor" && aluguel.vendedorId !== auth.userId) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
     return NextResponse.json({ aluguel });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
@@ -27,6 +37,8 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;
@@ -41,7 +53,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       data.dataDevolucao = new Date();
     }
 
-    const aluguel = await Aluguel.findByIdAndUpdate(id, data, {
+    // vendedor só altera os próprios aluguéis
+    const filter: Record<string, unknown> = { _id: id };
+    if (auth.role === "vendedor") filter.vendedorId = auth.userId;
+
+    const aluguel = await Aluguel.findOneAndUpdate(filter, data, {
       new: true,
       runValidators: true,
     }).lean();
@@ -59,6 +75,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  const auth = await requireRole(["admin"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;

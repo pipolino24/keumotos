@@ -12,7 +12,6 @@ import {
   Trophy,
   Flame,
   Loader2,
-  Heart,
   ShoppingBag,
   KeyRound,
   Sparkles,
@@ -610,6 +609,39 @@ interface ContatoApi {
   motoInteresse?: string;
 }
 
+interface VendaStaff {
+  _id: string;
+  motoModelo: string;
+  motoMarca?: string;
+  clienteNome: string;
+  valorVendido: number;
+  comissao: number;
+  vendedorId?: string;
+  status: "pendente" | "concluida" | "cancelada";
+  data: string;
+  pagamentos: Array<{
+    forma: string;
+    valor: number;
+    parcelasLoja?: number;
+    parcelasPagasLoja?: number;
+    valorParcelaLoja?: number;
+    proximaParcelaEm?: string;
+  }>;
+}
+
+interface AluguelStaff {
+  _id: string;
+  motoModelo: string;
+  motoMarca?: string;
+  clienteNome: string;
+  clienteTelefone?: string;
+  dataInicio: string;
+  dataFim: string;
+  dataDevolucao?: string;
+  valorTotal: number;
+  status: "ativo" | "concluido" | "atrasado" | "cancelado";
+}
+
 function StaffDashboard() {
   const me = useCurrentUser();
 
@@ -619,9 +651,17 @@ function StaffDashboard() {
   const { data: contData, loading: lc } = useApi<{ contatos: ContatoApi[] }>(
     "/api/contatos"
   );
+  const { data: vendasData, loading: lv } = useApi<{ vendas: VendaStaff[] }>(
+    "/api/vendas"
+  );
+  const { data: alugData, loading: la } = useApi<{ alugueis: AluguelStaff[] }>(
+    "/api/alugueis"
+  );
 
   const motos = motosData?.motos ?? [];
   const contatos = contData?.contatos ?? [];
+  const todasVendas = vendasData?.vendas ?? [];
+  const todosAlugueis = alugData?.alugueis ?? [];
 
   const motosDisponiveis = motos.filter((m) => m.status === "disponivel").length;
   const meusLeads = contatos.filter(
@@ -631,18 +671,69 @@ function StaffDashboard() {
     (c) => c.status === "novo" || c.status === "em-atendimento"
   );
 
-  const minhasVendas: Array<{
-    id: string;
-    motoModelo: string;
-    clienteNome: string;
-    valorVendido: number;
-    comissao: number;
-    formaPagamento: string;
-    status: string;
-  }> = [];
+  // Vendas: admin vê todas, vendedor vê só as próprias (a API já filtra,
+  // mas como vendedorId no shape pode vir vazio, mantemos só ordenação).
+  const minhasVendas = todasVendas
+    .filter((v) => v.status !== "cancelada")
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 
-  const minhaComissao = 0;
-  const loading = lm || lc;
+  // Comissão do mês corrente
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const minhaComissao = minhasVendas
+    .filter((v) => new Date(v.data) >= inicioMes)
+    .reduce((sum, v) => sum + (v.comissao || 0), 0);
+  const vendasMes = minhasVendas.filter(
+    (v) => new Date(v.data) >= inicioMes
+  ).length;
+
+  // Próximas devoluções de aluguel (ativo/atrasado, ordenado por dataFim)
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const fimSemana = new Date(hoje);
+  fimSemana.setDate(fimSemana.getDate() + 7);
+  const proximasDevolucoes = todosAlugueis
+    .filter((a) => a.status === "ativo" || a.status === "atrasado")
+    .map((a) => ({
+      ...a,
+      dataFimDt: new Date(a.dataFim),
+    }))
+    .sort((a, b) => a.dataFimDt.getTime() - b.dataFimDt.getTime())
+    .slice(0, 5);
+
+  // Próximas parcelas (parcelado-loja) vencendo até 30 dias
+  const limite30 = new Date(hoje);
+  limite30.setDate(limite30.getDate() + 30);
+  const proximasParcelas: Array<{
+    vendaId: string;
+    clienteNome: string;
+    motoModelo: string;
+    valorParcela: number;
+    parcelasPagasLoja: number;
+    parcelasLoja: number;
+    proxima: Date;
+  }> = [];
+  for (const v of todasVendas) {
+    if (v.status !== "concluida") continue;
+    for (const p of v.pagamentos ?? []) {
+      if (p.forma !== "parcelado-loja") continue;
+      if (!p.proximaParcelaEm) continue;
+      const prox = new Date(p.proximaParcelaEm);
+      if (prox > limite30) continue;
+      proximasParcelas.push({
+        vendaId: v._id,
+        clienteNome: v.clienteNome,
+        motoModelo: v.motoModelo,
+        valorParcela: p.valorParcelaLoja ?? 0,
+        parcelasPagasLoja: p.parcelasPagasLoja ?? 0,
+        parcelasLoja: p.parcelasLoja ?? 0,
+        proxima: prox,
+      });
+    }
+  }
+  proximasParcelas.sort((a, b) => a.proxima.getTime() - b.proxima.getTime());
+
+  const loading = lm || lc || lv || la;
 
   return (
     <div>
@@ -660,16 +751,16 @@ function StaffDashboard() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           icon={<Trophy className="h-5 w-5" />}
-          label="Minhas vendas do mês"
-          value={minhasVendas.length.toString()}
-          trend="aguardando /api/vendas"
+          label="Vendas do mês"
+          value={vendasMes.toString()}
+          trend={`${minhasVendas.length} no histórico`}
           color="bg-emerald-500"
         />
         <StatCard
           icon={<TrendingUp className="h-5 w-5" />}
-          label="Minha comissão"
+          label="Comissão do mês"
           value={formatCurrency(minhaComissao)}
-          trend="atual no mês"
+          trend="acumulado no mês corrente"
           color="bg-keu-red"
         />
         <StatCard
@@ -692,9 +783,9 @@ function StaffDashboard() {
         <Card className="lg:col-span-2">
           <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-lg">Minhas vendas recentes</h2>
+              <h2 className="font-bold text-lg">Vendas recentes</h2>
               <p className="text-sm text-keu-black/60">
-                Suas últimas transações
+                Últimas transações concluídas
               </p>
             </div>
             <Link
@@ -704,13 +795,54 @@ function StaffDashboard() {
               Ver todas <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="p-12 text-center">
-            <Target className="h-10 w-10 text-keu-black/20 mx-auto mb-3" />
-            <p className="text-sm text-keu-black/60">
-              Endpoint <code className="bg-keu-gray-light px-1.5 py-0.5 rounded text-xs">/api/vendas</code> ainda não foi criado.
-              <br />Suas vendas aparecerão aqui em breve.
-            </p>
-          </div>
+          {loading ? (
+            <div className="p-12 text-center">
+              <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
+            </div>
+          ) : minhasVendas.length === 0 ? (
+            <div className="p-12 text-center">
+              <Target className="h-10 w-10 text-keu-black/20 mx-auto mb-3" />
+              <p className="text-sm text-keu-black/60">
+                Nenhuma venda registrada ainda.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-keu-black/5">
+              {minhasVendas.slice(0, 5).map((v) => (
+                <div
+                  key={v._id}
+                  className="p-4 px-6 flex items-center gap-4 hover:bg-keu-gray-light transition"
+                >
+                  <div className="bg-emerald-500/10 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
+                    <ShoppingBag className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">
+                      {v.motoMarca ? `${v.motoMarca} ` : ""}
+                      {v.motoModelo}
+                    </div>
+                    <div className="text-xs text-keu-black/60 flex flex-wrap items-center gap-2">
+                      <span>{v.clienteNome}</span>
+                      <span>•</span>
+                      <span>
+                        {new Date(v.data).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold">
+                      {formatCurrency(v.valorVendido)}
+                    </div>
+                    {v.comissao > 0 && (
+                      <div className="text-xs text-emerald-600">
+                        comissão {formatCurrency(v.comissao)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <div className="space-y-6">
@@ -727,33 +859,184 @@ function StaffDashboard() {
               <div className="mb-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-white/80">
-                    {minhasVendas.length} de 8 vendas
+                    {vendasMes} de 8 vendas
                   </span>
                   <span className="font-bold">
-                    {Math.round((minhasVendas.length / 8) * 100)}%
+                    {Math.round((vendasMes / 8) * 100)}%
                   </span>
                 </div>
                 <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-white transition-all"
                     style={{
-                      width: `${Math.min(100, (minhasVendas.length / 8) * 100)}%`,
+                      width: `${Math.min(100, (vendasMes / 8) * 100)}%`,
                     }}
                   />
                 </div>
               </div>
               <p className="text-xs text-white/70 mt-3">
-                Faltam {Math.max(0, 8 - minhasVendas.length)} vendas pra
-                bater a meta
+                {vendasMes >= 8
+                  ? "🎉 Meta batida! Parabéns!"
+                  : `Faltam ${8 - vendasMes} vendas pra bater a meta`}
               </p>
             </div>
           </Card>
 
           <Card className="p-6">
-            <h3 className="font-bold text-lg mb-4">Próximas devoluções</h3>
-            <div className="text-xs text-keu-black/40 text-center py-4">
-              Aguardando endpoint /api/alugueis
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">Próximas devoluções</h3>
+              {proximasDevolucoes.length > 0 && (
+                <Badge variant="warning" className="text-[10px]">
+                  {proximasDevolucoes.length}
+                </Badge>
+              )}
             </div>
+            {loading ? (
+              <div className="py-6 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+              </div>
+            ) : proximasDevolucoes.length === 0 ? (
+              <div className="text-xs text-keu-black/40 text-center py-6">
+                Nenhum aluguel ativo no momento
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {proximasDevolucoes.map((a) => {
+                  const dias = Math.ceil(
+                    (a.dataFimDt.getTime() - hoje.getTime()) / 86400000
+                  );
+                  const atrasado = dias < 0;
+                  return (
+                    <Link
+                      key={a._id}
+                      href={`/dashboard/aluguel/${a._id}`}
+                      className="block group"
+                    >
+                      <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg group-hover:bg-keu-gray-light transition">
+                        <div
+                          className={cn(
+                            "w-2 h-10 rounded-full",
+                            atrasado
+                              ? "bg-red-500"
+                              : dias <= 2
+                              ? "bg-amber-500"
+                              : "bg-emerald-500"
+                          )}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm truncate">
+                            {a.motoMarca ? `${a.motoMarca} ` : ""}
+                            {a.motoModelo}
+                          </div>
+                          <div className="text-xs text-keu-black/60 truncate">
+                            {a.clienteNome}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={cn(
+                              "text-xs font-bold",
+                              atrasado
+                                ? "text-red-600"
+                                : dias <= 2
+                                ? "text-amber-600"
+                                : "text-keu-black/70"
+                            )}
+                          >
+                            {atrasado
+                              ? `${Math.abs(dias)}d atraso`
+                              : dias === 0
+                              ? "Hoje"
+                              : `${dias}d`}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Wallet className="h-4 w-4" /> Parcelas a vencer
+              </h3>
+              {proximasParcelas.length > 0 && (
+                <Badge variant="info" className="text-[10px]">
+                  {proximasParcelas.length}
+                </Badge>
+              )}
+            </div>
+            {loading ? (
+              <div className="py-6 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+              </div>
+            ) : proximasParcelas.length === 0 ? (
+              <div className="text-xs text-keu-black/40 text-center py-6">
+                Sem parcelas próximas (30 dias)
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {proximasParcelas.slice(0, 5).map((p, i) => {
+                  const dias = Math.ceil(
+                    (p.proxima.getTime() - hoje.getTime()) / 86400000
+                  );
+                  const atrasado = dias < 0;
+                  return (
+                    <Link
+                      key={`${p.vendaId}-${i}`}
+                      href={`/dashboard/vendas/${p.vendaId}`}
+                      className="block group"
+                    >
+                      <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg group-hover:bg-keu-gray-light transition">
+                        <div
+                          className={cn(
+                            "w-2 h-10 rounded-full",
+                            atrasado
+                              ? "bg-red-500"
+                              : dias <= 3
+                              ? "bg-amber-500"
+                              : "bg-blue-500"
+                          )}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-sm truncate">
+                            {p.clienteNome}
+                          </div>
+                          <div className="text-xs text-keu-black/60 truncate">
+                            {p.parcelasPagasLoja + 1}/{p.parcelasLoja} ·{" "}
+                            {p.motoModelo}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-sm">
+                            {formatCurrency(p.valorParcela)}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-[10px] font-semibold",
+                              atrasado
+                                ? "text-red-600"
+                                : dias <= 3
+                                ? "text-amber-600"
+                                : "text-keu-black/50"
+                            )}
+                          >
+                            {atrasado
+                              ? `${Math.abs(dias)}d atraso`
+                              : dias === 0
+                              ? "vence hoje"
+                              : `em ${dias}d`}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
       </div>

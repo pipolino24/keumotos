@@ -64,8 +64,8 @@ const IndicacaoSchema = new Schema<IIndicacaoDoc>(
       index: true,
     },
 
-    valorVenda: Number,
-    valorComissao: { type: Number, default: 0 },
+    valorVenda: { type: Number, min: 0 },
+    valorComissao: { type: Number, default: 0, min: 0 },
     comissaoPaga: { type: Boolean, default: false },
     pagaEm: Date,
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Role } from "@/lib/models/role";
 import { ALL_PERMISSIONS } from "@/lib/permissions";
+import { requireAdmin } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,8 @@ interface Ctx {
 }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;
@@ -25,6 +28,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;
@@ -65,6 +70,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;

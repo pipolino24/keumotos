@@ -117,9 +117,9 @@ const AluguelSchema = new Schema<IAluguelDoc>(
     observacoesFim: String,
 
     avarias: { type: [AvariaSchema], default: [] },
-    custoTotalAvarias: Number,
-    valorAReceberCaucao: Number,
-    multaAtraso: Number,
+    custoTotalAvarias: { type: Number, min: 0, default: 0 },
+    valorAReceberCaucao: { type: Number, min: 0 },
+    multaAtraso: { type: Number, min: 0, default: 0 },
 
     status: {
       type: String,
@@ -132,6 +132,11 @@ const AluguelSchema = new Schema<IAluguelDoc>(
   },
   { timestamps: true }
 );
+
+// Índices compostos para as queries mais comuns (dashboard cliente/vendedor)
+AluguelSchema.index({ clienteId: 1, status: 1 });
+AluguelSchema.index({ vendedorId: 1, status: 1 });
+AluguelSchema.index({ status: 1, dataFim: 1 }); // para detectar atrasos
 
 export const Aluguel: Model<IAluguelDoc> =
   mongoose.models.Aluguel ||

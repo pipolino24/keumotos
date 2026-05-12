@@ -20,11 +20,13 @@ export async function GET(req: NextRequest) {
     const query: Record<string, unknown> = {};
     if (status) query.status = status;
     if (aprovado !== null) query.aprovado = aprovado === "true";
-    if (search) {
+    if (search && search.length > 0) {
+      // Limita tamanho e escapa metacaracteres de regex (evita ReDoS)
+      const termo = search.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
-        { nome: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { codigo: { $regex: search, $options: "i" } },
+        { nome: { $regex: termo, $options: "i" } },
+        { email: { $regex: termo, $options: "i" } },
+        { codigo: { $regex: termo, $options: "i" } },
       ];
     }
 

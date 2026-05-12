@@ -36,7 +36,26 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     await connectMongo();
     const { id } = await params;
     const data = await req.json();
-    const contato = await Contato.findByIdAndUpdate(id, data, {
+
+    // Whitelist de campos que podem ser editados via PATCH
+    const allowed = [
+      "nome",
+      "telefone",
+      "email",
+      "origem",
+      "interesse",
+      "motoInteresse",
+      "observacoes",
+      "status",
+      "vendedorResponsavel",
+      "ultimoContato",
+    ] as const;
+    const update: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) update[key] = data[key];
+    }
+
+    const contato = await Contato.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
     }).lean();
