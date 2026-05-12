@@ -1,6 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://cnijuvfxrbmetnvyhbcw.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_vOZM7UAbovrf1Pf_lZGIDg_tu-lTbrQ";
+
 /**
  * Atualiza a sessão Supabase em cada request e devolve o NextResponse
  * + o usuário autenticado (ou null). Usado pelo proxy.ts da raiz.
@@ -13,8 +21,8 @@ export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll() {

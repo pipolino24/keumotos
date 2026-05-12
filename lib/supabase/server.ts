@@ -9,11 +9,19 @@ import { cookies } from "next/headers";
  * o set não tem efeito e silenciosamente falha. Isso é OK pois o proxy.ts
  * cuida da renovação do token.
  */
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://cnijuvfxrbmetnvyhbcw.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_vOZM7UAbovrf1Pf_lZGIDg_tu-lTbrQ";
+
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
     {
       cookies: {
         getAll() {
