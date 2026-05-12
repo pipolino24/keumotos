@@ -34,7 +34,7 @@ import { confirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useCurrentUser, canSeeFinancialData } from "@/lib/auth/user-context";
-import { useApi } from "@/lib/hooks/use-api";
+import { useApi, invalidateApiCache } from "@/lib/hooks/use-api";
 
 interface MotoApi {
   _id: string;
@@ -125,6 +125,35 @@ export default function VisualizarMotoPage() {
   const proprietario = propData?.proprietario;
 
   const [fotoAtual, setFotoAtual] = useState(0);
+  const [togglingDestaque, setTogglingDestaque] = useState(false);
+
+  async function toggleDestaque() {
+    if (!moto) return;
+    const novo = !moto.destaque;
+    setTogglingDestaque(true);
+    try {
+      const res = await fetch(`/api/motos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destaque: novo }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Falha ao salvar destaque");
+      invalidateApiCache(`/api/motos/${id}`);
+      invalidateApiCache("/api/motos");
+      toast.success(
+        novo
+          ? "⭐ Moto marcada como destaque na home"
+          : "Destaque removido"
+      );
+      // Recarrega só essa página
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setTogglingDestaque(false);
+    }
+  }
 
   async function handleDelete() {
     const ok = await confirmDialog({
@@ -614,6 +643,29 @@ export default function VisualizarMotoPage() {
                 </Badge>
               )}
             </div>
+            <button
+              type="button"
+              onClick={toggleDestaque}
+              disabled={togglingDestaque}
+              className={`mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition border ${
+                moto.destaque
+                  ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  : "bg-white border-keu-black/10 text-keu-black/70 hover:border-keu-red hover:text-keu-red"
+              } disabled:opacity-50`}
+            >
+              <Star
+                className={`h-3.5 w-3.5 ${moto.destaque ? "fill-amber-500 text-amber-500" : ""}`}
+              />
+              {togglingDestaque
+                ? "Salvando..."
+                : moto.destaque
+                ? "Remover destaque"
+                : "Marcar como destaque"}
+            </button>
+            <p className="text-[10px] text-keu-black/50 mt-2 leading-snug">
+              Motos destacadas aparecem na seção <strong>Motos em destaque</strong>{" "}
+              da home.
+            </p>
           </Card>
 
           {/* Operacional */}

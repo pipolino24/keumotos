@@ -4,15 +4,12 @@ import { useState } from "react";
 import {
   MessageCircle,
   Heart,
-  Calculator,
   Share2,
-  ChevronDown,
   KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LeadFormModal } from "@/components/motos/lead-form-modal";
-import { FinancingSimulator } from "@/components/motos/financing-simulator";
 import { RentalRequestModal } from "@/components/motos/rental-request-modal";
 import { FavoriteButton } from "@/components/motos/favorite-button";
 
@@ -20,7 +17,6 @@ interface Props {
   whatsappUrl: string;
   motoInteresse: string;
   shareTitle: string;
-  valorMoto: number;
   motoId: string;
   motoTipo?: "venda" | "aluguel" | "ambos";
 }
@@ -29,12 +25,10 @@ export function MotoDetailActions({
   whatsappUrl,
   motoInteresse,
   shareTitle,
-  valorMoto,
   motoId,
   motoTipo,
 }: Props) {
   const [showLead, setShowLead] = useState(false);
-  const [showSimulador, setShowSimulador] = useState(false);
   const [showRental, setShowRental] = useState(false);
   const aceitaAluguel = motoTipo === "aluguel" || motoTipo === "ambos";
 
@@ -94,14 +88,6 @@ export function MotoDetailActions({
             <KeyRound className="h-4 w-4" /> Solicitar aluguel
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={() => setShowSimulador((v) => !v)}
-        >
-          <Calculator className="h-4 w-4" />{" "}
-          {showSimulador ? "Fechar simulador" : "Simular financiamento"}
-        </Button>
         <div className="col-span-2 flex gap-2">
           <FavoriteButton motoId={motoId} motoLabel={shareTitle} />
           <Button
@@ -113,36 +99,6 @@ export function MotoDetailActions({
             <Share2 className="h-4 w-4" /> Compartilhar
           </Button>
         </div>
-      </div>
-
-      {/* SIMULADOR COLAPSÁVEL */}
-      <div className="mt-3">
-        <button
-          type="button"
-          onClick={() => setShowSimulador((v) => !v)}
-          className="w-full flex items-center justify-between gap-2 rounded-lg border-2 border-dashed border-keu-red/30 bg-keu-red/5 px-4 py-3 text-sm font-bold text-keu-red hover:bg-keu-red/10 transition"
-          aria-expanded={showSimulador}
-          aria-controls="simulador-financiamento"
-        >
-          <span className="flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
-            Simule o financiamento
-          </span>
-          <ChevronDown
-            className={`h-4 w-4 transition-transform ${
-              showSimulador ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-        {showSimulador && (
-          <div id="simulador-financiamento" className="mt-3">
-            <FinancingSimulator
-              valorMoto={valorMoto}
-              modeloNome={shareTitle}
-              motoId={motoId}
-            />
-          </div>
-        )}
       </div>
 
       <LeadFormModal

@@ -313,7 +313,6 @@ export default async function MotoDetailPage({
                 whatsappUrl={whatsappUrl}
                 motoInteresse={`${tituloModelo} ${moto.anoModelo}`}
                 shareTitle={tituloModelo}
-                valorMoto={moto.valorAnunciado}
                 motoId={moto._id}
                 motoTipo={moto.tipo}
               />
