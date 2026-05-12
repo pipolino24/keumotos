@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Moto } from "@/lib/models/moto";
 import { aluguelDevolucaoSchema } from "@/lib/schemas";
+import { requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +15,14 @@ interface Ctx {
 /**
  * POST /api/alugueis/[id]/devolver
  *
- * Registra a devolução de uma moto alugada:
- * - salva fotos do estado de devolução
- * - registra avarias (com fotos e custo)
- * - calcula caução a devolver
- * - muda status do aluguel para "concluido"
- * - muda status da moto para "disponivel" (ou "manutencao" se avarias)
+ * Registra a devolução de uma moto alugada — atualização ATÔMICA de
+ * aluguel + moto via sessão Mongo (Atlas é replica set, tem transação).
+ * Se a sessão não estiver disponível por algum motivo, faz fallback
+ * com rollback manual best-effort.
  */
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const auth = await requireRole(["admin", "vendedor"]);
+  if (!auth.ok) return auth.response;
   try {
     await connectMongo();
     const { id } = await params;
@@ -60,33 +62,71 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       0,
       aluguel.caucao - custoTotalAvarias - multaAtraso
     );
-
-    aluguel.km_final = data.km_final;
-    aluguel.fotosFim = data.fotosFim;
-    aluguel.observacoesFim = data.observacoesFim;
-    aluguel.avarias = data.avarias.map((a) => ({
-      ...a,
-      registradoEm: new Date(),
-    }));
-    aluguel.custoTotalAvarias = custoTotalAvarias;
-    aluguel.multaAtraso = multaAtraso;
-    aluguel.valorAReceberCaucao = valorAReceberCaucao;
-    aluguel.dataDevolucao = data.dataDevolucao
-      ? new Date(data.dataDevolucao)
-      : new Date();
-    aluguel.status = "concluido";
-    await aluguel.save();
-
-    // Atualiza status da moto
     const novoStatusMoto =
       data.avarias.length > 0 ? "manutencao" : "disponivel";
-    await Moto.findByIdAndUpdate(aluguel.motoId, {
+
+    const aluguelUpdate = {
+      km_final: data.km_final,
+      fotosFim: data.fotosFim,
+      observacoesFim: data.observacoesFim,
+      avarias: data.avarias.map((a) => ({
+        ...a,
+        registradoEm: new Date(),
+      })),
+      custoTotalAvarias,
+      multaAtraso,
+      valorAReceberCaucao,
+      dataDevolucao: data.dataDevolucao
+        ? new Date(data.dataDevolucao)
+        : new Date(),
+      status: "concluido" as const,
+    };
+
+    const motoUpdate = {
       status: novoStatusMoto,
       km: data.km_final,
-    });
+    };
+
+    // Caminho preferido: transação Mongo (Atlas é replica set)
+    let session: mongoose.ClientSession | undefined;
+    try {
+      session = await mongoose.startSession();
+      const sess = session;
+      await session.withTransaction(async () => {
+        await Aluguel.updateOne({ _id: id }, aluguelUpdate, { session: sess });
+        await Moto.updateOne(
+          { _id: aluguel.motoId },
+          motoUpdate,
+          { session: sess }
+        );
+      });
+    } catch (txErr) {
+      // Fallback (cluster standalone): rollback manual em caso de falha
+      if (session) await session.endSession().catch(() => {});
+      session = undefined;
+      const statusAnterior = aluguel.status;
+      Object.assign(aluguel, aluguelUpdate);
+      await aluguel.save();
+      try {
+        await Moto.findByIdAndUpdate(aluguel.motoId, motoUpdate, {
+          runValidators: true,
+        });
+      } catch (motoErr) {
+        // Reverte aluguel se moto falhou — best-effort
+        aluguel.status = statusAnterior;
+        await aluguel.save().catch(() => {});
+        throw motoErr;
+      }
+      // Se chegou aqui, conseguiu fora da transação — segue
+      void txErr;
+    } finally {
+      if (session) await session.endSession().catch(() => {});
+    }
+
+    const aluguelFinal = await Aluguel.findById(id).lean();
 
     return NextResponse.json({
-      aluguel: aluguel.toObject(),
+      aluguel: aluguelFinal,
       resumoFinanceiro: {
         custoTotalAvarias,
         multaAtraso,

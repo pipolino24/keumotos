@@ -1,26 +1,23 @@
 import { NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
-import { User } from "@/lib/models/user";
 import { Contato } from "@/lib/models/contato";
 import { Proprietario } from "@/lib/models/proprietario";
-import {
-  mockMotos,
-  mockUsers,
-  mockContatos,
-  mockProprietarios,
-} from "@/lib/mock-data";
+import { mockMotos, mockContatos, mockProprietarios } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Popula o MongoDB com mock-data quando vazio.
- * Idempotente: não duplica registros.
- * GET /api/seed → popula
- * GET /api/seed?reset=1 → limpa + popula
+ * Popula o MongoDB com mock-data quando vazio (apenas motos, proprietários
+ * e contatos — usuários agora vivem só no Supabase Auth e são criados via
+ * scripts/seed-users.ts).
+ *
+ * Só funciona em desenvolvimento — em produção retorna 404.
+ *
+ *   GET /api/seed          → popula coleções vazias
+ *   GET /api/seed?reset=1  → limpa + popula
  */
 export async function GET(req: Request) {
-  // Seed só funciona em dev. Em produção é 404 (parece que a rota não existe).
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -31,7 +28,6 @@ export async function GET(req: Request) {
 
     const stats = {
       motos: 0,
-      users: 0,
       contatos: 0,
       proprietarios: 0,
       reset,
@@ -40,30 +36,9 @@ export async function GET(req: Request) {
     if (reset) {
       await Promise.all([
         Moto.deleteMany({}),
-        User.deleteMany({}),
         Contato.deleteMany({}),
         Proprietario.deleteMany({}),
       ]);
-    }
-
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      const users = mockUsers.map((u) => ({
-        nome: u.nome,
-        email: u.email,
-        senhaHash: "demo_seed_no_password",
-        telefone: u.telefone,
-        cpf: u.cpf,
-        role: u.role,
-        permissoes: [],
-        status: u.status,
-        cidade: u.cidade,
-        estado: u.estado,
-        vendasRealizadas: u.vendasRealizadas ?? 0,
-        comissaoTotal: u.comissaoTotal ?? 0,
-      }));
-      const created = await User.insertMany(users);
-      stats.users = created.length;
     }
 
     const propCount = await Proprietario.countDocuments();
@@ -99,7 +74,6 @@ export async function GET(req: Request) {
 
     const motoCount = await Moto.countDocuments();
     if (motoCount === 0) {
-      // Mapeia código mock (p1, p2…) para ObjectId real do banco
       const allProps = await Proprietario.find({}, { _id: 1, cpf: 1 }).lean();
       const cpfToId = new Map(allProps.map((p) => [p.cpf, p._id]));
       const mockIdToCpf = new Map(

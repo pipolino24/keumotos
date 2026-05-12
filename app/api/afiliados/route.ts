@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Afiliado } from "@/lib/models/afiliado";
-import { User } from "@/lib/models/user";
 import { gerarCodigoAfiliadoUnico } from "@/lib/utils-server";
 import { requireAdmin } from "@/lib/auth/api-guards";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -57,31 +57,60 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Criar ou reaproveitar User
-    let user = await User.findOne({ email: data.email.toLowerCase() });
-    if (!user) {
-      const senhaTmp = data.senha || `keu_${Math.random().toString(36).slice(2, 8)}`;
-      const senhaHash = await hashSenha(senhaTmp);
-      user = await User.create({
+    // Cria ou reaproveita user no Supabase Auth
+    const admin = createSupabaseAdminClient();
+    const senhaTmp =
+      data.senha ||
+      `Keu@${Math.random().toString(36).slice(2, 8)}${Math.random().toString(10).slice(2, 4)}`;
+    let userId: string;
+    const created = await admin.auth.admin.createUser({
+      email: data.email.toLowerCase(),
+      password: senhaTmp,
+      email_confirm: true,
+      user_metadata: {
         nome: data.nome,
-        email: data.email.toLowerCase(),
-        senhaHash,
-        telefone: data.telefone,
         role: "afiliado",
-        status: data.aprovado ? "ativo" : "pendente",
-        cidade: data.cidade,
-        estado: data.estado,
-      });
-    } else {
-      // Promove user existente para afiliado se ainda não for
-      if (user.role !== "afiliado" && user.role !== "admin") {
-        user.role = "afiliado";
-        await user.save();
+        setor: "multimarcas",
+      },
+    });
+    if (created.error) {
+      if (created.error.message.toLowerCase().includes("already")) {
+        const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
+        const existing = list?.users?.find(
+          (u) => u.email === data.email.toLowerCase()
+        );
+        if (!existing) {
+          return NextResponse.json(
+            { error: "Não foi possível localizar usuário existente" },
+            { status: 500 }
+          );
+        }
+        userId = existing.id;
+        // Promove pro role "afiliado" se ainda não for admin
+        const existingRole = (existing.user_metadata?.role as string) || "cliente";
+        if (existingRole !== "afiliado" && existingRole !== "admin") {
+          await admin.auth.admin.updateUserById(userId, {
+            user_metadata: { ...existing.user_metadata, role: "afiliado" },
+          });
+          await admin.from("profiles").update({ role: "afiliado" }).eq("id", userId);
+        }
+      } else {
+        return NextResponse.json(
+          { error: created.error.message },
+          { status: 400 }
+        );
       }
+    } else if (created.data.user) {
+      userId = created.data.user.id;
+    } else {
+      return NextResponse.json(
+        { error: "Falha ao criar usuário" },
+        { status: 500 }
+      );
     }
 
     // Verifica se já é afiliado
-    const existente = await Afiliado.findOne({ userId: user._id });
+    const existente = await Afiliado.findOne({ userId });
     if (existente) {
       return NextResponse.json(
         { error: "Usuário já é afiliado", afiliado: existente },
@@ -96,7 +125,7 @@ export async function POST(req: NextRequest) {
     });
 
     const afiliado = await Afiliado.create({
-      userId: user._id,
+      userId,
       codigo,
       nome: data.nome,
       email: data.email.toLowerCase(),
@@ -136,11 +165,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function hashSenha(senha: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(senha + ":keumotos_salt");
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
