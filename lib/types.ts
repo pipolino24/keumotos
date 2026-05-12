@@ -49,6 +49,7 @@ export interface Profile {
   rg?: string | null;
   cnh?: string | null;
   cnh_validade?: string | null;
+  profissao?: string | null;
   endereco?: EnderecoCompleto | null;
   pix?: string | null;
   banco?: DadosBancarios | null;

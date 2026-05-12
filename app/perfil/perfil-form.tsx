@@ -64,6 +64,7 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
         rg: profile.rg,
         cnh: profile.cnh,
         cnh_validade: profile.cnh_validade,
+        profissao: profile.profissao,
         endereco: profile.endereco,
         pix: profile.pix,
         banco: profile.banco,
@@ -105,7 +106,9 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
     }
     setUploading(true);
     const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${profile.id}/${tipo}_${Date.now()}.${ext}`;
+    // crypto.randomUUID() é puro do ponto de vista do React-rules e mais
+    // único que Date.now() (que colidiria se 2 uploads no mesmo ms).
+    const path = `${profile.id}/${tipo}_${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("documentos")
       .upload(path, file, { upsert: false, contentType: file.type });
@@ -264,6 +267,17 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
               value={profile.cnh_validade ?? ""}
               onChange={(e) =>
                 setProfile((p) => ({ ...p, cnh_validade: e.target.value }))
+              }
+            />
+          </div>
+          <div className="col-span-2">
+            <Label htmlFor="profissao">Profissão</Label>
+            <Input
+              id="profissao"
+              placeholder="Ex: Motoboy, Comerciante, etc."
+              value={profile.profissao ?? ""}
+              onChange={(e) =>
+                setProfile((p) => ({ ...p, profissao: e.target.value }))
               }
             />
           </div>

@@ -85,11 +85,10 @@ interface AluguelCliente {
   motoAno?: number;
   dataInicio: string;
   dataFim: string;
+  dataConclusao?: string;
   dataDevolucao?: string;
   valorTotal: number;
-  caucao: number;
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
-  valorAReceberCaucao?: number;
   vendedorId?: string;
   vendedorNome?: string;
 }

@@ -52,7 +52,6 @@ interface Moto {
   valorDiaria?: number;
   valorSemanal?: number;
   valorMensal?: number;
-  caucao?: number;
   tipo: "venda" | "aluguel" | "ambos";
   status: string;
   destaque?: boolean;
@@ -282,9 +281,6 @@ export default async function MotoDetailPage({
                     )}
                     {moto.valorMensal && (
                       <PriceRow label="Mensal" value={moto.valorMensal} />
-                    )}
-                    {moto.caucao && (
-                      <PriceRow label="Caução" value={moto.caucao} muted />
                     )}
                     {isAmbos && (
                       <div className="pt-3 mt-3 border-t border-keu-red/10">

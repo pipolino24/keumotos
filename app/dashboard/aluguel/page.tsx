@@ -35,7 +35,6 @@ interface MotoApi {
   valorDiaria?: number;
   valorSemanal?: number;
   valorMensal?: number;
-  caucao?: number;
 }
 
 interface AluguelApi {
@@ -47,7 +46,6 @@ interface AluguelApi {
   dataInicio: string;
   dataFim: string;
   valorTotal: number;
-  caucao: number;
   status: string;
   vendedorId?: string;
 }
@@ -180,9 +178,8 @@ export default function AluguelPage() {
                 <th className="text-left p-4">Moto</th>
                 <th className="text-left p-4">Cliente</th>
                 <th className="text-left p-4">Início</th>
-                <th className="text-left p-4">Devolução</th>
+                <th className="text-left p-4">Conclusão</th>
                 <th className="text-right p-4">Valor Total</th>
-                <th className="text-right p-4">Caução</th>
                 <th className="text-left p-4">Status</th>
                 <th className="text-right p-4">Ações</th>
               </tr>
@@ -190,7 +187,7 @@ export default function AluguelPage() {
             <tbody className="divide-y divide-keu-black/5">
               {alugueis.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-12 text-center">
+                  <td colSpan={7} className="p-12 text-center">
                     <KeyRound className="h-10 w-10 text-keu-black/20 mx-auto mb-3" />
                     <h3 className="font-bold mb-1">
                       Nenhuma locação{statusFiltro ? ` ${statusFiltro}` : ""}
@@ -258,9 +255,6 @@ export default function AluguelPage() {
                       <td className="p-4 text-right font-bold text-keu-red">
                         {formatCurrency(a.valorTotal)}
                       </td>
-                      <td className="p-4 text-right text-sm">
-                        {formatCurrency(a.caucao)}
-                      </td>
                       <td className="p-4">
                         <AluguelStatusBadge status={a.status} />
                       </td>
@@ -272,14 +266,14 @@ export default function AluguelPage() {
                               onClick={async () => {
                                 if (
                                   !confirm(
-                                    `Marcar devolução de ${a.motoModelo}? Use a página de detalhe pra registrar avarias.`
+                                    `Concluir contrato de ${a.motoModelo}? Use a página de detalhe pra registrar avarias.`
                                   )
                                 ) return;
                                 window.location.href = `/dashboard/aluguel/${a._id}/devolver`;
                               }}
                               className="text-xs text-emerald-700 hover:underline font-semibold"
                             >
-                              Devolver
+                              Concluir
                             </button>
                           )}
                           <Link href={`/dashboard/aluguel/${a._id}`}>
@@ -408,10 +402,6 @@ export default function AluguelPage() {
                       <span className="font-semibold">
                         {formatCurrency(m.valorMensal ?? 0)}
                       </span>
-                    </div>
-                    <div className="flex justify-between text-xs pt-1 border-t border-keu-black/5">
-                      <span className="text-keu-black/60">Caução:</span>
-                      <span>{formatCurrency(m.caucao ?? 0)}</span>
                     </div>
                   </div>
 

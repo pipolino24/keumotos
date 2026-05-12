@@ -62,12 +62,22 @@ interface AluguelApi {
 
   dataInicio: string;
   dataFim: string;
-  dataDevolucao?: string;
+  dataConclusao?: string;
+  dataDevolucao?: string; // alias legado
 
   diasContratados: number;
   modalidadeAplicada?: "diaria" | "semanal" | "mensal";
   valorTotal: number;
-  caucao: number;
+
+  // Plano Conquista
+  tipoPlano?: "conquista" | "venda-direta";
+  valorEntrada?: number;
+  dataEntrada?: string;
+  valorParcela?: number;
+  numeroParcelas?: number;
+  parcelasPagas?: number;
+  frequenciaParcela?: "quinzenal" | "mensal";
+  proximaParcelaEm?: string;
 
   km_inicial: number;
   km_final?: number;
@@ -80,7 +90,6 @@ interface AluguelApi {
   avarias: AvariaApi[];
   custoTotalAvarias?: number;
   multaAtraso?: number;
-  valorAReceberCaucao?: number;
 
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
   observacoes?: string;
@@ -175,7 +184,7 @@ export default function AluguelDetalhePage() {
             className="w-full md:w-auto"
             onClick={() => setModalOpen(true)}
           >
-            <KeyRound className="h-5 w-5" /> Receber devolução
+            <KeyRound className="h-5 w-5" /> Concluir contrato
           </Button>
         </div>
       )}
@@ -242,9 +251,9 @@ export default function AluguelDetalhePage() {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="font-bold">Vistoria de devolução</h2>
+                  <h2 className="font-bold">Vistoria de conclusão</h2>
                   <p className="text-sm text-keu-black/60">
-                    Estado da moto na devolução
+                    Estado da moto na conclusão do contrato
                   </p>
                 </div>
               </div>
@@ -262,7 +271,7 @@ export default function AluguelDetalhePage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={src}
-                        alt={`Devolução ${i + 1}`}
+                        alt={`Conclusão ${i + 1}`}
                         className="w-full h-full object-cover hover:scale-105 transition"
                       />
                     </a>
@@ -270,14 +279,14 @@ export default function AluguelDetalhePage() {
                 </div>
               ) : (
                 <div className="text-sm text-keu-black/60 italic mb-4">
-                  Sem fotos na devolução.
+                  Sem fotos na conclusão.
                 </div>
               )}
 
               {aluguel.observacoesFim && (
                 <div className="p-4 bg-keu-gray-light rounded-lg mb-4">
                   <div className="text-xs uppercase tracking-wide font-semibold text-keu-black/60 mb-1 flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Observações da devolução
+                    <FileText className="h-3 w-3" /> Observações da conclusão
                   </div>
                   <p className="text-sm whitespace-pre-wrap">
                     {aluguel.observacoesFim}
@@ -303,12 +312,6 @@ export default function AluguelDetalhePage() {
                               {av.descricao}
                             </div>
                             <div className="text-xs text-keu-black/60 flex items-center gap-3 mt-1">
-                              {av.cobradoCaucao && (
-                                <span className="inline-flex items-center gap-1">
-                                  <DollarSign className="h-3 w-3" />
-                                  Cobrado da caução
-                                </span>
-                              )}
                               {av.reparado && (
                                 <span className="inline-flex items-center gap-1 text-emerald-700">
                                   <Wrench className="h-3 w-3" /> Reparado
@@ -376,14 +379,16 @@ export default function AluguelDetalhePage() {
                 icon={<Calendar className="h-3.5 w-3.5" />}
               />
               <InfoBox
-                label="Devolução real"
+                label="Data de conclusão"
                 value={
-                  aluguel.dataDevolucao
+                  aluguel.dataConclusao
+                    ? formatDate(aluguel.dataConclusao)
+                    : aluguel.dataDevolucao
                     ? formatDate(aluguel.dataDevolucao)
                     : "—"
                 }
                 icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                highlight={!!aluguel.dataDevolucao}
+                highlight={!!(aluguel.dataConclusao || aluguel.dataDevolucao)}
               />
               <InfoBox
                 label="KM inicial"
@@ -439,12 +444,30 @@ export default function AluguelDetalhePage() {
                   {formatCurrency(aluguel.valorTotal)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-keu-black/60">Caução</span>
-                <span className="font-semibold">
-                  {formatCurrency(aluguel.caucao)}
-                </span>
-              </div>
+              {aluguel.valorEntrada !== undefined &&
+                aluguel.valorEntrada > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-keu-black/60">Entrada paga</span>
+                    <span className="font-semibold">
+                      {formatCurrency(aluguel.valorEntrada)}
+                    </span>
+                  </div>
+                )}
+              {aluguel.valorParcela !== undefined &&
+                aluguel.numeroParcelas !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-keu-black/60">
+                      Parcelas{" "}
+                      {aluguel.frequenciaParcela === "quinzenal"
+                        ? "(quinzenal)"
+                        : "(mensal)"}
+                    </span>
+                    <span className="font-semibold">
+                      {aluguel.parcelasPagas ?? 0}/{aluguel.numeroParcelas} ×{" "}
+                      {formatCurrency(aluguel.valorParcela)}
+                    </span>
+                  </div>
+                )}
 
               {isConcluido && (
                 <>
@@ -461,14 +484,6 @@ export default function AluguelDetalhePage() {
                     <span className="text-keu-black/60">Multa por atraso</span>
                     <span className="font-semibold text-red-600">
                       − {formatCurrency(aluguel.multaAtraso ?? 0)}
-                    </span>
-                  </div>
-                  <div className="pt-3 border-t border-keu-black/5 flex justify-between items-center bg-emerald-50 -mx-6 px-6 py-3">
-                    <span className="font-bold text-emerald-800">
-                      Caução a devolver
-                    </span>
-                    <span className="font-black text-lg text-emerald-700">
-                      {formatCurrency(aluguel.valorAReceberCaucao ?? 0)}
                     </span>
                   </div>
                 </>
@@ -624,10 +639,6 @@ function DevolucaoModal({
   );
 
   const multa = typeof multaAtraso === "number" ? multaAtraso : 0;
-  const valorAReceberCaucao = Math.max(
-    0,
-    aluguel.caucao - custoTotalAvarias - multa
-  );
 
   function addAvaria() {
     setAvarias((prev) => [
@@ -676,9 +687,13 @@ function DevolucaoModal({
     }
 
     const ok = await confirmDialog({
-      title: "Confirmar devolução",
-      message: `A locação será encerrada. Caução a devolver: ${formatCurrency(valorAReceberCaucao)}. Confirmar?`,
-      confirmText: "Confirmar devolução",
+      title: "Concluir contrato",
+      message: `O contrato será encerrado.${
+        custoTotalAvarias + multa > 0
+          ? ` Encargos: ${formatCurrency(custoTotalAvarias + multa)}.`
+          : ""
+      } Confirmar?`,
+      confirmText: "Confirmar conclusão",
       variant: "destructive",
     });
     if (!ok) return;
@@ -729,7 +744,7 @@ function DevolucaoModal({
           {/* HEADER */}
           <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-keu-black/10 flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-lg">Receber devolução</h2>
+              <h2 className="font-bold text-lg">Concluir contrato</h2>
               <p className="text-xs text-keu-black/60">
                 {aluguel.motoModelo} — {aluguel.clienteNome}
               </p>
@@ -942,40 +957,34 @@ function DevolucaoModal({
               </div>
             </div>
 
-            {/* Simulação financeira */}
-            <Card className="p-4 bg-emerald-50 border-emerald-200">
-              <div className="text-xs uppercase tracking-wide font-bold text-emerald-800 mb-3 flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5" /> Simulação da caução
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-keu-black/70">Caução paga</span>
-                  <span className="font-semibold">
-                    {formatCurrency(aluguel.caucao)}
-                  </span>
+            {/* Resumo de encargos */}
+            {(custoTotalAvarias > 0 || multa > 0) && (
+              <Card className="p-4 bg-amber-50 border-amber-200">
+                <div className="text-xs uppercase tracking-wide font-bold text-amber-800 mb-3 flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5" /> Encargos da conclusão
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-keu-black/70">Custo das avarias</span>
-                  <span className="font-semibold text-red-600">
-                    − {formatCurrency(custoTotalAvarias)}
-                  </span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-keu-black/70">Custo das avarias</span>
+                    <span className="font-semibold text-red-600">
+                      {formatCurrency(custoTotalAvarias)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-keu-black/70">Multa por atraso</span>
+                    <span className="font-semibold text-red-600">
+                      {formatCurrency(multa)}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-amber-200 flex justify-between items-center">
+                    <span className="font-bold text-amber-800">Total</span>
+                    <span className="font-black text-xl text-amber-700">
+                      {formatCurrency(custoTotalAvarias + multa)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-keu-black/70">Multa por atraso</span>
-                  <span className="font-semibold text-red-600">
-                    − {formatCurrency(multa)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-emerald-200 flex justify-between items-center">
-                  <span className="font-bold text-emerald-800">
-                    Caução a devolver
-                  </span>
-                  <span className="font-black text-xl text-emerald-700">
-                    {formatCurrency(valorAReceberCaucao)}
-                  </span>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            )}
           </div>
 
           {/* FOOTER */}
@@ -995,7 +1004,7 @@ function DevolucaoModal({
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-4 w-4" /> Confirmar devolução
+                  <CheckCircle2 className="h-4 w-4" /> Confirmar conclusão
                 </>
               )}
             </Button>

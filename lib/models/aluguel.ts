@@ -27,7 +27,23 @@ export interface IAluguelDoc {
 
   dataInicio: Date;
   dataFim: Date;
+  // `dataConclusao` é o nome novo (Plano Conquista — moto vira do cliente
+  // ao fim do contrato). `dataDevolucao` mantido como alias legado pra
+  // compatibilidade com dados antigos; lemos ambos.
+  dataConclusao?: Date;
   dataDevolucao?: Date;
+
+  // === PLANO CONQUISTA / VENDA DIRETA ===
+  // No Plano Conquista, cliente paga entrada + parcelas QUINZENAIS;
+  // ao final do contrato a moto fica com ele (não há devolução nem caução).
+  tipoPlano?: "conquista" | "venda-direta";
+  valorEntrada?: number;
+  dataEntrada?: Date;
+  valorParcela?: number;
+  numeroParcelas?: number;
+  parcelasPagas?: number;
+  frequenciaParcela?: "quinzenal" | "mensal";
+  proximaParcelaEm?: Date;
 
   valorDiariaUsada?: number;
   valorSemanalUsada?: number;
@@ -35,6 +51,8 @@ export interface IAluguelDoc {
   modalidadeAplicada?: "diaria" | "semanal" | "mensal";
   diasContratados: number;
   valorTotal: number;
+  /** @deprecated — KEU não trabalha mais com caução. Mantido pra leitura
+   *  de docs legados. */
   caucao: number;
 
   km_inicial: number;
@@ -95,7 +113,26 @@ const AluguelSchema = new Schema<IAluguelDoc>(
 
     dataInicio: { type: Date, required: true, index: true },
     dataFim: { type: Date, required: true },
+    dataConclusao: Date,
     dataDevolucao: Date,
+
+    // Plano Conquista (default) — entrada + parcelas quinzenais
+    tipoPlano: {
+      type: String,
+      enum: ["conquista", "venda-direta"],
+      default: "conquista",
+    },
+    valorEntrada: { type: Number, min: 0 },
+    dataEntrada: Date,
+    valorParcela: { type: Number, min: 0 },
+    numeroParcelas: { type: Number, min: 1 },
+    parcelasPagas: { type: Number, min: 0, default: 0 },
+    frequenciaParcela: {
+      type: String,
+      enum: ["quinzenal", "mensal"],
+      default: "quinzenal",
+    },
+    proximaParcelaEm: Date,
 
     valorDiariaUsada: Number,
     valorSemanalUsada: Number,
@@ -106,7 +143,8 @@ const AluguelSchema = new Schema<IAluguelDoc>(
     },
     diasContratados: { type: Number, required: true, min: 1 },
     valorTotal: { type: Number, required: true, min: 0 },
-    caucao: { type: Number, required: true, min: 0, default: 0 },
+    // Mantido por compat com docs antigos. Não exigido nem usado.
+    caucao: { type: Number, min: 0, default: 0 },
 
     km_inicial: { type: Number, required: true, min: 0 },
     km_final: { type: Number, min: 0 },

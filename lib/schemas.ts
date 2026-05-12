@@ -264,7 +264,17 @@ export const aluguelCreateSchema = z
     modalidadeAplicada: z.enum(["diaria", "semanal", "mensal"]).optional(),
     diasContratados: z.number().int().min(1),
     valorTotal: z.number().min(0),
-    caucao: z.number().min(0).default(0),
+    // Plano Conquista (entrada + parcelas quinzenais)
+    tipoPlano: z.enum(["conquista", "venda-direta"]).optional(),
+    valorEntrada: z.number().min(0).optional(),
+    dataEntrada: z.union([z.string(), z.date()]).optional(),
+    valorParcela: z.number().min(0).optional(),
+    numeroParcelas: z.number().int().min(1).max(120).optional(),
+    parcelasPagas: z.number().int().min(0).optional(),
+    frequenciaParcela: z.enum(["quinzenal", "mensal"]).optional(),
+    proximaParcelaEm: z.union([z.string(), z.date()]).optional(),
+    // Mantido por compat — KEU não trabalha com caução.
+    caucao: z.number().min(0).default(0).optional(),
 
     km_inicial: z.number().min(0),
     km_final: z.number().min(0).optional(),
