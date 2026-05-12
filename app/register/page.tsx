@@ -26,7 +26,6 @@ type RegisterForm = {
   telefone: string;
   senha: string;
   confirmar: string;
-  role: "cliente" | "vendedor";
 };
 
 export default function RegisterPage() {
@@ -37,7 +36,6 @@ export default function RegisterPage() {
     telefone: "",
     senha: "",
     confirmar: "",
-    role: "cliente",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +67,7 @@ export default function RegisterPage() {
         options: {
           data: {
             nome: form.nome,
-            role: form.role,
+            role: "cliente",
             telefone: form.telefone,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -88,7 +86,7 @@ export default function RegisterPage() {
       // Se já há sessão ativa (email confirmation desligada), redireciona
       if (data.session) {
         toast.success("Conta criada!");
-        router.push(form.role === "vendedor" ? "/dashboard" : "/dashboard");
+        router.push("/dashboard");
         router.refresh();
       } else {
         setSuccess(true);
@@ -138,31 +136,6 @@ export default function RegisterPage() {
               <p className="text-keu-black/60">
                 Junte-se à família KEU em segundos
               </p>
-            </div>
-
-            <div className="flex bg-keu-gray-light rounded-lg p-1 mb-6">
-              <button
-                type="button"
-                onClick={() => set("role", "cliente")}
-                className={`flex-1 py-2 px-4 text-sm font-semibold rounded-md transition ${
-                  form.role === "cliente"
-                    ? "bg-white text-keu-red shadow-sm"
-                    : "text-keu-black/60 hover:text-keu-black"
-                }`}
-              >
-                Sou Cliente
-              </button>
-              <button
-                type="button"
-                onClick={() => set("role", "vendedor")}
-                className={`flex-1 py-2 px-4 text-sm font-semibold rounded-md transition ${
-                  form.role === "vendedor"
-                    ? "bg-white text-keu-red shadow-sm"
-                    : "text-keu-black/60 hover:text-keu-black"
-                }`}
-              >
-                Sou Vendedor
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -252,13 +225,6 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </div>
-
-              {form.role === "vendedor" && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
-                  <strong>Atenção:</strong> contas de vendedor precisam ser
-                  aprovadas pelo administrador antes do acesso completo.
-                </div>
-              )}
 
               {error && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">

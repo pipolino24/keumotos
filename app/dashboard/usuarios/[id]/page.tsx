@@ -72,6 +72,9 @@ export default function EditarUsuarioPage() {
   const [telefone, setTelefone] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
+  const [role, setRole] = useState<"admin" | "vendedor" | "cliente" | "afiliado">(
+    "cliente"
+  );
   const [status, setStatus] = useState<"ativo" | "inativo" | "pendente">(
     "ativo"
   );
@@ -86,6 +89,7 @@ export default function EditarUsuarioPage() {
       setTelefone(user.telefone);
       setCidade(user.cidade ?? "");
       setEstado(user.estado ?? "");
+      setRole(user.role);
       setStatus(user.status);
       setSelectedCargoId(user.cargoId ?? "");
     }
@@ -132,6 +136,7 @@ export default function EditarUsuarioPage() {
           telefone,
           cidade,
           estado,
+          role,
           status,
           cargoId: selectedCargoId || null,
           permissoes: finalPermissions,
@@ -460,6 +465,30 @@ export default function EditarUsuarioPage() {
                   onChange={(e) => setTelefone(e.target.value)}
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="role">Nível do usuário</Label>
+                <Select
+                  id="role"
+                  value={role}
+                  onChange={(e) =>
+                    setRole(
+                      e.target.value as
+                        | "admin"
+                        | "vendedor"
+                        | "cliente"
+                        | "afiliado"
+                    )
+                  }
+                >
+                  <option value="cliente">Cliente</option>
+                  <option value="vendedor">Vendedor</option>
+                  <option value="afiliado">Afiliado</option>
+                  <option value="admin">Administrador</option>
+                </Select>
+                <p className="text-xs text-keu-black/50 mt-1">
+                  Cadastro público sempre cria como cliente. Promova aqui.
+                </p>
               </div>
               <div>
                 <Label htmlFor="status">Status</Label>
