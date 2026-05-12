@@ -49,7 +49,11 @@ export async function GET(req: NextRequest) {
       query.dataInicio = range;
     }
 
-    const alugueis = await Aluguel.find(query).sort({ dataInicio: -1 }).lean();
+    const alugueis = await Aluguel.find(query)
+      .sort({ dataInicio: -1 })
+      .limit(500)
+      .lean()
+      .maxTimeMS(15_000);
     return NextResponse.json({ alugueis });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

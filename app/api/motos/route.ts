@@ -28,6 +28,17 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const setor = searchParams.get("setor");
     const search = searchParams.get("q");
+    // Por default retornamos só a foto-capa (1 foto). Páginas que precisam
+    // de todas as fotos (estoque/[id]) passam ?full=1. Sem isso, listagens
+    // de 50+ motos com 5+ fotos base64 cada inflavam o payload pra 50MB+
+    // e travavam o catálogo / dashboard.
+    const wantFull = searchParams.get("full") === "1";
+    // Limite default razoável; máximo de segurança 2000.
+    const limitRaw = Number(searchParams.get("limit"));
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0
+        ? Math.min(Math.floor(limitRaw), 2000)
+        : 500;
 
     const query: Record<string, unknown> = {};
     if (tipo) query.tipo = tipo;
@@ -48,11 +59,21 @@ export async function GET(req: NextRequest) {
     const auth = await requireAuth();
     const isStaff =
       auth.ok && (auth.role === "admin" || auth.role === "vendedor");
-    const projection = isStaff ? undefined : CAMPOS_PRIVADOS;
 
-    const motos = await Moto.find(query, projection)
+    // Combina projection privada + slice de fotos
+    const projection: Record<string, unknown> = isStaff
+      ? {}
+      : { ...CAMPOS_PRIVADOS };
+    if (!wantFull) projection.fotos = { $slice: 1 };
+
+    const motos = await Moto.find(
+      query,
+      Object.keys(projection).length ? projection : undefined
+    )
       .sort({ createdAt: -1 })
-      .lean();
+      .limit(limit)
+      .lean()
+      .maxTimeMS(15_000);
     return NextResponse.json({ motos });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

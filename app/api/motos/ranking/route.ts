@@ -19,53 +19,56 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const limit = Math.min(Number(searchParams.get("limit")) || 10, 50);
 
-    // Top motos por viewCount
-    const topMotos = await Moto.find(
-      {},
-      {
-        marca: 1,
-        modelo: 1,
-        anoModelo: 1,
-        viewCount: 1,
-        valorAnunciado: 1,
-        status: 1,
-        destaque: 1,
-        fotos: { $slice: 1 },
-      }
-    )
-      .sort({ viewCount: -1, createdAt: -1 })
-      .limit(limit)
-      .lean();
-
-    // Agrega contagens de Interesse por motoId nas últimas 30 dias
     const desde = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const interesseStats = await Interesse.aggregate([
-      { $match: { createdAt: { $gte: desde } } },
-      {
-        $group: {
-          _id: "$motoId",
-          totalInteresses: { $sum: 1 },
-          leads: {
-            $sum: {
-              $cond: [
-                {
-                  $in: [
-                    "$tipo",
-                    [
-                      "enviou_lead",
-                      "solicitou_aluguel",
-                      "solicitou_compra",
-                      "simulou_financiamento",
+
+    // 2 queries em paralelo: top motos + stats de interesse por moto
+    const [topMotos, interesseStats] = await Promise.all([
+      Moto.find(
+        {},
+        {
+          marca: 1,
+          modelo: 1,
+          anoModelo: 1,
+          viewCount: 1,
+          valorAnunciado: 1,
+          status: 1,
+          destaque: 1,
+          fotos: { $slice: 1 },
+        }
+      )
+        .sort({ viewCount: -1, createdAt: -1 })
+        .limit(limit)
+        .lean()
+        .maxTimeMS(12_000),
+      Interesse.aggregate([
+        { $match: { createdAt: { $gte: desde } } },
+        { $limit: 20_000 },
+        {
+          $group: {
+            _id: "$motoId",
+            totalInteresses: { $sum: 1 },
+            leads: {
+              $sum: {
+                $cond: [
+                  {
+                    $in: [
+                      "$tipo",
+                      [
+                        "enviou_lead",
+                        "solicitou_aluguel",
+                        "solicitou_compra",
+                        "simulou_financiamento",
+                      ],
                     ],
-                  ],
-                },
-                1,
-                0,
-              ],
+                  },
+                  1,
+                  0,
+                ],
+              },
             },
           },
         },
-      },
+      ]).option({ maxTimeMS: 12_000 }),
     ]);
     const statsMap = new Map(
       interesseStats.map((s) => [

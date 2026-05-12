@@ -49,7 +49,11 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const contatos = await Contato.find(query).sort({ createdAt: -1 }).lean();
+    const contatos = await Contato.find(query)
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean()
+      .maxTimeMS(15_000);
     return NextResponse.json({ contatos });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";

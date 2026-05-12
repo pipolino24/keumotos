@@ -51,20 +51,19 @@ const adminNavItems = [
 ];
 
 /**
- * Wrapper que injeta o count de notificações não lidas no item "Meu painel"
- * do sidebar — sem precisar de NotificationsBell visível em mobile.
+ * Renderiza o conteúdo do link (ícone + label + badge). Recebe `unreadCount`
+ * já calculado pelo parent — antes esse componente chamava useNotifications
+ * em cada link do nav (6+ pollings paralelos a cada 25s).
  */
 function NavLinkInner({
   icon: Icon,
   label,
-  showBadge,
+  unread,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  showBadge?: boolean;
+  unread: number;
 }) {
-  const { unreadCount } = useNotifications();
-  const unread = showBadge ? unreadCount : 0;
   return (
     <>
       <span className="relative flex-shrink-0">
@@ -93,6 +92,8 @@ function SidebarContent({
   userRole: string;
   onItemClick?: () => void;
 }) {
+  // 1 polling do hook por instância do sidebar — não por item de nav
+  const { unreadCount } = useNotifications();
   return (
     <>
       <div className="p-5 border-b border-keu-black/5">
@@ -123,7 +124,11 @@ function SidebarContent({
                   : "text-keu-black/70 hover:bg-keu-gray-light hover:text-keu-black"
               )}
             >
-              <NavLinkInner icon={item.icon} label={item.label} showBadge={showBadge} />
+              <NavLinkInner
+                icon={item.icon}
+                label={item.label}
+                unread={showBadge ? unreadCount : 0}
+              />
               {isActive && (
                 <span className="h-1.5 w-1.5 rounded-full bg-white" />
               )}
