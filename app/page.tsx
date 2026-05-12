@@ -253,6 +253,84 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* PLANO CONQUISTA */}
+      <section
+        id="plano-conquista"
+        className="py-20 md:py-28 bg-gradient-to-br from-keu-red to-keu-red-dark text-white relative overflow-hidden"
+      >
+        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+        <div className="relative container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-12">
+            <span className="inline-block px-3 py-1 bg-white text-keu-red rounded-full text-xs font-bold uppercase tracking-wide">
+              Exclusivo KEU
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black mt-4 mb-3">
+              Plano <span className="text-amber-300">Conquista</span>
+            </h2>
+            <p className="text-white/85 text-lg max-w-2xl mx-auto">
+              Saia hoje com sua moto e pague no plano que cabe no seu bolso —
+              entrada + parcelas <strong>quinzenais</strong>. Ao fim do
+              contrato, <strong>a moto é sua</strong>.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6 mb-10">
+            {[
+              {
+                step: "1",
+                title: "Você paga uma entrada",
+                desc: "Defina junto com a gente um valor inicial que cabe no seu orçamento.",
+              },
+              {
+                step: "2",
+                title: "Paga parcelas quinzenais",
+                desc: "A cada 15 dias, parcelas fixas — sem caução, sem surpresa.",
+              },
+              {
+                step: "3",
+                title: "No fim, a moto é sua",
+                desc: "Concluiu todas as parcelas? Pronto — a documentação fica em seu nome.",
+              },
+            ].map((s) => (
+              <Card
+                key={s.step}
+                className="p-6 bg-white/10 backdrop-blur border-white/20 text-white"
+              >
+                <div className="w-10 h-10 rounded-full bg-amber-400 text-keu-red font-black flex items-center justify-center text-lg mb-3 shadow-lg">
+                  {s.step}
+                </div>
+                <h3 className="font-bold text-lg mb-1">{s.title}</h3>
+                <p className="text-sm text-white/80">{s.desc}</p>
+              </Card>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/motos"
+              className={cn(
+                buttonVariants({ variant: "white", size: "lg" }),
+                "shadow-xl"
+              )}
+            >
+              Ver motos disponíveis <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="https://wa.me/5588998505859?text=Quero%20saber%20mais%20sobre%20o%20Plano%20Conquista"
+              target="_blank"
+              rel="noopener"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                "border-white/40 text-white hover:bg-white/10 hover:border-white"
+              )}
+            >
+              <Phone className="h-4 w-4" /> Falar com a KEU
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* SERVIÇOS */}
       <section id="servicos" className="py-20 md:py-28 bg-white">
         <div className="container mx-auto px-4 max-w-7xl">

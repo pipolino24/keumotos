@@ -36,7 +36,13 @@ export async function POST(req: NextRequest) {
       motoIdSeguro = motoId;
     }
 
-    const afiliado = await Afiliado.findOne({ codigo, status: "ativo" });
+    // Só conta tracking de afiliados ATIVOS e APROVADOS — pendentes
+    // de aprovação não devem creditar cliques/conversões.
+    const afiliado = await Afiliado.findOne({
+      codigo,
+      status: "ativo",
+      aprovado: true,
+    });
     if (!afiliado) {
       return NextResponse.json(
         { error: "Afiliado não encontrado ou inativo" },

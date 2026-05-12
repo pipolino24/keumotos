@@ -60,7 +60,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         clienteId: id,
         status: { $in: ["ativo", "atrasado"] },
       })
-        .select("motoModelo motoMarca dataFim status")
+        .select(
+          "motoModelo motoMarca dataFim status tipoPlano valorParcela numeroParcelas parcelasPagas frequenciaParcela proximaParcelaEm"
+        )
         .lean(),
       Venda.find({
         clienteId: id,
@@ -73,8 +75,44 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
     const acoes: ProximaAcao[] = [];
 
-    // Devoluções pendentes (aluguel ativo)
+    // Aluguéis ativos — eventos diferentes pra Plano Conquista vs aluguel clássico:
+    //  - Conquista: cliente paga parcelas quinzenais e fica com a moto ao fim.
+    //    Mostra a PRÓXIMA PARCELA, não devolução.
+    //  - Outros: mostra a data prevista de conclusão do contrato.
     for (const a of alugueisAtivos) {
+      const isConquista = a.tipoPlano === "conquista";
+
+      if (isConquista && a.proximaParcelaEm) {
+        const dt = new Date(a.proximaParcelaEm).getTime();
+        const diasRest = Math.ceil(
+          (dt - hoje.getTime()) / (24 * 60 * 60 * 1000)
+        );
+        if (diasRest <= 60) {
+          const ja = a.parcelasPagas ?? 0;
+          const total = a.numeroParcelas ?? 0;
+          acoes.push({
+            id: `conquista-${a._id}`,
+            tipo: "parcela-pagar",
+            titulo: `Parcela ${ja + 1}${
+              total ? `/${total}` : ""
+            } — ${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
+            descricao: `Plano Conquista${
+              a.frequenciaParcela === "quinzenal" ? " (quinzenal)" : ""
+            } · vence ${new Date(a.proximaParcelaEm).toLocaleDateString(
+              "pt-BR"
+            )}`,
+            data: new Date(a.proximaParcelaEm).toISOString(),
+            diasRestantes: diasRest,
+            prioridade:
+              diasRest < 0 ? "alta" : diasRest <= 5 ? "alta" : "normal",
+            valor: a.valorParcela,
+            link: "/dashboard",
+          });
+        }
+        continue;
+      }
+
+      // Aluguel não-Conquista: data de conclusão prevista
       if (!a.dataFim) continue;
       const dt = new Date(a.dataFim).getTime();
       const diasRest = Math.ceil((dt - hoje.getTime()) / (24 * 60 * 60 * 1000));
@@ -83,8 +121,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         id: `dev-${a._id}`,
         tipo: venceu ? "aluguel-vencido" : "devolucao-aluguel",
         titulo: venceu
-          ? `Devolução atrasada — ${a.motoMarca ?? ""} ${a.motoModelo}`.trim()
-          : `Devolver moto — ${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
+          ? `Conclusão atrasada — ${a.motoMarca ?? ""} ${a.motoModelo}`.trim()
+          : `Conclusão do contrato — ${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
         descricao: venceu
           ? "Procure a loja para regularizar"
           : "Confirme data e horário com o vendedor",

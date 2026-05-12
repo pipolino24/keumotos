@@ -91,6 +91,13 @@ interface AluguelCliente {
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
   vendedorId?: string;
   vendedorNome?: string;
+  // Plano Conquista (entrada + parcelas quinzenais)
+  tipoPlano?: "conquista" | "venda-direta";
+  valorParcela?: number;
+  numeroParcelas?: number;
+  parcelasPagas?: number;
+  frequenciaParcela?: "quinzenal" | "mensal";
+  proximaParcelaEm?: string;
 }
 
 function ClienteDashboard() {
@@ -599,12 +606,37 @@ function calcularProximosPagamentos(
   }
 
   for (const a of alugueisAtivos) {
+    // Plano Conquista: parcelas quinzenais — mostra a PRÓXIMA parcela,
+    // não a data de conclusão do contrato.
+    if (
+      a.tipoPlano === "conquista" &&
+      a.proximaParcelaEm &&
+      a.valorParcela
+    ) {
+      const venc = new Date(a.proximaParcelaEm);
+      const ja = a.parcelasPagas ?? 0;
+      const total = a.numeroParcelas ?? 0;
+      out.push({
+        id: `${a._id}-parcela`,
+        tipo: "aluguel",
+        titulo: `${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
+        subtitulo: `Plano Conquista${
+          a.frequenciaParcela === "quinzenal" ? " (quinzenal)" : ""
+        } · parcela ${ja + 1}${total ? `/${total}` : ""}`,
+        valor: a.valorParcela,
+        vencimento: venc,
+        atrasado: venc < hoje,
+      });
+      continue;
+    }
+
+    // Aluguel clássico: mostra a data de conclusão prevista
     const fim = new Date(a.dataFim);
     out.push({
       id: a._id,
       tipo: "aluguel",
       titulo: `${a.motoMarca ?? ""} ${a.motoModelo}`.trim(),
-      subtitulo: `Aluguel ativo — devolução prevista`,
+      subtitulo: "Contrato em andamento — conclusão prevista",
       valor: a.valorTotal,
       vencimento: fim,
       atrasado: a.status === "atrasado" || fim < hoje,
@@ -760,14 +792,16 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
             type="button"
             onClick={solicitarDevolucao}
             className="text-[10px] text-keu-black/50 hover:text-keu-red font-semibold underline"
-            title="Avisa o vendedor que você quer devolver a moto"
+            title="Avisa a loja que você quer concluir o contrato"
           >
-            Quero devolver
+            {aluguel.tipoPlano === "conquista"
+              ? "Solicitar conclusão"
+              : "Solicitar conclusão"}
           </button>
         )}
         {requestSent && (
           <span className="text-[10px] text-emerald-700 font-semibold">
-            ✓ vendedor avisado
+            ✓ loja avisada
           </span>
         )}
       </div>
@@ -879,9 +913,16 @@ interface AluguelStaff {
   clienteTelefone?: string;
   dataInicio: string;
   dataFim: string;
+  dataConclusao?: string;
   dataDevolucao?: string;
   valorTotal: number;
   status: "ativo" | "concluido" | "atrasado" | "cancelado";
+  tipoPlano?: "conquista" | "venda-direta";
+  valorParcela?: number;
+  numeroParcelas?: number;
+  parcelasPagas?: number;
+  proximaParcelaEm?: string;
+  frequenciaParcela?: "quinzenal" | "mensal";
 }
 
 function StaffDashboard() {
@@ -906,12 +947,12 @@ function StaffDashboard() {
   const todosAlugueis = alugData?.alugueis ?? [];
 
   const motosDisponiveis = motos.filter((m) => m.status === "disponivel").length;
-  const meusLeads = contatos.filter(
-    (c) => c.vendedorResponsavel === me.nome || c.status === "novo"
-  );
-  const meusLeadsAtivos = meusLeads.filter(
+  // Pool compartilhado: todos os contatos são da equipe — sem filtro
+  // por vendedor responsável.
+  const meusLeadsAtivos = contatos.filter(
     (c) => c.status === "novo" || c.status === "em-atendimento"
   );
+  const meusLeads = contatos;
 
   // Vendas: admin vê todas, vendedor vê só as próprias (a API já filtra,
   // mas como vendedorId no shape pode vir vazio, mantemos só ordenação).
@@ -992,7 +1033,9 @@ function StaffDashboard() {
     .sort((a, b) => a.dataFimDt.getTime() - b.dataFimDt.getTime())
     .slice(0, 5);
 
-  // Próximas parcelas (parcelado-loja) vencendo até 30 dias
+  // Próximas parcelas vencendo até 30 dias — inclui:
+  //  - Vendas parceladas direto na loja
+  //  - Aluguéis do Plano Conquista (parcelas quinzenais ou mensais)
   const limite30 = new Date(hoje);
   limite30.setDate(limite30.getDate() + 30);
   const proximasParcelas: Array<{
@@ -1003,6 +1046,7 @@ function StaffDashboard() {
     parcelasPagasLoja: number;
     parcelasLoja: number;
     proxima: Date;
+    origem: "venda" | "conquista";
   }> = [];
   for (const v of todasVendas) {
     if (v.status !== "concluida") continue;
@@ -1019,8 +1063,25 @@ function StaffDashboard() {
         parcelasPagasLoja: p.parcelasPagasLoja ?? 0,
         parcelasLoja: p.parcelasLoja ?? 0,
         proxima: prox,
+        origem: "venda",
       });
     }
+  }
+  for (const a of todosAlugueis) {
+    if (a.tipoPlano !== "conquista") continue;
+    if (!a.proximaParcelaEm || !a.valorParcela) continue;
+    const prox = new Date(a.proximaParcelaEm);
+    if (prox > limite30) continue;
+    proximasParcelas.push({
+      vendaId: a._id,
+      clienteNome: a.clienteNome,
+      motoModelo: a.motoModelo,
+      valorParcela: a.valorParcela,
+      parcelasPagasLoja: a.parcelasPagas ?? 0,
+      parcelasLoja: a.numeroParcelas ?? 0,
+      proxima: prox,
+      origem: "conquista",
+    });
   }
   proximasParcelas.sort((a, b) => a.proxima.getTime() - b.proxima.getTime());
 
@@ -1060,7 +1121,7 @@ function StaffDashboard() {
         />
         <StatCard
           icon={<Phone className="h-5 w-5" />}
-          label="Meus leads ativos"
+          label="Leads ativos"
           value={meusLeadsAtivos.length.toString()}
           trend={`${meusLeads.length} no total`}
           color="bg-blue-500"
@@ -1192,7 +1253,7 @@ function StaffDashboard() {
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">Próximas devoluções</h3>
+              <h3 className="font-bold text-lg">Próximas conclusões</h3>
               {proximasDevolucoes.length > 0 && (
                 <Badge variant="warning" className="text-[10px]">
                   {proximasDevolucoes.length}
@@ -1295,7 +1356,11 @@ function StaffDashboard() {
                   return (
                     <Link
                       key={`${p.vendaId}-${i}`}
-                      href={`/dashboard/vendas/${p.vendaId}`}
+                      href={
+                        p.origem === "conquista"
+                          ? `/dashboard/aluguel/${p.vendaId}`
+                          : `/dashboard/vendas/${p.vendaId}`
+                      }
                       className="block group"
                     >
                       <div className="flex items-center gap-3 p-2 -mx-2 rounded-lg group-hover:bg-keu-gray-light transition">
@@ -1310,11 +1375,17 @@ function StaffDashboard() {
                           )}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm truncate">
+                          <div className="font-semibold text-sm truncate flex items-center gap-1.5">
                             {p.clienteNome}
+                            {p.origem === "conquista" && (
+                              <Badge variant="default" className="text-[9px]">
+                                Conquista
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-xs text-keu-black/60 truncate">
-                            {p.parcelasPagasLoja + 1}/{p.parcelasLoja} ·{" "}
+                            {p.parcelasPagasLoja + 1}
+                            {p.parcelasLoja > 0 ? `/${p.parcelasLoja}` : ""} ·{" "}
                             {p.motoModelo}
                           </div>
                         </div>
