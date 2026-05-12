@@ -70,7 +70,7 @@ export function useNotifications(pollIntervalMs = 25000) {
   }, [fetchOnce, pollIntervalMs]);
 
   const markRead = useCallback(async (ids: string[]) => {
-    // otimista
+    // Atualização otimista
     setData((prev) => ({
       notifications: prev.notifications.map((n) =>
         ids.includes(n._id) ? { ...n, lido: true } : n
@@ -81,11 +81,20 @@ export function useNotifications(pollIntervalMs = 25000) {
           prev.notifications.filter((n) => ids.includes(n._id) && !n.lido).length
       ),
     }));
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids, acao: "ler" }),
-    });
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, acao: "ler" }),
+      });
+      const json = await res.json().catch(() => null);
+      // Reconcilia com o valor autoritativo do servidor
+      if (json && typeof json.unreadCount === "number" && mounted.current) {
+        setData((prev) => ({ ...prev, unreadCount: json.unreadCount }));
+      }
+    } catch {
+      // silent — o polling regular vai reconciliar
+    }
   }, []);
 
   const markAllRead = useCallback(async () => {
@@ -93,11 +102,19 @@ export function useNotifications(pollIntervalMs = 25000) {
       notifications: prev.notifications.map((n) => ({ ...n, lido: true })),
       unreadCount: 0,
     }));
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ acao: "ler_todas" }),
-    });
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "ler_todas" }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json && typeof json.unreadCount === "number" && mounted.current) {
+        setData((prev) => ({ ...prev, unreadCount: json.unreadCount }));
+      }
+    } catch {
+      // silent
+    }
   }, []);
 
   const archive = useCallback(async (ids: string[]) => {

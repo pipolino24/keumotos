@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { connectMongo } from "@/lib/mongodb";
@@ -192,10 +193,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Senha temporária criptograficamente forte (16 bytes → 22 chars base64url).
+ * Math.random NÃO serve aqui — é previsível e quebra a segurança da conta.
+ */
 function gerarSenhaTemporaria(): string {
-  return (
-    "Keu@" +
-    Math.random().toString(36).slice(2, 8) +
-    Math.random().toString(10).slice(2, 4)
-  );
+  return "Keu@" + randomBytes(16).toString("base64url").slice(0, 16);
 }

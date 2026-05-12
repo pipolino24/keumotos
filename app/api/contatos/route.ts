@@ -24,7 +24,10 @@ const INTERESSES_VALIDOS = new Set([
 ]);
 
 /**
- * GET: lista contatos — só admin/vendedor (dados de leads são privados)
+ * GET: lista contatos.
+ *  - admin vê tudo
+ *  - vendedor só vê os próprios (vendedorResponsavel match) + leads ainda
+ *    sem responsável (vendedorResponsavel ausente/vazio) pra poder pegar
  */
 export async function GET(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"]);
@@ -36,6 +39,15 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = {};
     if (status) query.status = status;
+
+    if (auth.role === "vendedor") {
+      query.$or = [
+        { vendedorResponsavel: auth.userId },
+        { vendedorResponsavel: { $exists: false } },
+        { vendedorResponsavel: null },
+        { vendedorResponsavel: "" },
+      ];
+    }
 
     const contatos = await Contato.find(query).sort({ createdAt: -1 }).lean();
     return NextResponse.json({ contatos });

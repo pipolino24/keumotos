@@ -61,9 +61,11 @@ export async function POST(req: NextRequest) {
 
     // Cria ou reaproveita user no Supabase Auth
     const admin = createSupabaseAdminClient();
+    // Senha temporária criptograficamente segura (crypto.randomBytes)
+    // — Math.random é previsível e não pode ser usado pra credentials.
+    const { randomBytes } = await import("node:crypto");
     const senhaTmp =
-      data.senha ||
-      `Keu@${Math.random().toString(36).slice(2, 8)}${Math.random().toString(10).slice(2, 4)}`;
+      data.senha || `Keu@${randomBytes(12).toString("base64url").slice(0, 14)}`;
     let userId: string;
     const created = await admin.auth.admin.createUser({
       email: data.email.toLowerCase(),

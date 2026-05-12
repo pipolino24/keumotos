@@ -22,6 +22,14 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
         { status: 404 }
       );
     }
+    // Vendedor só vê contatos atribuídos a ele
+    if (
+      auth.role === "vendedor" &&
+      contato.vendedorResponsavel &&
+      contato.vendedorResponsavel !== auth.userId
+    ) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
     return NextResponse.json({ contato });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
@@ -36,6 +44,32 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     await connectMongo();
     const { id } = await params;
     const data = await req.json();
+
+    // Verifica ownership antes de update (vendedor não muda contato de outro)
+    if (auth.role === "vendedor") {
+      const existing = await Contato.findById(id).select(
+        "vendedorResponsavel"
+      );
+      if (!existing) {
+        return NextResponse.json(
+          { error: "Contato não encontrado" },
+          { status: 404 }
+        );
+      }
+      if (
+        existing.vendedorResponsavel &&
+        existing.vendedorResponsavel !== auth.userId
+      ) {
+        return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+      }
+      // Bloqueia vendedor de atribuir contato pra outro vendedor
+      if (
+        data.vendedorResponsavel &&
+        data.vendedorResponsavel !== auth.userId
+      ) {
+        delete data.vendedorResponsavel;
+      }
+    }
 
     // Whitelist de campos que podem ser editados via PATCH
     const allowed = [

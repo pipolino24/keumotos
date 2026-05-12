@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { InteressesWidget } from "@/components/dashboard/interesses-widget";
+import { ConversaoWidget } from "@/components/dashboard/conversao-widget";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
@@ -625,6 +626,31 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
         : aluguel.status === "concluido"
           ? "secondary"
           : "warning";
+
+  // Captura now via useEffect — evita warning react-hooks/purity (React 19)
+  const [now, setNow] = useState<number>(0);
+  useEffect(() => {
+    const t = setTimeout(() => setNow(Date.now()), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  const ativo = aluguel.status === "ativo" || aluguel.status === "atrasado";
+  let countdown: { label: string; tone: "danger" | "warning" | "info" } | null = null;
+  if (ativo && now > 0) {
+    const dias = Math.ceil(
+      (new Date(aluguel.dataFim).getTime() - now) / 86400000
+    );
+    if (dias < 0) {
+      countdown = { label: `${Math.abs(dias)}d atraso`, tone: "danger" };
+    } else if (dias === 0) {
+      countdown = { label: "vence hoje", tone: "danger" };
+    } else if (dias <= 3) {
+      countdown = { label: `vence em ${dias}d`, tone: "warning" };
+    } else {
+      countdown = { label: `${dias}d restantes`, tone: "info" };
+    }
+  }
+
   return (
     <div className="p-4 px-6 flex items-center gap-4">
       <div className="bg-keu-gray-light w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -643,9 +669,25 @@ function AluguelRow({ aluguel }: { aluguel: AluguelCliente }) {
           </div>
         )}
       </div>
-      <Badge variant={variant} className="text-[10px] uppercase">
-        {aluguel.status}
-      </Badge>
+      <div className="flex flex-col items-end gap-1.5">
+        <Badge variant={variant} className="text-[10px] uppercase">
+          {aluguel.status}
+        </Badge>
+        {countdown && (
+          <span
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full",
+              countdown.tone === "danger"
+                ? "bg-red-100 text-red-700 animate-pulse-soft"
+                : countdown.tone === "warning"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-blue-100 text-blue-700"
+            )}
+          >
+            {countdown.label}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -896,8 +938,9 @@ function StaffDashboard() {
         />
       </div>
 
-      <div className="mb-6">
+      <div className="grid lg:grid-cols-[1fr_360px] gap-6 mb-6">
         <InteressesWidget limit={6} />
+        <ConversaoWidget />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

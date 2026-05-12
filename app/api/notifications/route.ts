@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
       query.prioridade = prioridade;
     }
 
-    const limit = Math.min(Number(searchParams.get("limit")) || 30, 100);
+    // Valida limit: positivo e finito, máx 100
+    const limitRaw = Number(searchParams.get("limit"));
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0
+        ? Math.min(Math.floor(limitRaw), 100)
+        : 30;
     const [notifications, unreadCount] = await Promise.all([
       Notification.find(query).sort({ createdAt: -1 }).limit(limit).lean(),
       Notification.countDocuments({
@@ -86,7 +91,19 @@ export async function PATCH(req: NextRequest) {
         : { lido: true, lidoEm: new Date() };
 
     const res = await Notification.updateMany(filter, update);
-    return NextResponse.json({ ok: true, modified: res.modifiedCount });
+
+    // Retorna o novo unreadCount pra UI atualizar o badge sem refetch
+    const unreadCount = await Notification.countDocuments({
+      destinatarioId: auth.userId,
+      lido: false,
+      arquivado: false,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      modified: res.modifiedCount,
+      unreadCount,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";
     return NextResponse.json({ error: message }, { status: 500 });

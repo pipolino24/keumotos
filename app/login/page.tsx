@@ -28,10 +28,23 @@ export default function LoginPage() {
   );
 }
 
+// Aceita só paths locais (começa com "/" mas não "//" e sem ":" pra evitar
+// open redirect tipo "?next=//evil.com" ou "?next=https://evil.com".
+function safeNextPath(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  if (typeof raw !== "string") return "/dashboard";
+  if (raw.length > 200) return "/dashboard";
+  // Path local: começa com / mas não com // ou /\\
+  if (!/^\/[^/\\]/.test(raw)) return "/dashboard";
+  // Sem protocolo embutido
+  if (raw.includes("://")) return "/dashboard";
+  return raw;
+}
+
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/dashboard";
+  const nextPath = safeNextPath(searchParams.get("next"));
 
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
