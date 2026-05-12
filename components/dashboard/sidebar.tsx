@@ -24,12 +24,17 @@ import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
 import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
-const navItems = [
+const staffNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
   { href: "/dashboard/vendas", icon: ShoppingCart, label: "Vendas" },
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
   { href: "/dashboard/contatos", icon: Phone, label: "Contatos" },
+];
+
+const clienteNavItems = [
+  { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
+  { href: "/motos", icon: Bike, label: "Catálogo" },
 ];
 
 const adminNavItems = [
@@ -65,7 +70,7 @@ function SidebarContent({
         <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-keu-black/40 px-3 mb-2 mt-1">
           Principal
         </div>
-        {navItems.map((item) => {
+        {(userRole === "cliente" ? clienteNavItems : staffNavItems).map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
