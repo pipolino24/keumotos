@@ -53,13 +53,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         { status: 409 }
       );
     }
-    // Vendedor só pode encerrar aluguéis próprios — admin pode todos
-    if (auth.role === "vendedor" && aluguel.vendedorId !== auth.userId) {
-      return NextResponse.json(
-        { error: "Sem permissão para encerrar esse aluguel" },
-        { status: 403 }
-      );
-    }
+    // Pool compartilhado: qualquer staff pode concluir qualquer contrato.
 
     const data = parsed.data;
     const custoTotalAvarias = data.avarias.reduce(

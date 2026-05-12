@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
-import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
 interface LeadQuente {
   clienteId?: string;
@@ -41,8 +40,6 @@ function tempo(iso: string): string {
 }
 
 export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
-  const me = useCurrentUser();
-  const userIsAdmin = isAdmin(me);
   const { data, loading } = useApi<{ leads: LeadQuente[] }>(
     `/api/leads-quentes?limit=${limit}`
   );
@@ -70,17 +67,12 @@ export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
               Clientes com mais engajamento — atender primeiro!
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant={userIsAdmin ? "warning" : "info"} className="text-[9px]">
-              {userIsAdmin ? "Toda equipe" : "Seus leads"}
-            </Badge>
-            <Link
-              href="/dashboard/clientes"
-              className="text-xs text-keu-red hover:underline font-semibold"
-            >
-              Clientes →
-            </Link>
-          </div>
+          <Link
+            href="/dashboard/clientes"
+            className="text-xs text-keu-red hover:underline font-semibold flex-shrink-0"
+          >
+            Clientes →
+          </Link>
         </div>
         {showInfo && (
           <div className="mt-3 p-3 rounded-lg bg-orange-50 border border-orange-200 text-[11px] text-orange-900 leading-relaxed">
@@ -95,10 +87,8 @@ export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
             <strong>Eventos quentes:</strong> enviou lead, solicitou
             aluguel/compra, simulou financiamento, favoritou.
             <br />
-            <strong>Quem você vê aqui:</strong>{" "}
-            {userIsAdmin
-              ? "TODOS os leads quentes da equipe (você é admin)."
-              : "só os leads que você está atendendo. Leads livres aparecem em ‘Leads esfriados’ pra você puxar."}
+            <strong>Pool compartilhado:</strong> toda a equipe vê os mesmos
+            leads — sem partição por vendedor.
           </div>
         )}
       </div>

@@ -29,20 +29,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     await connectMongo();
     const { id } = await params;
 
-    // Vendedor só vê clientes que atendeu (compra/aluguel/interesse atendido)
-    if (auth.role === "vendedor") {
-      const [vendaOwn, alugOwn, interesseOwn] = await Promise.all([
-        Venda.exists({ clienteId: id, vendedorId: auth.userId }),
-        Aluguel.exists({ clienteId: id, vendedorId: auth.userId }),
-        Interesse.exists({ clienteId: id, vendedorAtendeu: auth.userId }),
-      ]);
-      if (!vendaOwn && !alugOwn && !interesseOwn) {
-        return NextResponse.json(
-          { error: "Cliente não está sob seu atendimento" },
-          { status: 403 }
-        );
-      }
-    }
+    // Pool compartilhado: staff (admin e vendedor) consulta qualquer cliente.
 
     // Perfil no Supabase. Admin vê tudo; vendedor recebe payload minimizado
     // (sem CPF/RG/CNH/endereço/banco/pix) por PII minimization.
@@ -72,20 +59,11 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       );
     }
 
-    // Mongo collections: tudo o que tiver clienteId = id
-    // Vendedor só vê os próprios documentos (caso o cliente também
-    // tenha sido atendido por outros vendedores).
-    const vendaScope =
-      auth.role === "vendedor"
-        ? { clienteId: id, vendedorId: auth.userId }
-        : { clienteId: id };
-    const alugScope =
-      auth.role === "vendedor"
-        ? { clienteId: id, vendedorId: auth.userId }
-        : { clienteId: id };
+    // Pool compartilhado: todas as vendas/aluguéis/interesses do cliente
+    // são visíveis pra qualquer staff.
+    const vendaScope = { clienteId: id };
+    const alugScope = { clienteId: id };
 
-    // allSettled: se uma query falhar (timeout, índice ausente), as outras
-    // ainda retornam. Antes era Promise.all → uma falha derrubava o page todo.
     const settled = await Promise.allSettled([
       Interesse.find({ clienteId: id })
         .sort({ createdAt: -1 })

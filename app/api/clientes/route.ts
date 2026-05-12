@@ -22,24 +22,13 @@ export async function GET() {
   try {
     await connectMongo();
 
-    // Filtro de scope: vendedor só vê os próprios; admin vê tudo
-    const vendaScope =
-      auth.role === "vendedor" ? { vendedorId: auth.userId } : {};
-    const alugScope =
-      auth.role === "vendedor" ? { vendedorId: auth.userId } : {};
-    const interesseScope =
-      auth.role === "vendedor" ? { vendedorAtendeu: auth.userId } : {};
-
-    // $limit por pipeline pra evitar full scan quando collections crescerem.
-    // 5000 docs por aggregation é o suficiente pra dashboard razoável.
+    // KEU opera com pool compartilhado: admin e vendedor veem todos os
+    // clientes. (Antes filtravamos por vendedorId/vendedorAtendeu — removido.)
     const PIPELINE_LIMIT = 5000;
-    // allSettled: se uma aggregation falhar (timeout, índice), as outras
-    // continuam e a lista é entregue parcial em vez de cair toda.
     const settled = await Promise.allSettled([
       Interesse.aggregate([
         {
           $match: {
-            ...interesseScope,
             $or: [
               { clienteId: { $exists: true, $ne: null } },
               { clienteNome: { $exists: true, $ne: null } },
@@ -61,7 +50,6 @@ export async function GET() {
         },
       ]).option({ maxTimeMS: 5000 }),
       Venda.aggregate([
-        { $match: vendaScope },
         { $limit: PIPELINE_LIMIT },
         {
           $group: {
@@ -75,7 +63,6 @@ export async function GET() {
         },
       ]).option({ maxTimeMS: 5000 }),
       Aluguel.aggregate([
-        { $match: alugScope },
         { $limit: PIPELINE_LIMIT },
         {
           $group: {

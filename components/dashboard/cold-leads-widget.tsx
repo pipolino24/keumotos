@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
-import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 
 interface ColdLead {
   _id: string;
@@ -40,8 +39,6 @@ function diasAtras(iso: string): number {
  * Botão "Atender" puxa o lead pro vendedor logado.
  */
 export function ColdLeadsWidget({ limit = 6 }: { limit?: number }) {
-  const me = useCurrentUser();
-  const userIsAdmin = isAdmin(me);
   const [snapshotNow] = useState(() => 0);
   const [showInfo, setShowInfo] = useState(false);
   const { data, loading, refetch } = useApi<{ interesses: ColdLead[] }>(
@@ -85,12 +82,10 @@ export function ColdLeadsWidget({ limit = 6 }: { limit?: number }) {
               </button>
             </h2>
             <p className="text-xs text-keu-black/50">
-              Interesses sem atendente há mais de 3 dias — puxe pra você
+              Interesses sem atendente há mais de 3 dias — qualquer um pode
+              puxar
             </p>
           </div>
-          <Badge variant={userIsAdmin ? "warning" : "info"} className="text-[9px] flex-shrink-0">
-            {userIsAdmin ? "Toda equipe" : "Livres pra você"}
-          </Badge>
         </div>
         {showInfo && (
           <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200 text-[11px] text-blue-900 leading-relaxed">
@@ -100,10 +95,8 @@ export function ColdLeadsWidget({ limit = 6 }: { limit?: number }) {
             financiamento / favoritou</em>, criados há mais de 3 dias e que
             ninguém atendeu ainda.
             <br />
-            <strong>O que aparece pra você:</strong>{" "}
-            {userIsAdmin
-              ? "TODOS os leads esfriados da equipe (admin)."
-              : "leads LIVRES — ainda sem vendedor responsável. Clica em ‘Atender’ pra puxar pra você."}
+            <strong>Pool compartilhado:</strong> toda a equipe vê os mesmos
+            leads. Clique em ‘Atender’ pra marcar como responsável.
           </div>
         )}
       </div>

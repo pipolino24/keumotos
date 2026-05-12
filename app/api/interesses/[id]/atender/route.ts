@@ -45,15 +45,9 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
       );
     }
 
+    // Pool compartilhado: qualquer staff pode atender (ou puxar) qualquer
+    // interesse. Sem lock — staff alinha entre si quem fica responsável.
     const filter: Record<string, unknown> = { _id: id };
-    if (auth.role !== "admin") {
-      // Vendedor só pode pegar se está livre (lock contra steal entre vendedores).
-      filter.$or = [
-        { vendedorAtendeu: { $exists: false } },
-        { vendedorAtendeu: null },
-        { vendedorAtendeu: "" },
-      ];
-    }
 
     const interesse = await Interesse.findOneAndUpdate(
       filter,

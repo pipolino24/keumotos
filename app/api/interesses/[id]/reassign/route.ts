@@ -54,17 +54,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       );
     }
 
-    // Vendedor só pode reassign se ele mesmo era o atendente
-    if (
-      auth.role === "vendedor" &&
-      interesse.vendedorAtendeu &&
-      interesse.vendedorAtendeu !== auth.userId
-    ) {
-      return NextResponse.json(
-        { error: "Sem permissão para reatribuir esse lead" },
-        { status: 403 }
-      );
-    }
+    // Pool compartilhado: qualquer staff pode reatribuir qualquer lead.
 
     // Valida que o destino existe e é vendedor/admin
     const supabaseAdmin = createSupabaseAdminClient();
