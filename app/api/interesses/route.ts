@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
     const moto = await Moto.findById(data.motoId)
-      .select("modelo marca valorAnunciado vendedorResponsavel")
+      .select("modelo marca valorAnunciado")
       .lean();
     if (!moto) {
       return NextResponse.json(
@@ -178,7 +178,6 @@ export async function POST(req: NextRequest) {
         origemId: interesse._id.toString(),
         link: `/dashboard/motos/${moto._id}`,
         prioridade,
-        vendedorIdEspecifico: moto.vendedorResponsavel,
       });
     }
 

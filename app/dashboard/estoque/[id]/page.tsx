@@ -16,7 +16,6 @@ import {
   Gauge,
   DollarSign,
   Tag,
-  User,
   Phone,
   Mail,
   MapPin,
@@ -680,11 +679,6 @@ export default function VisualizarMotoPage() {
                 value={
                   <span className="capitalize">{moto.setor}</span>
                 }
-              />
-              <SidebarItem
-                icon={<User className="h-4 w-4" />}
-                label="Vendedor responsável"
-                value={moto.vendedorResponsavel ?? "—"}
               />
               <SidebarItem
                 icon={<Calendar className="h-4 w-4" />}

@@ -52,7 +52,6 @@ type MotoForm = {
   tipo: "venda" | "aluguel" | "ambos";
   status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
   setor: "multimarcas" | "loca" | "pecas";
-  vendedorResponsavel: string;
   fornecedor: string;
   dataEntrada: string;
   destaque: boolean;
@@ -90,7 +89,6 @@ const initial: MotoForm = {
   tipo: "venda",
   status: "disponivel",
   setor: "multimarcas",
-  vendedorResponsavel: "",
   fornecedor: "",
   dataEntrada: new Date().toISOString().slice(0, 10),
   destaque: false,
@@ -718,16 +716,6 @@ export default function NovoMotoPage() {
                   <option value="loca">KEU Loca Motos (Aluguel)</option>
                   <option value="pecas">KEU Moto Peças</option>
                 </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="vendedor">Vendedor responsável</Label>
-                <Input
-                  id="vendedor"
-                  placeholder="Nome do vendedor"
-                  value={form.vendedorResponsavel}
-                  onChange={(e) => set("vendedorResponsavel", e.target.value)}
-                />
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium pt-2 cursor-pointer">

@@ -98,11 +98,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Vendedor não escolhe quem é o responsável — sempre vira ele mesmo.
-    // Admin pode atribuir a qualquer staff (passou pelo schema).
-    if (auth.role === "vendedor") {
-      parsed.data.vendedorResponsavel = auth.userId;
-    }
+    // Pool compartilhado: motos não têm vendedor responsável específico.
+    // Qualquer staff cuida de qualquer moto.
 
     const moto = await Moto.create(parsed.data);
     return NextResponse.json({ moto }, { status: 201 });
