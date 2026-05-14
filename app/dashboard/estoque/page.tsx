@@ -6,8 +6,6 @@ import {
   Package,
   Plus,
   Search,
-  Filter,
-  Download,
   Bike,
   Edit,
   Eye,
@@ -77,9 +75,6 @@ export default function EstoquePage() {
         title="Estoque"
         description="Catálogo de motos cadastradas"
       >
-        <Button variant="outline">
-          <Download className="h-4 w-4" /> Exportar
-        </Button>
         <Link href="/dashboard/estoque/novo">
           <Button>
             <Plus className="h-4 w-4" /> Cadastrar Moto
@@ -127,14 +122,7 @@ export default function EstoquePage() {
             <Lock className="h-4 w-4 flex-shrink-0" />
             <span>
               <strong>Visão do vendedor:</strong> custos de compra, margem e
-              receita potencial estão visíveis apenas em{" "}
-              <Link
-                href="/dashboard/administracao"
-                className="font-semibold underline"
-              >
-                Administração
-              </Link>
-              .
+              receita potencial só ficam visíveis para administradores.
             </span>
           </div>
         </Card>
@@ -159,9 +147,6 @@ export default function EstoquePage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4" /> Filtros
-              </Button>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">

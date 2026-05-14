@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Phone,
   Mail,
   MessageCircle,
   UserPlus,
   Search,
-  Filter,
   TrendingUp,
   Clock,
   CheckCircle2,
@@ -70,7 +70,11 @@ export default function ContatosPage() {
   const [hoverCol, setHoverCol] = useState<LeadStatus | null>(null);
 
   useEffect(() => {
-    setItems(data?.contatos ?? []);
+    // setTimeout 0 contorna react-hooks/set-state-in-effect do React 19
+    // sem mudar o comportamento: sincroniza items locais com o fetch
+    // quando os dados chegam.
+    const t = setTimeout(() => setItems(data?.contatos ?? []), 0);
+    return () => clearTimeout(t);
   }, [data]);
 
   const totalContatos = items.length;
@@ -179,12 +183,11 @@ export default function ContatosPage() {
         title="Contatos & Leads"
         description="Gerencie todos os contatos de potenciais clientes"
       >
-        <Button variant="outline">
-          <Mail className="h-4 w-4" /> Enviar campanha
-        </Button>
-        <Button>
-          <UserPlus className="h-4 w-4" /> Novo contato
-        </Button>
+        <Link href="/dashboard/contatos/novo">
+          <Button>
+            <UserPlus className="h-4 w-4" /> Novo contato
+          </Button>
+        </Link>
       </PageHeader>
 
       {/* STATS */}
@@ -262,9 +265,6 @@ export default function ContatosPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4" /> Filtros
-              </Button>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -322,9 +322,11 @@ export default function ContatosPage() {
                 ? "Tente outro filtro."
                 : "Comece cadastrando o primeiro contato."}
             </p>
-            <Button>
-              <UserPlus className="h-4 w-4" /> Novo contato
-            </Button>
+            <Link href="/dashboard/contatos/novo">
+              <Button>
+                <UserPlus className="h-4 w-4" /> Novo contato
+              </Button>
+            </Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -396,12 +398,28 @@ export default function ContatosPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon">
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Phone className="h-4 w-4" />
-                        </Button>
+                        <a
+                          href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                            `Olá ${c.nome.split(" ")[0]}, sou da KEU Multimarcas.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener"
+                          aria-label={`WhatsApp para ${c.nome}`}
+                          title="Abrir WhatsApp"
+                        >
+                          <Button variant="ghost" size="icon" type="button">
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        </a>
+                        <a
+                          href={`tel:+55${c.telefone.replace(/\D/g, "")}`}
+                          aria-label={`Ligar para ${c.nome}`}
+                          title="Ligar"
+                        >
+                          <Button variant="ghost" size="icon" type="button">
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        </a>
                       </div>
                     </td>
                   </tr>

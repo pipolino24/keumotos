@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Save,
@@ -245,6 +245,8 @@ const TOLERANCIA = 0.01;
 
 export default function NovaVendaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const motoIdQuery = searchParams.get("moto") ?? "";
   const me = useCurrentUser();
   const podeOverride = isAdmin(me);
   const [form, setForm] = useState<VendaForm>(initial);
@@ -307,6 +309,17 @@ export default function NovaVendaPage() {
       comissao: moto && p.comissao === "" ? moto.comissao ?? 0 : p.comissao,
     }));
   }
+
+  // Pré-seleciona moto quando vem via ?moto=ID (vindo do botão "Vender"
+  // do catálogo). setTimeout 0 contorna a regra react-hooks/set-state-in-effect
+  // do React 19 sem mudar o comportamento.
+  useEffect(() => {
+    if (!motoIdQuery || form.motoId) return;
+    if (!todasMotos.some((m) => m._id === motoIdQuery)) return;
+    const t = setTimeout(() => handleMotoChange(motoIdQuery), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [motoIdQuery, todasMotos]);
 
   // ---- Pagamentos helpers ----
   function addPagamento() {

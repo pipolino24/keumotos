@@ -8,8 +8,6 @@ import {
   DollarSign,
   Clock,
   Search,
-  Filter,
-  Download,
   Bike,
   ArrowRight,
   Lock,
@@ -108,9 +106,6 @@ export default function VendasPage() {
             : "Suas próprias vendas e comissões"
         }
       >
-        <Button variant="outline" size="default">
-          <Download className="h-4 w-4" /> Exportar
-        </Button>
         <Link href="/dashboard/vendas/nova">
           <Button>
             <ShoppingCart className="h-4 w-4" /> Nova Venda
@@ -124,14 +119,8 @@ export default function VendasPage() {
             <Lock className="h-4 w-4 flex-shrink-0" />
             <span>
               <strong>Visão pessoal:</strong> esta tela mostra apenas suas
-              vendas. O faturamento total da operação fica em{" "}
-              <Link
-                href="/dashboard/administracao"
-                className="font-semibold underline"
-              >
-                Administração
-              </Link>
-              .
+              vendas e comissões. O faturamento total da operação só fica
+              visível para administradores.
             </span>
           </div>
         </Card>
@@ -187,9 +176,6 @@ export default function VendasPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="default">
-                <Filter className="h-4 w-4" /> Filtros
-              </Button>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -202,9 +188,6 @@ export default function VendasPage() {
               Reservadas (
               {motosVenda.filter((m) => m.status === "reservada").length})
             </Badge>
-            <Badge variant="outline">Destaque</Badge>
-            <Badge variant="outline">FIPE Acima</Badge>
-            <Badge variant="outline">FIPE Abaixo</Badge>
           </div>
         </div>
 
@@ -284,9 +267,14 @@ export default function VendasPage() {
                         Detalhes
                       </Button>
                     </Link>
-                    <Button size="sm" className="flex-1">
-                      Vender <ArrowRight className="h-3 w-3" />
-                    </Button>
+                    <Link
+                      href={`/dashboard/vendas/nova?moto=${m._id}`}
+                      className="flex-1"
+                    >
+                      <Button size="sm" className="w-full">
+                        Vender <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </Card>

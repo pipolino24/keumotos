@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Plus,
   Search,
-  Filter,
   Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -314,9 +313,6 @@ export default function AluguelPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4" /> Filtros
-              </Button>
             </div>
           </div>
         </div>
@@ -405,19 +401,20 @@ export default function AluguelPage() {
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    disabled={m.status !== "disponivel"}
-                  >
-                    {m.status === "disponivel" ? (
-                      <>
+                  {m.status === "disponivel" ? (
+                    <Link
+                      href={`/dashboard/aluguel/novo?moto=${m._id}`}
+                      className="block"
+                    >
+                      <Button size="sm" className="w-full">
                         Alugar agora <ArrowRight className="h-3 w-3" />
-                      </>
-                    ) : (
-                      "Indisponível"
-                    )}
-                  </Button>
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" className="w-full" disabled>
+                      Indisponível
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}

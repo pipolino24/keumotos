@@ -103,7 +103,7 @@ export function ConversaoWidget() {
           value={data.conversoes}
           pct={conversoesPct}
           color="bg-emerald-500"
-          subtitle={`${data.vendas} venda${data.vendas !== 1 ? "s" : ""} + ${data.alugueis} aluguel${data.alugueis !== 1 ? "éis" : ""} · ${data.taxaConversao.toFixed(1)}% sobre leads`}
+          subtitle={`${data.vendas} venda${data.vendas !== 1 ? "s" : ""} + ${data.alugueis} ${data.alugueis === 1 ? "aluguel" : "aluguéis"} · ${data.taxaConversao.toFixed(1)}% sobre leads`}
         />
       </div>
     </Card>

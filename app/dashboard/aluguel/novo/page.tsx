@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Save,
@@ -193,6 +193,8 @@ function diasEntre(inicio: string, fim: string): number {
 
 export default function NovoAluguelPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const motoIdQuery = searchParams.get("moto") ?? "";
   const me = useCurrentUser();
   const [form, setForm] = useState<AluguelForm>(initial);
   const [saving, setSaving] = useState(false);
@@ -275,6 +277,17 @@ export default function NovoAluguelPage() {
         moto && p.km_inicial === "" ? moto.km ?? 0 : p.km_inicial,
     }));
   }
+
+  // Pré-seleciona moto quando vem via ?moto=ID (vindo do botão
+  // "Alugar agora" do catálogo). setTimeout 0 contorna a regra
+  // react-hooks/set-state-in-effect do React 19.
+  useEffect(() => {
+    if (!motoIdQuery || form.motoId) return;
+    if (!todasMotos.some((m) => m._id === motoIdQuery)) return;
+    const t = setTimeout(() => handleMotoChange(motoIdQuery), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [motoIdQuery, todasMotos]);
 
   function clienteSelecionado(): ClienteApi | undefined {
     return clientesData?.users.find((u) => u._id === form.clienteId);

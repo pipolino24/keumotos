@@ -174,9 +174,11 @@ export default function NovoMotoPage() {
         title="Cadastrar Moto"
         description="Adicione uma nova moto ao estoque"
       >
-        <Button type="button" variant="outline" disabled={saving}>
-          Cancelar
-        </Button>
+        <Link href="/dashboard/estoque">
+          <Button type="button" variant="outline" disabled={saving}>
+            Cancelar
+          </Button>
+        </Link>
         <Button type="submit" disabled={saving}>
           {saving ? (
             <>
