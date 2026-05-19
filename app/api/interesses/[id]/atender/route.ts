@@ -16,7 +16,7 @@ interface Ctx {
  * e atendidoEm=now. Só funciona se ainda não tem atendente (lock implícito).
  * Admin pode reatribuir.
  */
-export async function POST(_req: NextRequest, { params }: Ctx) {
+export async function POST(req: NextRequest, { params }: Ctx) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {

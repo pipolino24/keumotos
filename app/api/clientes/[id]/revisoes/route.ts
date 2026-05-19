@@ -17,7 +17,7 @@ interface Ctx {
  * - Cliente: só vê as próprias (id === auth.userId)
  * - Admin/vendedor: vê de qualquer cliente (útil pra suporte)
  */
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {

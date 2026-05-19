@@ -24,7 +24,7 @@ interface Ctx {
  *
  * Cliente vê só o próprio; staff vê de qualquer cliente.
  */
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {

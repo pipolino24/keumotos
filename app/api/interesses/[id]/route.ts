@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
  * Cliente pode "remover" seu próprio interesse (soft via resultado=perdido).
  * Admin pode hard-delete.
  */
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {

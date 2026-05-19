@@ -24,7 +24,7 @@ const PRIVATE_FIELDS = [
   "vendedorResponsavel",
 ] as const;
 
-export async function GET(_req: NextRequest, { params }: RouteContext) {
+export async function GET(req: NextRequest, { params }: RouteContext) {
   try {
     await connectMongo();
     const { id } = await params;
@@ -124,7 +124,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+export async function DELETE(req: NextRequest, { params }: RouteContext) {
   const auth = await requireRole(["admin"], req);
   if (!auth.ok) return auth.response;
   try {

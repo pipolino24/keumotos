@@ -18,7 +18,7 @@ interface Ctx {
  * como "alugada" se a moto ainda está disponível. Append em observações
  * pra rastreabilidade. Notifica cliente.
  */
-export async function POST(_req: NextRequest, { params }: Ctx) {
+export async function POST(req: NextRequest, { params }: Ctx) {
   const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {

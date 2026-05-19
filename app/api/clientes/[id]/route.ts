@@ -22,7 +22,7 @@ interface Ctx {
  * por ele com esse cliente (defensa contra browsing arbitrário de PII).
  * Admin sempre acessa.
  */
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {

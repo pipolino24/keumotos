@@ -14,7 +14,7 @@ interface Ctx {
  * Retorna uma notificação específica. Caller só pode ver as próprias
  * (filtro implícito via destinatarioId = auth.userId).
  */
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
  * Arquiva (soft delete via flag arquivado=true). Mantém histórico pra
  * audit/restore.
  */
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
