@@ -44,6 +44,8 @@ interface MotoApi {
   status: string;
   origem: string;
   dataEntrada: string;
+  destaque?: boolean;
+  fotos?: string[];
 }
 
 export default function EstoquePage() {
@@ -209,127 +211,10 @@ export default function EstoquePage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-keu-gray-light text-xs uppercase font-semibold text-keu-black/60">
-                <tr>
-                  <th className="text-left p-4">Moto</th>
-                  <th className="text-left p-4">Documentação</th>
-                  <th className="text-left p-4">Técnico</th>
-                  <th className="text-right p-4">FIPE</th>
-                  {verFinanceiro && (
-                    <th className="text-right p-4 bg-keu-red/5">
-                      <span className="flex items-center gap-1 justify-end">
-                        <Lock className="h-3 w-3" /> Compra
-                      </span>
-                    </th>
-                  )}
-                  <th className="text-right p-4">Anunciado</th>
-                  {verFinanceiro && (
-                    <th className="text-right p-4 bg-keu-red/5">
-                      <span className="flex items-center gap-1 justify-end">
-                        <Lock className="h-3 w-3" /> Mínimo
-                      </span>
-                    </th>
-                  )}
-                  <th className="text-left p-4">Tipo</th>
-                  <th className="text-left p-4">Status</th>
-                  <th className="text-left p-4">Entrada</th>
-                  <th className="text-right p-4">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-keu-black/5">
-                {motos.map((m) => (
-                  <tr key={m._id} className="hover:bg-keu-gray-light transition">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-keu-red/10 text-keu-red w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Bike className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs text-keu-red font-bold">
-                            {m.marca}
-                          </div>
-                          <div className="font-semibold">
-                            {m.modelo} {m.versao}
-                          </div>
-                          <div className="text-xs text-keu-black/60">
-                            {m.anoFabricacao}/{m.anoModelo} · {m.cor}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-xs">
-                      {m.placa && (
-                        <div className="font-mono font-bold">{m.placa}</div>
-                      )}
-                      {m.chassi && (
-                        <div className="text-keu-black/60 font-mono">
-                          {m.chassi.slice(0, 10)}...
-                        </div>
-                      )}
-                      {m.renavam && (
-                        <div className="text-keu-black/60">
-                          RV: {m.renavam.slice(0, 8)}...
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-4 text-xs">
-                      <div>
-                        {m.cilindrada}cc · {m.cambio}
-                      </div>
-                      <div className="text-keu-black/60">
-                        {m.km.toLocaleString("pt-BR")} km
-                      </div>
-                      <div className="text-keu-black/60 capitalize">
-                        {m.combustivel}
-                      </div>
-                    </td>
-                    <td className="p-4 text-right text-sm">
-                      {formatCurrency(m.valorFipe)}
-                    </td>
-                    {verFinanceiro && (
-                      <td className="p-4 text-right text-sm text-keu-black/60 bg-keu-red/5">
-                        {formatCurrency(m.valorCompra)}
-                      </td>
-                    )}
-                    <td className="p-4 text-right">
-                      <div className="font-black text-keu-red">
-                        {formatCurrency(m.valorAnunciado)}
-                      </div>
-                    </td>
-                    {verFinanceiro && (
-                      <td className="p-4 text-right text-xs text-keu-black/50 bg-keu-red/5">
-                        {formatCurrency(m.valorMinimo)}
-                      </td>
-                    )}
-                    <td className="p-4">
-                      <TipoBadge tipo={m.tipo} />
-                    </td>
-                    <td className="p-4">
-                      <StatusMotoBadge status={m.status} />
-                    </td>
-                    <td className="p-4 text-xs text-keu-black/60">
-                      {formatDate(m.dataEntrada)}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Link href={`/dashboard/estoque/${m._id}`}>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Link href={`/dashboard/estoque/${m._id}/editar`}>
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-6 grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            {motos.map((m) => (
+              <MotoCard key={m._id} moto={m} verFinanceiro={verFinanceiro} />
+            ))}
           </div>
         )}
       </Card>
@@ -422,5 +307,173 @@ function StatusMotoBadge({ status }: { status: string }) {
     <Badge variant={conf.v} className="text-[10px]">
       {conf.l}
     </Badge>
+  );
+}
+
+function MotoCard({
+  moto: m,
+  verFinanceiro,
+}: {
+  moto: MotoApi;
+  verFinanceiro: boolean;
+}) {
+  const fotoCapa =
+    Array.isArray(m.fotos) && m.fotos.length > 0 ? m.fotos[0] : undefined;
+  return (
+    <Card className="overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all flex flex-col">
+      {/* HERO foto/placeholder + badges */}
+      <Link
+        href={`/dashboard/estoque/${m._id}`}
+        className="block aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative overflow-hidden"
+      >
+        {fotoCapa ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={fotoCapa}
+            alt={`${m.marca} ${m.modelo}`}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Bike className="h-16 w-16 text-keu-red/20" />
+          </div>
+        )}
+        <div className="absolute top-2 left-2 flex gap-1">
+          {m.destaque && (
+            <Badge variant="default" className="text-[10px] shadow-md">
+              ★ Destaque
+            </Badge>
+          )}
+          <StatusMotoBadge status={m.status} />
+        </div>
+        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur rounded-md px-2 py-0.5 text-xs font-bold shadow-sm">
+          {m.anoModelo}
+        </div>
+      </Link>
+
+      {/* CONTEÚDO */}
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        <div>
+          <div className="text-xs font-bold text-keu-red mb-0.5">
+            {m.marca}
+          </div>
+          <Link
+            href={`/dashboard/estoque/${m._id}`}
+            className="font-bold leading-tight hover:text-keu-red transition block"
+          >
+            {m.modelo} {m.versao}
+          </Link>
+          <div className="text-xs text-keu-black/60 flex flex-wrap gap-x-2 mt-0.5">
+            <span>{m.cilindrada}cc</span>
+            <span>•</span>
+            <span>{m.km.toLocaleString("pt-BR")} km</span>
+            <span>•</span>
+            <span className="capitalize truncate">{m.cor}</span>
+          </div>
+        </div>
+
+        {/* PLACA + TIPO */}
+        <div className="flex items-center justify-between gap-2 text-[11px]">
+          {m.placa ? (
+            <span className="font-mono font-bold bg-keu-gray-light px-2 py-0.5 rounded">
+              {m.placa}
+            </span>
+          ) : (
+            <span className="text-keu-black/40 italic">sem placa</span>
+          )}
+          <TipoBadge tipo={m.tipo} />
+        </div>
+
+        {/* PREÇOS */}
+        <div className="bg-keu-gray-light rounded-lg p-2.5 text-xs space-y-1">
+          <PriceRow label="FIPE" value={m.valorFipe} />
+          <PriceRow label="Anunciado" value={m.valorAnunciado} highlight />
+          {verFinanceiro && (
+            <>
+              <div className="border-t border-keu-black/5 my-1.5" />
+              <PriceRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="h-2.5 w-2.5" /> Compra
+                  </span>
+                }
+                value={m.valorCompra}
+                muted
+              />
+              <PriceRow
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="h-2.5 w-2.5" /> Mínimo
+                  </span>
+                }
+                value={m.valorMinimo}
+                muted
+              />
+            </>
+          )}
+        </div>
+
+        {/* AÇÕES */}
+        <div className="flex gap-2 mt-auto">
+          <Link
+            href={`/dashboard/estoque/${m._id}`}
+            className="flex-1"
+          >
+            <Button variant="outline" size="sm" className="w-full">
+              <Eye className="h-3.5 w-3.5" /> Detalhes
+            </Button>
+          </Link>
+          <Link
+            href={`/dashboard/estoque/${m._id}/editar`}
+            className="flex-1"
+          >
+            <Button variant="default" size="sm" className="w-full">
+              <Edit className="h-3.5 w-3.5" /> Editar
+            </Button>
+          </Link>
+        </div>
+
+        <div className="text-[10px] text-keu-black/40 -mt-1">
+          Entrada {formatDate(m.dataEntrada)}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function PriceRow({
+  label,
+  value,
+  highlight,
+  muted,
+}: {
+  label: React.ReactNode;
+  value: number;
+  highlight?: boolean;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span
+        className={
+          muted ? "text-keu-black/50" : "text-keu-black/70 font-medium"
+        }
+      >
+        {label}
+      </span>
+      <span
+        className={
+          highlight
+            ? "font-black text-keu-red text-sm"
+            : muted
+              ? "text-keu-black/60"
+              : "font-semibold text-keu-black"
+        }
+      >
+        {formatCurrency(value)}
+      </span>
+    </div>
   );
 }
