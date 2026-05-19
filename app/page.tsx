@@ -447,7 +447,7 @@ export default async function HomePage() {
                         {m.modelo}
                       </h3>
                       <div className="flex gap-3 text-xs text-keu-black/60 mb-4">
-                        <span>{formatKm(m.km)} km</span>
+                        <span>{formatKm(m.km)}</span>
                         <span>•</span>
                         <span className="truncate">{m.cor}</span>
                       </div>
