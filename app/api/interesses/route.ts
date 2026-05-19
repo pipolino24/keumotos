@@ -4,6 +4,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Interesse } from "@/lib/models/interesse";
 import { Moto } from "@/lib/models/moto";
 import { requireAuth } from "@/lib/auth/api-guards";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { emitNotification } from "@/lib/notifications/emit";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -258,6 +259,35 @@ export async function GET(req: NextRequest) {
         ? Interesse.countDocuments(query).maxTimeMS(10_000)
         : Promise.resolve(undefined),
     ]);
+
+    // Enrich: pra interesses com clienteId mas sem clienteNome (criados antes
+    // do nome cachear no doc, ou criados pelo backend só com FK), faz lookup
+    // batch dos profiles. Evita N+1 — 1 query do Supabase pra todos os IDs
+    // que faltam nome.
+    const semNome = (interesses as Array<{ clienteId?: string; clienteNome?: string; clienteTelefone?: string }>)
+      .filter((i) => i.clienteId && !i.clienteNome);
+    if (semNome.length > 0) {
+      const ids = Array.from(new Set(semNome.map((i) => i.clienteId!)));
+      try {
+        const admin = createSupabaseAdminClient();
+        const { data: profiles } = await admin
+          .from("profiles")
+          .select("id, nome, telefone")
+          .in("id", ids);
+        const byId = new Map(
+          (profiles ?? []).map((p) => [p.id as string, p as { id: string; nome?: string; telefone?: string }])
+        );
+        for (const i of semNome) {
+          const p = byId.get(i.clienteId!);
+          if (p) {
+            i.clienteNome = p.nome ?? i.clienteNome;
+            if (!i.clienteTelefone && p.telefone) i.clienteTelefone = p.telefone;
+          }
+        }
+      } catch {
+        // Se Supabase falhar, segue sem enrich — degrada pra "Visitante anônimo"
+      }
+    }
 
     return NextResponse.json({
       interesses,

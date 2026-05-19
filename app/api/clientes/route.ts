@@ -148,6 +148,38 @@ export async function GET(req: NextRequest) {
       (a, b) => (b.ultimoAt?.getTime() ?? 0) - (a.ultimoAt?.getTime() ?? 0)
     );
 
+    // Enrich: clientes com clienteId mas sem nome/telefone/email puxam do
+    // profile do Supabase. Acontece quando Interesse/Venda/Aluguel foi salvo
+    // só com a FK clienteId. 1 query batch pra todos os IDs faltantes.
+    const idsSemDados = clientes
+      .filter((c) => c.clienteId && (!c.clienteNome || !c.email))
+      .map((c) => c.clienteId!);
+    if (idsSemDados.length > 0) {
+      try {
+        const { createSupabaseAdminClient } = await import(
+          "@/lib/supabase/admin"
+        );
+        const admin = createSupabaseAdminClient();
+        const { data: profiles } = await admin
+          .from("profiles")
+          .select("id, nome, email, telefone")
+          .in("id", Array.from(new Set(idsSemDados)));
+        const byId = new Map(
+          (profiles ?? []).map((p) => [p.id as string, p as { id: string; nome?: string; email?: string; telefone?: string }])
+        );
+        for (const c of clientes) {
+          if (!c.clienteId) continue;
+          const p = byId.get(c.clienteId);
+          if (!p) continue;
+          if (!c.clienteNome && p.nome) c.clienteNome = p.nome;
+          if (!c.email && p.email) c.email = p.email;
+          if (!c.telefone && p.telefone) c.telefone = p.telefone;
+        }
+      } catch {
+        // degrada — segue com "Sem nome" se profile lookup falhar
+      }
+    }
+
     return NextResponse.json({ clientes });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";

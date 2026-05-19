@@ -609,7 +609,7 @@ export default function AdministracaoPage() {
                     {formatCurrency(v.valorVendido - v.comissao)}
                   </td>
                   <td className="p-4 text-sm capitalize">
-                    {v.formaPagamento.replace("-", " ")}
+                    {v.formaPagamento ? v.formaPagamento.replace("-", " ") : "—"}
                     {v.parcelas && ` (${v.parcelas}x)`}
                   </td>
                 </tr>
