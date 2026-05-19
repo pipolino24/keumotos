@@ -131,9 +131,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     // Notifica cliente que a devolução foi confirmada (com resumo financeiro)
     if (aluguel.clienteId) {
       const valorRetorno = valorAReceberCaucao;
+      const fmtBRL = (n: number) =>
+        n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const descricao = custoTotalAvarias > 0
-        ? `Avarias: R$ ${custoTotalAvarias}. Caução a devolver: R$ ${valorRetorno}.`
-        : `Sem avarias. Caução integral a devolver: R$ ${valorRetorno}.`;
+        ? `Avarias: ${fmtBRL(custoTotalAvarias)}. Caução a devolver: ${fmtBRL(valorRetorno)}.`
+        : `Sem avarias. Caução integral a devolver: ${fmtBRL(valorRetorno)}.`;
       Notification.create({
         destinatarioId: aluguel.clienteId,
         tipo: "aluguel",

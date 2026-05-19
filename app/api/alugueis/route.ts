@@ -128,11 +128,22 @@ export async function POST(req: NextRequest) {
     // Notifica o cliente que tem aluguel ativo
     if (aluguel.clienteId) {
       const fim = new Date(aluguel.dataFim).toLocaleDateString("pt-BR");
+      // Caução é opcional (Plano Conquista normalmente é zero). Só mostra
+      // a linha se >0 pra não exibir "Caução: R$ 0" no app/email do cliente.
+      const caucaoNum =
+        typeof aluguel.caucao === "number" ? aluguel.caucao : 0;
+      const linhaCaucao =
+        caucaoNum > 0
+          ? ` Caução: ${caucaoNum.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}.`
+          : "";
       Notification.create({
         destinatarioId: aluguel.clienteId,
         tipo: "aluguel",
         titulo: `Aluguel confirmado — ${aluguel.motoMarca ?? ""} ${aluguel.motoModelo}`.trim(),
-        descricao: `Devolução prevista para ${fim}. Caução: R$ ${aluguel.caucao}.`,
+        descricao: `Devolução prevista para ${fim}.${linhaCaucao}`,
         origemTipo: "aluguel",
         origemId: aluguel._id.toString(),
         link: "/dashboard",
