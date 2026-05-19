@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     // Cliente autenticado opcional. clienteEmail vem SEMPRE do auth.email
     // (never confia em body) pra evitar spoof.
-    const auth = await requireAuth();
+    const auth = await requireAuth(req);
     const cliente = auth.ok && auth.role === "cliente"
       ? { clienteId: auth.userId, clienteEmail: auth.email }
       : {};
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
  * Filtros: ?motoId, ?clienteId, ?tipo, ?resultado, ?desde
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

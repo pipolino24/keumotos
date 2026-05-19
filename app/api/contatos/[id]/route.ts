@@ -16,7 +16,7 @@ interface RouteContext {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -40,7 +40,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -88,7 +88,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
-  const auth = await requireRole(["admin"]);
+  const auth = await requireRole(["admin"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

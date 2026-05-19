@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   if (env !== "development") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

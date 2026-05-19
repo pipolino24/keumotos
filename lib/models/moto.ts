@@ -176,5 +176,13 @@ const MotoSchema = new Schema<IMotoDoc>(
   { timestamps: true }
 );
 
+// Compound ESR pra catálogo público — filtra por status+tipo, ordena destaques
+// primeiro e usa valorAnunciado como range filter.
+MotoSchema.index({ status: 1, tipo: 1, destaque: -1, valorAnunciado: 1 });
+// Aquisições: lista por origem ordenada por data
+MotoSchema.index({ origem: 1, createdAt: -1 });
+// Estoque por setor
+MotoSchema.index({ setor: 1, status: 1 });
+
 export const Moto: Model<IMotoDoc> =
   mongoose.models.Moto || mongoose.model<IMotoDoc>("Moto", MotoSchema);

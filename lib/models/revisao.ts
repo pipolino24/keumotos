@@ -88,6 +88,9 @@ const RevisaoSchema = new Schema<IRevisaoDoc>(
   { timestamps: true }
 );
 
+// Compound: histórico da moto ordenado por data (usado em /api/motos/[id]/historico)
+RevisaoSchema.index({ motoId: 1, data: -1 });
+
 export const Revisao: Model<IRevisaoDoc> =
   mongoose.models.Revisao ||
   mongoose.model<IRevisaoDoc>("Revisao", RevisaoSchema);

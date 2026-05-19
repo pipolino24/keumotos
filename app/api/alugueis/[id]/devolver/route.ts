@@ -23,7 +23,7 @@ interface Ctx {
  * com rollback manual best-effort.
  */
 export async function POST(req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

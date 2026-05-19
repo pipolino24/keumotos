@@ -18,7 +18,7 @@ interface Ctx {
  * - Admin/vendedor: vê de qualquer cliente (útil pra suporte)
  */
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

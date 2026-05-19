@@ -25,7 +25,7 @@ export async function POST() {
  * Sempre retorna `unreadCount` para o badge do bell icon.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
  * Marca lido/arquivado em massa. Body: { ids?: string[], acao: "ler"|"arquivar"|"ler_todas" }
  */
 export async function PATCH(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

@@ -427,6 +427,7 @@ export default async function HomePage() {
                             alt={m.modelo}
                             width={200}
                             height={150}
+                            style={{ height: "auto" }}
                             className="object-contain"
                           />
                         </div>

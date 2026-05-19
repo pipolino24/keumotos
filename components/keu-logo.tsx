@@ -37,6 +37,7 @@ export function KeuLogo({
         width={dim.w}
         height={dim.h}
         priority
+        style={{ height: "auto" }}
         className={cn("object-contain", className)}
       />
     );
@@ -50,6 +51,7 @@ export function KeuLogo({
       width={dim.w}
       height={dim.h}
       priority
+      style={{ height: "auto" }}
       className={cn("object-contain", className)}
     />
   );

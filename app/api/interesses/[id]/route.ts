@@ -24,7 +24,7 @@ const RESULTADOS_VALIDOS = new Set([
  * Body: { resultado: "convertido" | "perdido" | "em-atendimento", nota?: string }
  */
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
  * Admin pode hard-delete.
  */
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * Params: ?range=7d|30d|90d (default 30d).
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

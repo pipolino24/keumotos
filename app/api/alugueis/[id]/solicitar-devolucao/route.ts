@@ -21,7 +21,7 @@ interface Ctx {
  * Body: { dataPretendida?: string, observacao?: string }
  */
 export async function POST(req: NextRequest, { params }: Ctx) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   if (auth.role !== "cliente") {
     return NextResponse.json(

@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     if (!moto) {
       return NextResponse.json({ error: "Moto não encontrada" }, { status: 404 });
     }
-    const auth = await requireAuth();
+    const auth = await requireAuth(req);
     const isStaff =
       auth.ok && (auth.role === "admin" || auth.role === "vendedor");
     if (!isStaff) {
@@ -90,7 +90,7 @@ const CAMPOS_EDITAVEIS = [
 const CAMPOS_ADMIN = ["valorCompra"] as const;
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -125,7 +125,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
-  const auth = await requireRole(["admin"]);
+  const auth = await requireRole(["admin"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

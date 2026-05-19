@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * Params: ?dias=3 (default), ?limit=50 (max 100)
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

@@ -50,7 +50,6 @@ interface ContatoApi {
   status: string;
 }
 
-// TODO: endpoints /api/vendas e /api/alugueis ainda não existem — usar arrays vazios por enquanto.
 interface VendaApi {
   _id: string;
   status: string;
@@ -82,17 +81,31 @@ export default function AdministracaoPage() {
     loading: loadingContatos,
     error: errorContatos,
   } = useApi<{ contatos: ContatoApi[] }>("/api/contatos");
+  const {
+    data: vendasData,
+    loading: loadingVendas,
+    error: errorVendas,
+  } = useApi<{ vendas: VendaApi[] }>("/api/vendas");
+  const {
+    data: alugueisData,
+    loading: loadingAlugueis,
+    error: errorAlugueis,
+  } = useApi<{ alugueis: AluguelApi[] }>("/api/alugueis");
 
-  const loading = loadingMotos || loadingUsers || loadingContatos;
-  const error = errorMotos || errorUsers || errorContatos;
+  const loading =
+    loadingMotos ||
+    loadingUsers ||
+    loadingContatos ||
+    loadingVendas ||
+    loadingAlugueis;
+  const error =
+    errorMotos || errorUsers || errorContatos || errorVendas || errorAlugueis;
 
   const motos: MotoApi[] = motosData?.motos ?? [];
   const vendedores: UserApi[] = usersData?.users ?? [];
   const contatos: ContatoApi[] = contatosData?.contatos ?? [];
-
-  // TODO: endpoints /api/vendas e /api/alugueis ainda não existem.
-  const vendas: VendaApi[] = [];
-  const alugueis: AluguelApi[] = [];
+  const vendas: VendaApi[] = vendasData?.vendas ?? [];
+  const alugueis: AluguelApi[] = alugueisData?.alugueis ?? [];
 
   // FATURAMENTO
   const vendasConcluidas = vendas.filter((v) => v.status === "concluida");

@@ -15,7 +15,7 @@ interface Ctx {
  * (filtro implícito via destinatarioId = auth.userId).
  */
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
  * audit/restore.
  */
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

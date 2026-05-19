@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth/api-guards";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

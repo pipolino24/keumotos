@@ -11,7 +11,7 @@ interface Ctx {
 }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -59,7 +59,7 @@ const CAMPOS_EDITAVEIS = [
 ] as const;
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   const rl = rateLimit({
     key: `proprietarios-write:${auth.userId}`,
@@ -101,7 +101,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin"]);
+  const auth = await requireRole(["admin"], req);
   if (!auth.ok) return auth.response;
   const rl = rateLimit({
     key: `proprietarios-delete:${auth.userId}`,

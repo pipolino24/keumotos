@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * Query params: ?vendedorId (admin only), ?desde (ISO date, default 90d)
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

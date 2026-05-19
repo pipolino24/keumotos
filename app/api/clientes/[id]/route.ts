@@ -23,7 +23,7 @@ interface Ctx {
  * Admin sempre acessa.
  */
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

@@ -11,7 +11,7 @@ interface Ctx {
 }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
@@ -128,7 +128,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

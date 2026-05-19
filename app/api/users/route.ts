@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { connectMongo } from "@/lib/mongodb";
 import { emitNotification } from "@/lib/notifications/emit";
+import { requireAuth } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -17,15 +18,16 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    }
+    // Aceita cookie SSR (web) ou Bearer JWT (mobile). Role vem do profile real,
+    // não de user_metadata (que é cliente-controlled).
+    const auth = await requireAuth(req);
+    if (!auth.ok) return auth.response;
+    // Usa service role pra ler profiles. requireAuth() já validou o caller —
+    // a RLS impedia esse cliente de ler o pool quando viemos via Bearer
+    // (sem cookies de sessão).
+    const supabase = createSupabaseAdminClient();
 
-    const callerRole = (user.user_metadata?.role as string) || "cliente";
+    const callerRole = auth.role;
     const { searchParams } = new URL(req.url);
     const role = searchParams.get("role");
     const status = searchParams.get("status");

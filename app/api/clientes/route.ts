@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Interesse } from "@/lib/models/interesse";
 import { Venda } from "@/lib/models/venda";
@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
  * Vendedor só vê clientes que ele atendeu (vendedorId match em venda/aluguel).
  * Admin vê todos.
  */
-export async function GET() {
-  const auth = await requireRole(["admin", "vendedor"]);
+export async function GET(req: NextRequest) {
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

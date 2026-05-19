@@ -29,7 +29,7 @@ const INTERESSES_VALIDOS = new Set([
  *    compartilhado de leads — sem partição por vendedor responsável.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

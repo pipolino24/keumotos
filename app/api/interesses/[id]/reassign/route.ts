@@ -24,7 +24,7 @@ interface Ctx {
  * Notifica o novo vendedor e registra audit log.
  */
 export async function POST(req: NextRequest, { params }: Ctx) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

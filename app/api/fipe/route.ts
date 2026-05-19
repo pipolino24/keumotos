@@ -6,15 +6,13 @@ import {
   fipeValue,
   parseFipePrice,
 } from "@/lib/fipe";
-import { requireAuth } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Endpoint unificado para consulta FIPE. Requer autenticação (qualquer role)
- * pra evitar uso como proxy aberto de SSRF / abuso da API externa.
- *
- * Query params validados como dígitos curtos. Tipo restrito ao enum.
+ * Endpoint público de consulta FIPE — dados de referência públicos, sem auth.
+ * Anti-abuso: rate limit por IP (60 req / minuto) + validação estrita dos params
+ * (evita usar como proxy SSRF).
  *
  * Query params:
  *   ?type=motorcycles|cars|trucks (default: motorcycles)
@@ -27,13 +25,41 @@ export const dynamic = "force-dynamic";
 const TIPOS_VALIDOS = new Set(["motorcycles", "cars", "trucks"]);
 const CODE_RE = /^[A-Za-z0-9-]{1,32}$/;
 
+// Rate limit in-memory: 60 req/min por IP. Suficiente pra dev e single-instance
+// Vercel. Pra multi-instance, migrar pra Upstash Redis.
+const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const rateHits = new Map<string, { count: number; resetAt: number }>();
+
+function clientIp(req: NextRequest): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")
+    || "anon";
+}
+
+function rateLimitExceeded(ip: string): boolean {
+  const now = Date.now();
+  const cur = rateHits.get(ip);
+  if (!cur || cur.resetAt < now) {
+    rateHits.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  cur.count += 1;
+  return cur.count > RATE_LIMIT_MAX;
+}
+
 function valido(v: string | null): v is string {
   return !!v && CODE_RE.test(v);
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
-  if (!auth.ok) return auth.response;
+  const ip = clientIp(req);
+  if (rateLimitExceeded(ip)) {
+    return NextResponse.json(
+      { error: "Muitas requisições. Tenta de novo em 1min." },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
   try {
     const { searchParams } = new URL(req.url);
     const typeParam = searchParams.get("type") || "motorcycles";

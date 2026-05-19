@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Notification } from "@/lib/models/notification";
@@ -19,10 +19,10 @@ export const dynamic = "force-dynamic";
  * Pra rodar como cron: configure schedule no Vercel apontando pra esse
  * endpoint com requireAdmin (cron secret).
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
   // Admin-only: a operação faz updateMany + insertMany e gera notificações em
   // massa. Vendedor não precisa disparar manualmente — admin/cron-job é o caller.
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

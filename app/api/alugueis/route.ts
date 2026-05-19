@@ -11,7 +11,7 @@ import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
   // Defesa em profundidade: bloqueia se userId sumir do payload por algum
   // motivo. Sem isso, query falha para `{ clienteId: undefined }` que
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

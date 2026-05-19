@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * vendas + aluguéis concluídos. Vendedor vê só os próprios; admin tudo.
  */
 export async function GET(req: Request) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

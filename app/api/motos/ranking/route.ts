@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Só staff vê. Limit padrão 10.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

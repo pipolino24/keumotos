@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Filtros: ?acao, ?alvoTipo, ?alvoId, ?ator, ?dias (default 30), ?limit
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

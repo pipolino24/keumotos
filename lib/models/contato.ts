@@ -45,6 +45,11 @@ const ContatoSchema = new Schema<IContatoDoc>(
   { timestamps: true }
 );
 
+// Compound: lista filtrada por status, ordenada por mais recente
+ContatoSchema.index({ status: 1, createdAt: -1 });
+// Pool de leads sem dono ordenados por última atividade
+ContatoSchema.index({ vendedorResponsavel: 1, ultimoContato: -1 });
+
 export const Contato: Model<IContatoDoc> =
   mongoose.models.Contato ||
   mongoose.model<IContatoDoc>("Contato", ContatoSchema);

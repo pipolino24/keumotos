@@ -223,6 +223,7 @@ function LoginPageInner() {
               width={280}
               height={210}
               priority
+              style={{ height: "auto" }}
               className="object-contain drop-shadow-2xl"
             />
           </div>

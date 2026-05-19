@@ -20,6 +20,8 @@ const CAMPOS_PRIVADOS = {
   vendedorResponsavel: 0,
 };
 
+const PAGE_SIZE_DEFAULT = 12;
+
 export async function GET(req: NextRequest) {
   try {
     await connectMongo();
@@ -28,24 +30,35 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const setor = searchParams.get("setor");
     const search = searchParams.get("q");
+    // Filtros adicionais do catálogo (web + app iOS)
+    const marca = searchParams.get("marca");
+    const precoMin = searchParams.get("precoMin");
+    const precoMax = searchParams.get("precoMax");
+    const anoMin = searchParams.get("anoMin");
+    const anoMax = searchParams.get("anoMax");
+    const sortKey = searchParams.get("sort");
+    const pageRaw = searchParams.get("page");
     // Por default retornamos só a foto-capa (1 foto). Páginas que precisam
     // de todas as fotos (estoque/[id]) passam ?full=1. Sem isso, listagens
     // de 50+ motos com 5+ fotos base64 cada inflavam o payload pra 50MB+
     // e travavam o catálogo / dashboard.
     const wantFull = searchParams.get("full") === "1";
-    // Limite default razoável; máximo de segurança 2000.
     const limitRaw = Number(searchParams.get("limit"));
     const limit =
       Number.isFinite(limitRaw) && limitRaw > 0
         ? Math.min(Math.floor(limitRaw), 2000)
-        : 500;
+        : pageRaw ? PAGE_SIZE_DEFAULT : 500;
 
     const query: Record<string, unknown> = {};
-    if (tipo) query.tipo = tipo;
+    if (tipo) {
+      // tipo "venda"/"aluguel" também incluem "ambos"
+      if (tipo === "venda") query.tipo = { $in: ["venda", "ambos"] };
+      else if (tipo === "aluguel") query.tipo = { $in: ["aluguel", "ambos"] };
+      else query.tipo = tipo;
+    }
     if (status) query.status = status;
     if (setor) query.setor = setor;
     if (search) {
-      // Escapa metacaracteres (anti-ReDoS) e limita comprimento
       const termo = search.slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
         { marca: { $regex: termo, $options: "i" } },
@@ -53,24 +66,79 @@ export async function GET(req: NextRequest) {
         { placa: { $regex: termo, $options: "i" } },
       ];
     }
+    if (marca) {
+      query.marca = { $regex: `^${marca.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
+    }
+    const precoFilter: Record<string, number> = {};
+    if (precoMin) {
+      const v = parseFloat(precoMin);
+      if (Number.isFinite(v)) precoFilter.$gte = v;
+    }
+    if (precoMax) {
+      const v = parseFloat(precoMax);
+      if (Number.isFinite(v)) precoFilter.$lte = v;
+    }
+    if (Object.keys(precoFilter).length) query.valorAnunciado = precoFilter;
+
+    const anoFilter: Record<string, number> = {};
+    if (anoMin) {
+      const v = parseInt(anoMin, 10);
+      if (Number.isFinite(v)) anoFilter.$gte = v;
+    }
+    if (anoMax) {
+      const v = parseInt(anoMax, 10);
+      if (Number.isFinite(v)) anoFilter.$lte = v;
+    }
+    if (Object.keys(anoFilter).length) query.anoModelo = anoFilter;
 
     // Caller staff (admin/vendedor) vê tudo. Outros (cliente, anônimo,
     // afiliado) só vê dados públicos.
-    const auth = await requireAuth();
+    const auth = await requireAuth(req);
     const isStaff =
       auth.ok && (auth.role === "admin" || auth.role === "vendedor");
 
-    // Combina projection privada + slice de fotos
     const projection: Record<string, unknown> = isStaff
       ? {}
       : { ...CAMPOS_PRIVADOS };
     if (!wantFull) projection.fotos = { $slice: 1 };
 
+    let sort: Record<string, 1 | -1> = { destaque: -1, createdAt: -1 };
+    switch (sortKey) {
+      case "preco-asc": sort = { valorAnunciado: 1 }; break;
+      case "preco-desc": sort = { valorAnunciado: -1 }; break;
+      case "ano-desc": sort = { anoModelo: -1 }; break;
+      case "km-asc": sort = { km: 1 }; break;
+    }
+
+    // Modo paginado: page=N → retorna { motos, total, marcas }
+    if (pageRaw) {
+      const page = Math.max(1, parseInt(pageRaw, 10) || 1);
+      const skip = (page - 1) * limit;
+      const [motos, total, marcas] = await Promise.all([
+        Moto.find(
+          query,
+          Object.keys(projection).length ? projection : undefined
+        )
+          .sort(sort)
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .maxTimeMS(15_000),
+        Moto.countDocuments(query).maxTimeMS(15_000),
+        Moto.distinct("marca", { status: "disponivel" }),
+      ]);
+      return NextResponse.json({
+        motos,
+        total,
+        marcas: (marcas as string[]).filter(Boolean).sort(),
+      });
+    }
+
     const motos = await Moto.find(
       query,
       Object.keys(projection).length ? projection : undefined
     )
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .limit(limit)
       .lean()
       .maxTimeMS(15_000);
@@ -82,7 +150,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(["admin", "vendedor"]);
+  const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();
