@@ -146,6 +146,10 @@ export default function NovoMotoPage() {
       for (const [k, v] of Object.entries(form)) {
         payload[k] = v === "" ? undefined : v;
       }
+      // Este form não coleta proprietário nem dados de compra/repasse —
+      // marca como "propria" pra não cair como "comprada" órfã (sem NF,
+      // sem valorPago) em /aquisicoes.
+      payload.origem = "propria";
       const res = await fetch("/api/motos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -172,8 +176,13 @@ export default function NovoMotoPage() {
 
       <PageHeader
         title="Cadastrar Moto"
-        description="Adicione uma nova moto ao estoque"
+        description="Moto própria da KEU. Pra repasse ou compra com proprietário, use Aquisições."
       >
+        <Link href="/dashboard/aquisicoes/nova">
+          <Button type="button" variant="outline" disabled={saving}>
+            <KeyRound className="h-4 w-4" /> Compra/Repasse
+          </Button>
+        </Link>
         <Link href="/dashboard/estoque">
           <Button type="button" variant="outline" disabled={saving}>
             Cancelar
