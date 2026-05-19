@@ -22,11 +22,10 @@ import { useApi } from "@/lib/hooks/use-api";
 import { formatCurrency, formatKm } from "@/lib/utils";
 
 interface Afiliado {
-  _id: string;
+  _id?: string;
   codigo: string;
   nome: string;
-  email: string;
-  telefone: string;
+  telefone?: string;
   avatar?: string;
   bio?: string;
   whatsapp?: string;
@@ -56,13 +55,13 @@ export default function AfiliadoPublicPage({
 }) {
   const { codigo } = use(params);
 
+  // Endpoint público (sem auth) — antes batia em /api/afiliados?q= que exige
+  // requireAdmin e dava 401 pra qualquer visitante anônimo.
   const { data: afData, loading: afLoading, error: afError } = useApi<{
-    afiliados: Afiliado[];
-  }>(`/api/afiliados?q=${encodeURIComponent(codigo)}`);
+    afiliado: Afiliado;
+  }>(`/api/afiliados/by-codigo/${encodeURIComponent(codigo)}`);
 
-  const afiliado = afData?.afiliados?.find(
-    (a) => a.codigo.toLowerCase() === codigo.toLowerCase()
-  );
+  const afiliado = afData?.afiliado;
 
   const { data: motosData, loading: motosLoading } = useApi<{ motos: Moto[] }>(
     afiliado && afiliado.status === "ativo" && afiliado.aprovado
