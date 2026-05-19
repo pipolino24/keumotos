@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Phone, Eye, MessageCircle, FileText, Heart, Calculator, ArrowRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
@@ -101,14 +102,20 @@ export function InteressesWidget({ limit = 6 }: Props) {
 
   async function marcarAtendido(id: string) {
     try {
-      await fetch(`/api/interesses/${id}`, {
+      const res = await fetch(`/api/interesses/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resultado: "em-atendimento" }),
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast.error(json.error || "Não foi possível marcar como atendido");
+        return;
+      }
+      toast.success("Marcado como em atendimento");
       refetch();
     } catch {
-      // silent
+      toast.error("Erro de rede");
     }
   }
 

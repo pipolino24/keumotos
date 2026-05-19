@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface NotificationItem {
   _id: string;
@@ -88,12 +89,21 @@ export default function NotificacoesPage() {
   const unreadCount = list.filter((n) => !n.lido && !n.arquivado).length;
 
   async function patch(acao: string, ids?: string[]) {
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(ids ? { acao, ids } : { acao }),
-    });
-    fetchList();
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ids ? { acao, ids } : { acao }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        toast.error(json.error || "Não foi possível atualizar");
+        return;
+      }
+      fetchList();
+    } catch {
+      toast.error("Erro de rede");
+    }
   }
 
   return (

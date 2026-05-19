@@ -288,9 +288,9 @@ export default function NovaVendaPage() {
     const q = clienteSearch.toLowerCase();
     return all.filter(
       (c) =>
-        c.nome.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.telefone.includes(q) ||
+        (c.nome ?? "").toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.telefone ?? "").includes(q) ||
         (c.cpf ?? "").includes(q)
     );
   }, [clientesData, clienteSearch]);

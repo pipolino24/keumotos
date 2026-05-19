@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Heart, Bike, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,16 @@ export default function FavoritosPage() {
   const favoritos = data?.interesses ?? [];
 
   async function unfavorite(id: string) {
-    await fetch(`/api/interesses/${id}`, { method: "DELETE" });
-    refetch();
+    try {
+      const res = await fetch(`/api/interesses/${id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 404) {
+        toast.error("Não foi possível remover");
+        return;
+      }
+      refetch();
+    } catch {
+      toast.error("Erro de rede");
+    }
   }
 
   return (
