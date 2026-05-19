@@ -24,6 +24,8 @@ import {
   Handshake,
   Package,
   Star,
+  ShoppingCart,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -245,8 +247,24 @@ export default function VisualizarMotoPage() {
             <ArrowLeft className="h-4 w-4" /> Voltar
           </Button>
         </Link>
+        {moto.status === "disponivel" &&
+          (moto.tipo === "venda" || moto.tipo === "ambos") && (
+            <Link href={`/dashboard/vendas/nova?moto=${id}`}>
+              <Button type="button" variant="default">
+                <ShoppingCart className="h-4 w-4" /> Vender
+              </Button>
+            </Link>
+          )}
+        {moto.status === "disponivel" &&
+          (moto.tipo === "aluguel" || moto.tipo === "ambos") && (
+            <Link href={`/dashboard/aluguel/novo?moto=${id}`}>
+              <Button type="button" variant="outline">
+                <KeyRound className="h-4 w-4" /> Alugar
+              </Button>
+            </Link>
+          )}
         <Link href={`/dashboard/estoque/${id}/editar`}>
-          <Button type="button">
+          <Button type="button" variant="outline">
             <Edit className="h-4 w-4" /> Editar
           </Button>
         </Link>

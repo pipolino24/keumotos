@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ShoppingBag,
   Handshake,
@@ -15,6 +16,7 @@ import {
   Calendar,
   TrendingUp,
   Loader2,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,7 @@ interface MotoApi {
   valorCompra: number;
   valorAnunciado: number;
   origem: string;
+  proprietarioId?: string;
   proprietarioNome?: string;
   compra?: {
     valorPago?: number;
@@ -51,9 +54,12 @@ interface MotoApi {
 
 interface ProprietarioApi {
   _id: string;
+  nome?: string;
 }
 
 export default function AquisicoesPage() {
+  const searchParams = useSearchParams();
+  const proprietarioParam = searchParams.get("proprietario") ?? "";
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState<"todas" | "comprada" | "repasse">("todas");
 
@@ -79,7 +85,13 @@ export default function AquisicoesPage() {
     (m) => m.origem === "comprada" || m.origem === "repasse"
   );
 
+  // Nome do proprietário pinado (pra mostrar no chip do filtro)
+  const proprietarioPin = proprietarioParam
+    ? proprietarios.find((p) => p._id === proprietarioParam)
+    : null;
+
   const filtered = comprasERepasses.filter((m) => {
+    if (proprietarioParam && m.proprietarioId !== proprietarioParam) return false;
     if (filtro !== "todas" && m.origem !== filtro) return false;
     if (search) {
       const s = search.toLowerCase();
@@ -218,7 +230,7 @@ export default function AquisicoesPage() {
               />
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <Pill
               label={`Todas (${comprasERepasses.length})`}
               active={filtro === "todas"}
@@ -236,6 +248,15 @@ export default function AquisicoesPage() {
               onClick={() => setFiltro("repasse")}
               color="purple"
             />
+            {proprietarioParam && (
+              <Link
+                href="/dashboard/aquisicoes"
+                className="inline-flex items-center gap-1.5 bg-keu-red text-white text-xs font-bold px-3 py-1 rounded-full hover:bg-keu-red-dark transition"
+              >
+                Dono: {proprietarioPin?.nome ?? "selecionado"}
+                <X className="h-3 w-3" />
+              </Link>
+            )}
           </div>
         </div>
 

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import {
   Users,
   UserPlus,
   Search,
-  Filter,
   Shield,
   Crown,
   ShoppingBag,
@@ -15,7 +15,6 @@ import {
   TrendingUp,
   DollarSign,
   Edit,
-  Eye,
   Mail,
   Phone,
   Loader2,
@@ -27,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
+import { cn } from "@/lib/utils";
 
 interface UserApi {
   _id: string;
@@ -44,7 +44,14 @@ interface UserApi {
   ultimoAcesso?: string;
 }
 
+type RoleFiltro = "todos" | "admin" | "vendedor" | "cliente" | "afiliado";
+type StatusFiltro = "todos" | "ativo" | "pendente" | "inativo";
+
 export default function UsuariosPage() {
+  const [search, setSearch] = useState("");
+  const [filtroRole, setFiltroRole] = useState<RoleFiltro>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("todos");
+
   const { data, loading, error } = useApi<{ users: UserApi[] }>("/api/users");
 
   const users = data?.users ?? [];
@@ -52,7 +59,26 @@ export default function UsuariosPage() {
   const admins = users.filter((u) => u.role === "admin").length;
   const vendedores = users.filter((u) => u.role === "vendedor").length;
   const clientes = users.filter((u) => u.role === "cliente").length;
+  const afiliados = users.filter((u) => u.role === "afiliado").length;
   const pendentes = users.filter((u) => u.status === "pendente").length;
+  const ativos = users.filter((u) => u.status === "ativo").length;
+  const inativos = users.filter((u) => u.status === "inativo").length;
+
+  const filtered = users.filter((u) => {
+    if (filtroRole !== "todos" && u.role !== filtroRole) return false;
+    if (filtroStatus !== "todos" && u.status !== filtroStatus) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      if (
+        !u.nome.toLowerCase().includes(s) &&
+        !u.email.toLowerCase().includes(s) &&
+        !(u.telefone ?? "").includes(s) &&
+        !(u.cpf ?? "").includes(s)
+      )
+        return false;
+    }
+    return true;
+  });
 
   return (
     <div>
@@ -65,9 +91,11 @@ export default function UsuariosPage() {
             <Shield className="h-4 w-4" /> Cargos & Níveis
           </Button>
         </Link>
-        <Button>
-          <UserPlus className="h-4 w-4" /> Novo usuário
-        </Button>
+        <Link href="/dashboard/usuarios/novo">
+          <Button>
+            <UserPlus className="h-4 w-4" /> Novo usuário
+          </Button>
+        </Link>
       </PageHeader>
 
       {/* STATS */}
@@ -157,40 +185,88 @@ export default function UsuariosPage() {
       {/* TABELA */}
       <Card>
         <div className="p-6 border-b border-keu-black/5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div>
               <h2 className="font-bold text-lg">Todos os usuários</h2>
               <p className="text-sm text-keu-black/60">
-                {loading ? "Carregando..." : "Gerencie permissões e classificações"}
+                {loading
+                  ? "Carregando..."
+                  : `${filtered.length} ${filtered.length === 1 ? "resultado" : "resultados"}`}
               </p>
             </div>
-            <div className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
-                <Input
-                  placeholder="Nome, email ou telefone..."
-                  className="pl-9 w-64"
-                />
-              </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4" /> Filtros
-              </Button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
+              <Input
+                placeholder="Nome, email, telefone ou CPF..."
+                className="pl-9 w-64"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="default">Todos ({total})</Badge>
-            <Badge variant="outline">
-              <Shield className="h-3 w-3" /> Admins ({admins})
-            </Badge>
-            <Badge variant="outline">
-              <Crown className="h-3 w-3" /> Vendedores ({vendedores})
-            </Badge>
-            <Badge variant="outline">
-              <ShoppingBag className="h-3 w-3" /> Clientes ({clientes})
-            </Badge>
-            <Badge variant="outline">Ativos</Badge>
-            <Badge variant="outline">Pendentes</Badge>
-            <Badge variant="outline">Inativos</Badge>
+          <div className="space-y-2">
+            <div className="flex gap-2 flex-wrap">
+              <FilterPill
+                label={`Todos (${total})`}
+                active={filtroRole === "todos"}
+                onClick={() => setFiltroRole("todos")}
+              />
+              <FilterPill
+                label={`Admins (${admins})`}
+                icon={<Shield className="h-3 w-3" />}
+                active={filtroRole === "admin"}
+                onClick={() => setFiltroRole("admin")}
+              />
+              <FilterPill
+                label={`Vendedores (${vendedores})`}
+                icon={<Crown className="h-3 w-3" />}
+                active={filtroRole === "vendedor"}
+                onClick={() => setFiltroRole("vendedor")}
+              />
+              <FilterPill
+                label={`Clientes (${clientes})`}
+                icon={<ShoppingBag className="h-3 w-3" />}
+                active={filtroRole === "cliente"}
+                onClick={() => setFiltroRole("cliente")}
+              />
+              {afiliados > 0 && (
+                <FilterPill
+                  label={`Afiliados (${afiliados})`}
+                  active={filtroRole === "afiliado"}
+                  onClick={() => setFiltroRole("afiliado")}
+                />
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <FilterPill
+                label={`Ativos (${ativos})`}
+                active={filtroStatus === "ativo"}
+                onClick={() =>
+                  setFiltroStatus(filtroStatus === "ativo" ? "todos" : "ativo")
+                }
+                tone="success"
+              />
+              <FilterPill
+                label={`Pendentes (${pendentes})`}
+                active={filtroStatus === "pendente"}
+                onClick={() =>
+                  setFiltroStatus(
+                    filtroStatus === "pendente" ? "todos" : "pendente"
+                  )
+                }
+                tone="warning"
+              />
+              <FilterPill
+                label={`Inativos (${inativos})`}
+                active={filtroStatus === "inativo"}
+                onClick={() =>
+                  setFiltroStatus(
+                    filtroStatus === "inativo" ? "todos" : "inativo"
+                  )
+                }
+                tone="muted"
+              />
+            </div>
           </div>
         </div>
 
@@ -201,16 +277,37 @@ export default function UsuariosPage() {
           </div>
         ) : error ? (
           <div className="p-16 text-center text-red-600 text-sm">{error}</div>
-        ) : users.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-16 text-center">
             <Users className="h-12 w-12 text-keu-black/20 mx-auto mb-3" />
-            <h3 className="font-bold mb-1">Nenhum usuário encontrado</h3>
+            <h3 className="font-bold mb-1">
+              {users.length === 0
+                ? "Nenhum usuário encontrado"
+                : "Nenhum resultado pra esse filtro"}
+            </h3>
             <p className="text-sm text-keu-black/60 mb-4">
-              Comece cadastrando o primeiro usuário.
+              {users.length === 0
+                ? "Comece cadastrando o primeiro usuário."
+                : "Tente outro termo de busca ou limpe os filtros."}
             </p>
-            <Button>
-              <UserPlus className="h-4 w-4" /> Novo usuário
-            </Button>
+            {users.length === 0 ? (
+              <Link href="/dashboard/usuarios/novo">
+                <Button>
+                  <UserPlus className="h-4 w-4" /> Novo usuário
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setFiltroRole("todos");
+                  setFiltroStatus("todos");
+                }}
+              >
+                Limpar filtros
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -228,7 +325,7 @@ export default function UsuariosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-keu-black/5">
-                {users.map((u) => (
+                {filtered.map((u) => (
                   <tr key={u._id} className="hover:bg-keu-gray-light transition">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -366,5 +463,43 @@ function StatusBadge({ status }: { status: string }) {
       {conf.i}
       {conf.l}
     </Badge>
+  );
+}
+
+function FilterPill({
+  label,
+  icon,
+  active,
+  onClick,
+  tone,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+  tone?: "success" | "warning" | "muted";
+}) {
+  const activeClass =
+    tone === "success"
+      ? "bg-emerald-600 text-white"
+      : tone === "warning"
+        ? "bg-amber-500 text-white"
+        : tone === "muted"
+          ? "bg-keu-black text-white"
+          : "bg-keu-red text-white";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition",
+        active
+          ? activeClass
+          : "border border-keu-black/20 text-keu-black hover:bg-keu-gray-light"
+      )}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

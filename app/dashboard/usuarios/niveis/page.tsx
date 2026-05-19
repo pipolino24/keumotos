@@ -115,13 +115,13 @@ export default function NiveisPage() {
           </div>
           <div>
             <h3 className="font-bold mb-1">Administradores têm acesso total</h3>
-            <p className="text-sm text-keu-black/70">
+            <div className="text-sm text-keu-black/70">
               Usuários com role <Badge variant="dark" className="mx-0.5">Admin</Badge>{" "}
               têm todas as permissões automaticamente, independente do cargo. Os
               cargos servem para personalizar o acesso de
               <Badge variant="default" className="mx-0.5">Vendedores</Badge>
               e outros usuários da equipe.
-            </p>
+            </div>
           </div>
         </div>
       </Card>

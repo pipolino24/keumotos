@@ -35,27 +35,43 @@ interface Prop {
   createdAt: string;
 }
 
+interface MotoRepasse {
+  origem: string;
+  status: string;
+  proprietarioId?: string;
+}
+
 export default function ProprietariosPage() {
   const { data, loading, error, refetch } = useApi<{ proprietarios: Prop[] }>(
     "/api/proprietarios"
   );
+  const { data: motosData } = useApi<{ motos: MotoRepasse[] }>("/api/motos");
   const [search, setSearch] = useState("");
 
   const proprietarios = data?.proprietarios ?? [];
+  const motos = motosData?.motos ?? [];
 
   const filtered = proprietarios.filter((p) => {
     if (!search) return true;
     const s = search.toLowerCase();
     return (
       p.nome.toLowerCase().includes(s) ||
-      p.cpf.replace(/\D/g, "").includes(search.replace(/\D/g, ""))
+      p.cpf.replace(/\D/g, "").includes(search.replace(/\D/g, "")) ||
+      (p.email?.toLowerCase().includes(s) ?? false) ||
+      (p.cidade?.toLowerCase().includes(s) ?? false)
     );
   });
 
+  // Repasse ativo: motos com origem repasse e ainda no estoque (disponivel
+  // ou reservada). Vendidas/alugadas/concluídas saem do count.
+  const ativosStatus = new Set(["disponivel", "reservada"]);
+  const motosRepasseAtivas = motos.filter(
+    (m) => m.origem === "repasse" && ativosStatus.has(m.status)
+  );
   const stats = {
     total: proprietarios.length,
     comPix: proprietarios.filter((p) => p.pixChave && p.pixChave.trim()).length,
-    emRepasse: 0, // mock por enquanto
+    emRepasse: motosRepasseAtivas.length,
   };
 
   return (
@@ -116,7 +132,7 @@ export default function ProprietariosPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
               <Input
-                placeholder="Buscar por nome ou CPF..."
+                placeholder="Nome, CPF, email ou cidade..."
                 className="pl-9 w-72"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

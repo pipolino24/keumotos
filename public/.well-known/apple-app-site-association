@@ -1,0 +1,26 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["N38P3LZ34V.br.com.keumotos.app"],
+        "components": [
+          {
+            "/": "/m/*",
+            "comment": "Link de rastreamento de afiliado"
+          },
+          {
+            "/": "/motos/*",
+            "comment": "Detalhe de moto"
+          },
+          {
+            "/": "/login",
+            "comment": "Tela de login"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["N38P3LZ34V.br.com.keumotos.app"]
+  }
+}
