@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Lock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
@@ -19,16 +19,30 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [readyToReset, setReadyToReset] = useState(false);
 
+  const [invalidEntry, setInvalidEntry] = useState(false);
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    readyRef.current = readyToReset;
+  }, [readyToReset]);
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setReadyToReset(true);
     });
-    // Caso o link tenha sido aberto direto: também consideramos pronto
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReadyToReset(true);
-    });
-    return () => sub.subscription.unsubscribe();
+    // Janela curta pra esperar o PASSWORD_RECOVERY: se em 2s não veio,
+    // assume que o usuário entrou direto (não veio do email de recovery)
+    // e mostra mensagem de orientação em vez do form. Antes qualquer
+    // sessão ativa liberava o form — permitia trocar senha sem confirmar
+    // identidade via link de recuperação.
+    const t = setTimeout(() => {
+      if (!readyRef.current) setInvalidEntry(true);
+    }, 2000);
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(t);
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -87,6 +101,24 @@ export default function ResetPasswordPage() {
               <div className="text-sm text-emerald-900">
                 Pronto! Já pode usar a nova senha.
               </div>
+            </div>
+          ) : invalidEntry && !readyToReset ? (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-900">
+                  Essa página só funciona com o link enviado por e-mail de
+                  recuperação. Solicite um novo link abaixo.
+                </div>
+              </div>
+              <Link href="/forgot-password">
+                <Button className="w-full">Pedir link de recuperação</Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" className="w-full">
+                  Voltar ao login
+                </Button>
+              </Link>
             </div>
           ) : !readyToReset ? (
             <div className="text-sm text-keu-black/60 flex items-center gap-2">
