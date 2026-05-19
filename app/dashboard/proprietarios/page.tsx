@@ -126,7 +126,9 @@ export default function ProprietariosPage() {
             <div>
               <h2 className="font-bold text-lg">Lista de pessoas</h2>
               <p className="text-sm text-keu-black/60">
-                {filtered.length} {filtered.length === 1 ? "encontrado" : "encontrados"}
+                {loading
+                  ? "Carregando…"
+                  : `${filtered.length} ${filtered.length === 1 ? "encontrado" : "encontrados"}`}
               </p>
             </div>
             <div className="relative">

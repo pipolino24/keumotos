@@ -96,8 +96,24 @@ export function InteressesWidget({ limit = 6 }: Props) {
     interesses: InteresseItem[];
   }>(`/api/interesses?limit=${limit * 3}`);
 
+  // Filtra ruído: visualizações anônimas (sem clienteId/clienteNome/telefone)
+  // não trazem ação possível — pollam o feed do staff. Mantém visualizações
+  // de clientes IDENTIFICADOS e qualquer evento quente (lead/aluguel/compra/
+  // simulação/favoritou), com ou sem identificação.
+  const EVENTOS_QUENTES = new Set([
+    "enviou_lead",
+    "solicitou_aluguel",
+    "solicitou_compra",
+    "simulou_financiamento",
+    "favoritou",
+  ]);
   const list = (data?.interesses ?? [])
     .filter((i) => i.resultado !== "convertido" && i.resultado !== "perdido")
+    .filter((i) => {
+      if (EVENTOS_QUENTES.has(i.tipo)) return true;
+      // visualizou: só entra se cliente identificado
+      return !!(i.clienteId || i.clienteNome || i.clienteTelefone);
+    })
     .slice(0, limit);
 
   async function marcarAtendido(id: string) {
