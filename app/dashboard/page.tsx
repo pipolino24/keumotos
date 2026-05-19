@@ -39,6 +39,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
+import { KEU_CONFIG } from "@/lib/config";
 
 export default function DashboardPage() {
   const me = useCurrentUser();
@@ -1228,25 +1229,25 @@ function StaffDashboard() {
               <div className="mb-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-white/80">
-                    {vendasMes} de 8 vendas
+                    {vendasMes} de {KEU_CONFIG.metaVendasMensal} vendas
                   </span>
                   <span className="font-bold">
-                    {Math.round((vendasMes / 8) * 100)}%
+                    {Math.round((vendasMes / KEU_CONFIG.metaVendasMensal) * 100)}%
                   </span>
                 </div>
                 <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-white transition-all"
                     style={{
-                      width: `${Math.min(100, (vendasMes / 8) * 100)}%`,
+                      width: `${Math.min(100, (vendasMes / KEU_CONFIG.metaVendasMensal) * 100)}%`,
                     }}
                   />
                 </div>
               </div>
               <p className="text-xs text-white/70 mt-3">
-                {vendasMes >= 8
+                {vendasMes >= KEU_CONFIG.metaVendasMensal
                   ? "🎉 Meta batida! Parabéns!"
-                  : `Faltam ${8 - vendasMes} vendas pra bater a meta`}
+                  : `Faltam ${KEU_CONFIG.metaVendasMensal - vendasMes} vendas pra bater a meta`}
               </p>
             </div>
           </Card>

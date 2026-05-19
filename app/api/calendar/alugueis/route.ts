@@ -60,13 +60,14 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectMongo();
-    // Mapear status iOS-esperados para enum mongo
-    const STATUS_MAP: Record<string, string[]> = {
+    // Mapear status iOS-esperados para enum mongo (tipo exato do Aluguel.status)
+    type AluguelStatus = "ativo" | "concluido" | "atrasado" | "cancelado";
+    const STATUS_MAP: Record<string, AluguelStatus[]> = {
       ativos: ["ativo"],
       atrasados: ["atrasado"],
       concluidos: ["concluido"],
     };
-    const mongoStatuses: string[] = [];
+    const mongoStatuses: AluguelStatus[] = [];
     for (const s of includeStatuses) {
       const mapped = STATUS_MAP[s];
       if (mapped) mongoStatuses.push(...mapped);
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
     if (mongoStatuses.length === 0) mongoStatuses.push("ativo", "atrasado");
 
     const alugueis = await Aluguel.find({
-      status: { $in: mongoStatuses as any },
+      status: { $in: mongoStatuses },
       dataFim: { $exists: true, $ne: null },
     })
       .sort({ dataFim: 1 })

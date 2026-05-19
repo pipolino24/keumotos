@@ -43,9 +43,18 @@ export async function updateSupabaseSession(request: NextRequest) {
 
   // IMPORTANTE: getUser() é a chamada que valida o token e renova se preciso.
   // Não substituir por getSession() — getSession lê do cookie sem validar.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // Pra visitantes anônimos (sem cookie de sessão), o SDK joga
+  // AuthApiError "Invalid Refresh Token: Refresh Token Not Found" que
+  // polui logs e o overlay do Next em dev. Tratamos como null user
+  // sem deixar o erro propagar.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null;
+  try {
+    const result = await supabase.auth.getUser();
+    user = result.data.user;
+  } catch {
+    user = null;
+  }
 
   return { response, user, supabase };
 }
