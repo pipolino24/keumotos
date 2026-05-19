@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Interesse } from "@/lib/models/interesse";
 import { Venda } from "@/lib/models/venda";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Funil simples dos últimos 30 dias: visualizações → leads "quentes" →
  * vendas + aluguéis concluídos. Vendedor vê só os próprios; admin tudo.
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
   try {

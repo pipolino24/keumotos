@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto } from "@/lib/models/moto";
 import { Contato } from "@/lib/models/contato";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  *   GET /api/seed          → popula coleções vazias
  *   GET /api/seed?reset=1  → limpa + popula
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   // Whitelist explícita: só roda em "development". Qualquer outro ambiente
   // (production, preview, staging, test) bloqueia. NODE_ENV unset também
   // não passa — fail-safe.

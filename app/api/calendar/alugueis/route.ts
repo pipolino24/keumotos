@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     if (mongoStatuses.length === 0) mongoStatuses.push("ativo", "atrasado");
 
     const alugueis = await Aluguel.find({
-      status: { $in: mongoStatuses },
+      status: { $in: mongoStatuses as any },
       dataFim: { $exists: true, $ne: null },
     })
       .sort({ dataFim: 1 })
