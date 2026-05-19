@@ -65,7 +65,7 @@ export function TopMotosWidget({ limit = 5 }: { limit?: number }) {
           {motos.map((m, idx) => (
             <Link
               key={m._id}
-              href={`/dashboard/estoque`}
+              href={`/dashboard/estoque/${m._id}`}
               className="block hover:bg-keu-gray-light transition group"
             >
               <div className="p-3 px-5 flex items-center gap-3">
