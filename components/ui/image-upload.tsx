@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import imageCompression from "browser-image-compression";
-import { Image as ImageIcon, X, Loader2, Upload, AlertCircle } from "lucide-react";
+import { Image as ImageIcon, X, Loader2, Upload, AlertCircle, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
@@ -102,6 +102,12 @@ export function ImageUpload({
     onChange(value.filter((_, i) => i !== idx));
   }
 
+  function setAsCover(idx: number) {
+    if (idx <= 0 || idx >= value.length) return;
+    const reordered = [value[idx], ...value.filter((_, i) => i !== idx)];
+    onChange(reordered);
+  }
+
   return (
     <div className={cn("space-y-3", className)}>
       <input
@@ -141,13 +147,27 @@ export function ImageUpload({
                 className="w-full h-full object-cover"
               />
               {idx === 0 && shape === "square" && (
-                <div className="absolute top-2 left-2 bg-keu-red text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                <div className="absolute top-2 left-2 bg-keu-red text-white text-[10px] px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1 shadow-lg">
+                  <Star className="h-2.5 w-2.5 fill-white" />
                   Capa
                 </div>
+              )}
+              {idx > 0 && shape === "square" && (
+                <button
+                  type="button"
+                  onClick={() => setAsCover(idx)}
+                  title="Definir como capa"
+                  aria-label="Definir como capa"
+                  className="absolute top-2 left-2 bg-white/90 hover:bg-keu-red hover:text-white text-keu-black w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                </button>
               )}
               <button
                 type="button"
                 onClick={() => removeAt(idx)}
+                title="Remover foto"
+                aria-label="Remover foto"
                 className="absolute top-2 right-2 bg-white/90 hover:bg-red-500 hover:text-white text-keu-black w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg"
               >
                 <X className="h-3.5 w-3.5" />
