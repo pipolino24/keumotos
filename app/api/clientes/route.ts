@@ -183,11 +183,20 @@ export async function GET(req: NextRequest) {
         "@/lib/supabase/admin"
       );
       const admin = createSupabaseAdminClient();
+      // Antes filtrava role=cliente. Mas admin/vendedor TAMBÉM podem pegar
+      // empréstimo ou ser cliente em venda — nesse caso queremos cruzar
+      // pelo email/telefone com a entrada agregada. Trazemos todos os
+      // profiles e o merge cruzado abaixo decide se aparece sozinho ou
+      // junta com aggregate.
       const { data: clientesProfiles } = await admin
         .from("profiles")
-        .select("id, nome, email, telefone, cpf, created_at")
-        .eq("role", "cliente")
+        .select("id, nome, email, telefone, cpf, role, created_at")
         .limit(2000);
+      // Adicionamos TODOS os profiles ao byKey por enquanto pra que o
+      // merge cruzado abaixo possa casar profile↔empréstimo por email/
+      // telefone. Depois do merge, filtramos pra mostrar só quem é
+      // role=cliente OU tem alguma interação (interesse/venda/aluguel/
+      // empréstimo) — admin/vendedor sem nada some.
       for (const p of clientesProfiles ?? []) {
         if (!p.id) continue;
         const key = `id:${p.id}`;
@@ -203,21 +212,77 @@ export async function GET(req: NextRequest) {
             emprestimos: 0,
             totalGasto: 0,
             ultimoAt: p.created_at ? new Date(p.created_at as string) : undefined,
-          });
+            // Marca origem pra filtrar adiante
+            _profileRole: (p.role as string) ?? "cliente",
+          } as never);
         } else {
           const cur = byKey.get(key)!;
           if (!cur.clienteNome && p.nome) cur.clienteNome = p.nome as string;
           if (!cur.telefone && p.telefone) cur.telefone = p.telefone as string;
           if (!cur.email && p.email) cur.email = p.email as string;
+          (cur as { _profileRole?: string })._profileRole =
+            (p.role as string) ?? "cliente";
         }
       }
     } catch {
       // Degrada: lista sem profile-only clients se Supabase falhar
     }
 
-    const clientes = Array.from(byKey.values()).sort(
-      (a, b) => (b.ultimoAt?.getTime() ?? 0) - (a.ultimoAt?.getTime() ?? 0)
-    );
+    // Merge cruzado: duas entradas pra mesma pessoa podem existir se
+    // uma veio de Empréstimo/Venda salvo SEM clienteId (cliente novo
+    // embedded) e outra veio de profile Supabase. Tentamos casar por
+    // email OU telefone (com normalização) — se bater, junta os contadores
+    // na entrada com clienteId e descarta a sem.
+    const normTel = (t?: string) => t?.replace(/\D/g, "") || "";
+    const normEmail = (e?: string) => e?.toLowerCase().trim() || "";
+    const entries = Array.from(byKey.entries());
+    const withId = entries.filter(([, v]) => v.clienteId);
+    const withoutId = entries.filter(([, v]) => !v.clienteId);
+    for (const [keyNo, valNo] of withoutId) {
+      const matchEmail = normEmail(valNo.email);
+      const matchTel = normTel(valNo.telefone);
+      if (!matchEmail && !matchTel) continue;
+      const match = withId.find(
+        ([, vId]) =>
+          (matchEmail && normEmail(vId.email) === matchEmail) ||
+          (matchTel && matchTel.length >= 8 && normTel(vId.telefone) === matchTel)
+      );
+      if (match) {
+        const [, vId] = match;
+        vId.interesses += valNo.interesses;
+        vId.vendas += valNo.vendas;
+        vId.alugueis += valNo.alugueis;
+        vId.emprestimos += valNo.emprestimos;
+        vId.totalGasto += valNo.totalGasto;
+        if (
+          !vId.ultimoAt ||
+          (valNo.ultimoAt && valNo.ultimoAt > vId.ultimoAt)
+        ) {
+          vId.ultimoAt = valNo.ultimoAt;
+        }
+        if (!vId.telefone && valNo.telefone) vId.telefone = valNo.telefone;
+        if (!vId.email && valNo.email) vId.email = valNo.email;
+        byKey.delete(keyNo);
+      }
+    }
+
+    // Filtra: só mostra quem é role=cliente OU tem alguma interação.
+    // Admin/vendedor SEM compra/empréstimo é staff puro — não vira cliente.
+    const clientes = Array.from(byKey.values())
+      .filter((c) => {
+        const role = (c as { _profileRole?: string })._profileRole;
+        const temInteracao =
+          c.interesses > 0 || c.vendas > 0 || c.alugueis > 0 || c.emprestimos > 0;
+        return role === "cliente" || temInteracao;
+      })
+      .map((v) => {
+        const { _profileRole: _drop, ...rest } = v as typeof v & {
+          _profileRole?: string;
+        };
+        void _drop;
+        return rest;
+      })
+      .sort((a, b) => (b.ultimoAt?.getTime() ?? 0) - (a.ultimoAt?.getTime() ?? 0));
 
     // Enrich: clientes com clienteId mas sem nome puxam do profile.
     // (rare path: Interesse/Venda com clienteId mas sem campos denormalizados
