@@ -67,9 +67,18 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
           { status: 409 }
         );
       }
-      const valorPago = Number.isFinite(Number(body.valorPago))
-        ? Number(body.valorPago)
+      const valorPagoRaw = Number(body.valorPago);
+      const valorPago = Number.isFinite(valorPagoRaw)
+        ? valorPagoRaw
         : parcela.valor;
+      // Pagamento parcial é OK (valorPago < valor), pagamento extra também
+      // (cliente pagou juros de mora), mas valor <= 0 é erro de input.
+      if (!Number.isFinite(valorPago) || valorPago < 0) {
+        return NextResponse.json(
+          { error: "Valor pago deve ser >= 0" },
+          { status: 400 }
+        );
+      }
       const pagoEm = body.pagoEm ? new Date(body.pagoEm) : new Date();
       if (Number.isNaN(pagoEm.getTime())) {
         return NextResponse.json({ error: "Data de pagamento inválida" }, { status: 400 });
