@@ -23,7 +23,13 @@ export type AcaoAudit =
   | "contato.delete"
   | "afiliado.delete"
   | "afiliado.aprovar"
-  | "interesse.reassign";
+  | "interesse.reassign"
+  | "emprestimo.create"
+  | "emprestimo.update"
+  | "emprestimo.cancel"
+  | "emprestimo.parcela.pagar"
+  | "emprestimo.parcela.estornar"
+  | "emprestimo.parcela.postergar";
 
 export interface IAuditLogDoc {
   acao: AcaoAudit;
@@ -31,7 +37,16 @@ export interface IAuditLogDoc {
   atorNome?: string;
   atorRole?: "admin" | "vendedor" | "afiliado" | "cliente";
 
-  alvoTipo: "user" | "moto" | "aluguel" | "venda" | "role" | "contato" | "afiliado" | "interesse";
+  alvoTipo:
+    | "user"
+    | "moto"
+    | "aluguel"
+    | "venda"
+    | "role"
+    | "contato"
+    | "afiliado"
+    | "interesse"
+    | "emprestimo";
   alvoId: string; // id do recurso afetado
   alvoLabel?: string; // descrição humana ("João Silva", "Honda CB 300")
 
@@ -67,6 +82,12 @@ const AuditLogSchema = new Schema<IAuditLogDoc>(
         "afiliado.delete",
         "afiliado.aprovar",
         "interesse.reassign",
+        "emprestimo.create",
+        "emprestimo.update",
+        "emprestimo.cancel",
+        "emprestimo.parcela.pagar",
+        "emprestimo.parcela.estornar",
+        "emprestimo.parcela.postergar",
       ],
       required: true,
       index: true,
@@ -77,7 +98,17 @@ const AuditLogSchema = new Schema<IAuditLogDoc>(
 
     alvoTipo: {
       type: String,
-      enum: ["user", "moto", "aluguel", "venda", "role", "contato", "afiliado", "interesse"],
+      enum: [
+        "user",
+        "moto",
+        "aluguel",
+        "venda",
+        "role",
+        "contato",
+        "afiliado",
+        "interesse",
+        "emprestimo",
+      ],
       required: true,
     },
     alvoId: { type: String, required: true, index: true },
