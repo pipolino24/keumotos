@@ -166,6 +166,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check unicidade: 2 motos não podem ter a mesma placa/chassi/renavam.
+    // Sem isso, staff descuidado duplica registro do mesmo veículo e
+    // confunde estoque + vendas. Schema não tem unique index pra deixar
+    // placa opcional (motos em transferência).
+    const placa = parsed.data.placa?.trim().toUpperCase();
+    const chassi = parsed.data.chassi?.trim().toUpperCase();
+    const renavam = parsed.data.renavam?.trim();
+    if (placa) {
+      const existe = await Moto.exists({
+        placa: { $regex: `^${placa}$`, $options: "i" },
+      });
+      if (existe) {
+        return NextResponse.json(
+          { error: `Placa ${placa} já cadastrada em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+    if (chassi) {
+      const existe = await Moto.exists({
+        chassi: { $regex: `^${chassi}$`, $options: "i" },
+      });
+      if (existe) {
+        return NextResponse.json(
+          { error: `Chassi ${chassi} já cadastrado em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+    if (renavam) {
+      const existe = await Moto.exists({ renavam });
+      if (existe) {
+        return NextResponse.json(
+          { error: `RENAVAM ${renavam} já cadastrado em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+
     // Pool compartilhado: motos não têm vendedor responsável específico.
     // Qualquer staff cuida de qualquer moto.
 

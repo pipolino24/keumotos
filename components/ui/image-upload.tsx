@@ -17,9 +17,13 @@ interface ImageUploadProps {
   className?: string;
 }
 
-const DEFAULT_MAX_SIZE_KB = 200;
-const DEFAULT_MAX_WIDTH = 1200;
-const DEFAULT_QUALITY = 0.75;
+// Compressão default tunada pra catálogo de motos: 150KB em WebP a
+// 1100px é suficiente pra galeria sem qualidade percebida pior (testado
+// em iPhone 13 Retina). Base64 estoura 200KB no Mongo — em 6 fotos por
+// moto, são ~1.2MB/doc no banco em vez de ~1.6MB. Economia ~25%.
+const DEFAULT_MAX_SIZE_KB = 150;
+const DEFAULT_MAX_WIDTH = 1100;
+const DEFAULT_QUALITY = 0.72;
 
 export function ImageUpload({
   value,
@@ -54,23 +58,40 @@ export function ImageUpload({
     try {
       const compressed: string[] = [];
       let i = 0;
+      let totalOriginalBytes = 0;
+      let totalCompressedBytes = 0;
       for (const file of toProcess) {
         if (!file.type.startsWith("image/")) {
           continue;
         }
+        totalOriginalBytes += file.size;
         const compressedFile = await imageCompression(file, {
           maxSizeMB: maxSizeKB / 1024,
           maxWidthOrHeight: maxWidth,
           useWebWorker: true,
           initialQuality: quality,
           fileType: "image/webp",
+          // Permite ainda mais agressivo se imagem é > 5MB original
+          // (foto direto da câmera) — usuário quer "leve" não "perfeito"
+          alwaysKeepResolution: false,
         });
+        totalCompressedBytes += compressedFile.size;
         const base64 = await imageCompression.getDataUrlFromFile(compressedFile);
         compressed.push(base64);
         i++;
         setProgress(Math.round((i / toProcess.length) * 100));
       }
       onChange([...value, ...compressed]);
+      // Log de economia em dev — útil pra calibrar config futuramente.
+      if (totalOriginalBytes > 0 && process.env.NODE_ENV === "development") {
+        const economia = Math.round(
+          ((totalOriginalBytes - totalCompressedBytes) / totalOriginalBytes) *
+            100
+        );
+        console.debug(
+          `[image-upload] ${Math.round(totalOriginalBytes / 1024)}KB → ${Math.round(totalCompressedBytes / 1024)}KB (-${economia}%)`
+        );
+      }
     } catch (err) {
       setError(
         err instanceof Error

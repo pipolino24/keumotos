@@ -159,8 +159,26 @@ export default function EditarMotoPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form || !id) return;
-    setSaving(true);
     setError(null);
+
+    // Validações client-side (mesma lógica de /estoque/novo)
+    const anoFab = typeof form.anoFabricacao === "number" ? form.anoFabricacao : null;
+    const anoMod = typeof form.anoModelo === "number" ? form.anoModelo : null;
+    if (anoFab !== null && anoMod !== null && anoMod < anoFab) {
+      setError("Ano modelo não pode ser menor que ano fabricação");
+      toast.error("Ano modelo < ano fabricação");
+      return;
+    }
+    const valAnun =
+      typeof form.valorAnunciado === "number" ? form.valorAnunciado : null;
+    const valMin = typeof form.valorMinimo === "number" ? form.valorMinimo : null;
+    if (valAnun !== null && valMin !== null && valMin > valAnun) {
+      setError("Valor mínimo não pode ser maior que o anunciado");
+      toast.error("Valor mínimo maior que anunciado");
+      return;
+    }
+
+    setSaving(true);
     try {
       const payload: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(form)) {

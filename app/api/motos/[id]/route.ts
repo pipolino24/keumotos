@@ -110,6 +110,50 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       }
     }
 
+    // Check unicidade (exceto pra ESTA moto) — bloqueia atualizar placa/
+    // chassi/renavam pra valor que já existe em outro doc.
+    const placa =
+      typeof update.placa === "string" ? update.placa.trim().toUpperCase() : undefined;
+    const chassi =
+      typeof update.chassi === "string"
+        ? update.chassi.trim().toUpperCase()
+        : undefined;
+    const renavam =
+      typeof update.renavam === "string" ? update.renavam.trim() : undefined;
+    if (placa) {
+      const existe = await Moto.exists({
+        _id: { $ne: id },
+        placa: { $regex: `^${placa}$`, $options: "i" },
+      });
+      if (existe) {
+        return NextResponse.json(
+          { error: `Placa ${placa} já cadastrada em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+    if (chassi) {
+      const existe = await Moto.exists({
+        _id: { $ne: id },
+        chassi: { $regex: `^${chassi}$`, $options: "i" },
+      });
+      if (existe) {
+        return NextResponse.json(
+          { error: `Chassi ${chassi} já cadastrado em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+    if (renavam) {
+      const existe = await Moto.exists({ _id: { $ne: id }, renavam });
+      if (existe) {
+        return NextResponse.json(
+          { error: `RENAVAM ${renavam} já cadastrado em outra moto` },
+          { status: 409 }
+        );
+      }
+    }
+
     const moto = await Moto.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,

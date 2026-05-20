@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { FipeSelector, type FipeResult } from "@/components/ui/fipe-selector";
+import { invalidateApiCache } from "@/lib/hooks/use-api";
 
 type MotoForm = {
   marca: string;
@@ -136,8 +138,63 @@ export default function NovoMotoPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setError(null);
+
+    // ---- Validações client-side antes de enviar ----
+    // Pegamos coisas que o backend não checa (consistência de valores) ou
+    // que valem clarificar com mensagem útil em vez do erro genérico do
+    // Zod ("number expected, received undefined").
+    if (!form.marca?.trim()) {
+      setError("Marca é obrigatória");
+      toast.error("Informe a marca");
+      return;
+    }
+    if (!form.modelo?.trim()) {
+      setError("Modelo é obrigatório");
+      toast.error("Informe o modelo");
+      return;
+    }
+    if (!form.cor?.trim()) {
+      setError("Cor é obrigatória");
+      toast.error("Informe a cor");
+      return;
+    }
+    const anoFab = typeof form.anoFabricacao === "number" ? form.anoFabricacao : null;
+    const anoMod = typeof form.anoModelo === "number" ? form.anoModelo : null;
+    if (anoFab !== null && anoMod !== null && anoMod < anoFab) {
+      setError("Ano modelo não pode ser menor que ano fabricação");
+      toast.error("Ano modelo < ano fabricação");
+      return;
+    }
+    const valAnun =
+      typeof form.valorAnunciado === "number" ? form.valorAnunciado : null;
+    const valMin = typeof form.valorMinimo === "number" ? form.valorMinimo : null;
+    const valComp =
+      typeof form.valorCompra === "number" ? form.valorCompra : null;
+    if (valAnun !== null && valMin !== null && valMin > valAnun) {
+      setError("Valor mínimo não pode ser maior que o anunciado");
+      toast.error("Valor mínimo maior que anunciado");
+      return;
+    }
+    if (valAnun !== null && valComp !== null && valComp > valAnun) {
+      // Aviso não bloqueante — admin pode anunciar abaixo do custo (queima)
+      toast.warning("Valor anunciado é menor que o de compra — prejuízo no anúncio");
+    }
+    if (form.tipo === "aluguel" || form.tipo === "ambos") {
+      const valDia =
+        typeof form.valorDiaria === "number" ? form.valorDiaria : null;
+      const valSem =
+        typeof form.valorSemanal === "number" ? form.valorSemanal : null;
+      const valMes =
+        typeof form.valorMensal === "number" ? form.valorMensal : null;
+      if (valDia === null && valSem === null && valMes === null) {
+        setError("Pra aluguel é preciso ao menos um valor (diária, semanal ou mensal)");
+        toast.error("Aluguel sem valor definido");
+        return;
+      }
+    }
+
+    setSaving(true);
     try {
       // Campos tipados `number | ""` viram string vazia no JSON.stringify
       // e o Zod do servidor rejeita ("expected number, received string").
@@ -157,10 +214,14 @@ export default function NovoMotoPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erro ao salvar");
+      // Invalida cache da listagem pra moto recém-criada aparecer
+      invalidateApiCache("/api/motos");
+      toast.success(`Moto ${form.marca} ${form.modelo} cadastrada!`);
       router.push("/dashboard/estoque");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       setError(message);
+      toast.error(message);
       setSaving(false);
     }
   }
