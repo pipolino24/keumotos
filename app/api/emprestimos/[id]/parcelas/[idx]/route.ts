@@ -17,7 +17,11 @@ interface Ctx {
  * Ações suportadas (action no body):
  *   - "pagar":     { action: "pagar", valorPago?: number, pagoEm?: ISO, observacao? }
  *   - "estornar":  { action: "estornar" }    → volta pra pendente
- *   - "postergar": { action: "postergar", novaData: ISO, observacao? }
+ *   - "postergar": { action: "postergar", novaData: ISO, observacao?,
+ *                    acrescimo?: number, motivoAcrescimo?: string }
+ *                  → opcionalmente soma juros/multa naquela parcela.
+ *                  Valor extra acumula em `acrescimo` (suporta postergações
+ *                  múltiplas). `valorTotal` do empréstimo é recalculado.
  *
  * `idx` é o índice 0-based do array parcelas (não o numero da parcela 1..N).
  */
@@ -104,6 +108,18 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       if (Number.isNaN(novaData.getTime())) {
         return NextResponse.json({ error: "Nova data inválida" }, { status: 400 });
       }
+      // Postergar pra data passada não faz sentido (já estaria atrasada
+      // imediatamente). Antecipar tem outro fluxo — pagar a parcela.
+      const novaDataDia = new Date(novaData);
+      novaDataDia.setHours(0, 0, 0, 0);
+      const hojeD = new Date();
+      hojeD.setHours(0, 0, 0, 0);
+      if (novaDataDia < hojeD) {
+        return NextResponse.json(
+          { error: "Nova data não pode ser anterior a hoje" },
+          { status: 400 }
+        );
+      }
       if (parcela.status === "paga") {
         return NextResponse.json(
           { error: "Parcela paga não pode ser postergada — estorne primeiro" },
@@ -118,6 +134,24 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       parcela.status = "postergada";
       if (body.observacao) parcela.observacao = String(body.observacao).slice(0, 500);
       parcela.registradoPor = auth.userId;
+
+      // Acréscimo opcional (juros/multa por adiamento)
+      const acrescimoRaw = Number(body.acrescimo);
+      if (Number.isFinite(acrescimoRaw) && acrescimoRaw > 0) {
+        // Snapshot do valor pré-acréscimo na primeira vez
+        if (parcela.valorOriginal === undefined || parcela.valorOriginal === null) {
+          parcela.valorOriginal = parcela.valor;
+        }
+        // Soma cumulativa — postergações múltiplas empilham acréscimo
+        const acrescimoAtual = parcela.acrescimo ?? 0;
+        const novoAcrescimo = Math.round((acrescimoAtual + acrescimoRaw) * 100) / 100;
+        parcela.acrescimo = novoAcrescimo;
+        parcela.valor =
+          Math.round(((parcela.valorOriginal ?? 0) + novoAcrescimo) * 100) / 100;
+        if (body.motivoAcrescimo) {
+          parcela.motivoAcrescimo = String(body.motivoAcrescimo).slice(0, 300);
+        }
+      }
     }
 
     // Marca parcelas vencidas (mantém "paga" e "postergada" intactas)
@@ -127,6 +161,17 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         p.status = "atrasada";
       }
     }
+
+    // Recalcula totais do empréstimo a partir das parcelas (qualquer acréscimo
+    // em parcela vira aumento de valorTotal + juros denormalizados).
+    const novoTotal =
+      Math.round(doc.parcelas.reduce((acc, p) => acc + p.valor, 0) * 100) / 100;
+    doc.valorTotal = novoTotal;
+    doc.juros = Math.round((novoTotal - doc.valorEmprestado) * 100) / 100;
+    doc.taxa =
+      doc.valorEmprestado > 0
+        ? Math.round((doc.juros / doc.valorEmprestado) * 10000) / 100
+        : 0;
 
     doc.status = recalcularStatus(doc);
     doc.markModified("parcelas");

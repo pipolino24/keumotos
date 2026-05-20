@@ -35,6 +35,9 @@ interface ParcelaApi {
   vencimento: string;
   vencimentoOriginal?: string;
   valor: number;
+  valorOriginal?: number;
+  acrescimo?: number;
+  motivoAcrescimo?: string;
   status: "pendente" | "paga" | "atrasada" | "postergada";
   pagoEm?: string;
   valorPago?: number;
@@ -183,11 +186,16 @@ export default function EmprestimoDetailPage() {
       .filter((p) => p.status !== "paga")
       .reduce((acc, p) => acc + p.valor, 0);
     const atrasadas = e.parcelas.filter((p) => p.status === "atrasada");
+    const totalAcrescimos = e.parcelas.reduce(
+      (acc, p) => acc + (p.acrescimo ?? 0),
+      0
+    );
     return {
       pagas: pagas.length,
       totalRecebido,
       totalEmAberto,
       atrasadas: atrasadas.length,
+      totalAcrescimos,
       progresso: e.totalParcelas > 0 ? (pagas.length / e.totalParcelas) * 100 : 0,
     };
   }, [e]);
@@ -214,7 +222,10 @@ export default function EmprestimoDetailPage() {
   }
 
   async function refreshData() {
+    // Invalida cache do detail E da lista — qualquer mutação em parcela
+    // muda KPIs agregados (a receber, em atraso, juros) na listagem.
     invalidateApiCache(`/api/emprestimos/${id}`);
+    invalidateApiCache("/api/emprestimos");
     refetch();
   }
 
@@ -288,7 +299,18 @@ export default function EmprestimoDetailPage() {
               icon={<DollarSign className="h-4 w-4" />}
               label="Total a receber"
               value={formatCurrency(e.valorTotal)}
+              accent={
+                kpis && kpis.totalAcrescimos > 0 ? "text-amber-700" : undefined
+              }
             />
+            {kpis && kpis.totalAcrescimos > 0 && (
+              <FinanceRow
+                icon={<AlertCircle className="h-4 w-4 text-amber-600" />}
+                label="Acréscimos (postergações)"
+                value={`+ ${formatCurrency(kpis.totalAcrescimos)}`}
+                accent="text-amber-700"
+              />
+            )}
             <FinanceRow
               icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
               label="Juros"
@@ -530,7 +552,29 @@ function ParcelaRow({
           <Badge variant={urg.badge} className="text-[10px]">
             {urg.label}
           </Badge>
+          {parcela.acrescimo !== undefined && parcela.acrescimo > 0 && (
+            <Badge variant="warning" className="text-[10px]">
+              +{formatCurrency(parcela.acrescimo)} acréscimo
+            </Badge>
+          )}
         </div>
+        {/* Discriminação valor original + acréscimo quando aplicável */}
+        {parcela.acrescimo !== undefined &&
+          parcela.acrescimo > 0 &&
+          parcela.valorOriginal !== undefined && (
+            <div className="text-[11px] text-amber-800 mt-0.5">
+              {formatCurrency(parcela.valorOriginal)} original{" "}
+              <span className="text-amber-700">
+                + {formatCurrency(parcela.acrescimo)}
+              </span>
+              {parcela.motivoAcrescimo && (
+                <span className="text-keu-black/60">
+                  {" "}
+                  · {parcela.motivoAcrescimo}
+                </span>
+              )}
+            </div>
+          )}
         <div className="text-xs text-keu-black/60 mt-0.5 flex items-center gap-2 flex-wrap">
           <CalendarClock className="h-3 w-3" /> Vence {formatDate(parcela.vencimento)}
           {parcela.vencimentoOriginal && (
@@ -711,9 +755,19 @@ function PostergarModal({
 
   const [novaData, setNovaData] = useState(defaultDate);
   const [observacao, setObservacao] = useState("");
+  const [adicionarAcrescimo, setAdicionarAcrescimo] = useState(false);
+  const [acrescimo, setAcrescimo] = useState("");
+  const [motivoAcrescimo, setMotivoAcrescimo] = useState("Juros por postergação");
   const [saving, setSaving] = useState(false);
 
+  const acrescimoNum = adicionarAcrescimo ? parseFloat(acrescimo) || 0 : 0;
+  const novoValor = parcela.valor + acrescimoNum;
+
   async function submit() {
+    if (adicionarAcrescimo && acrescimoNum < 0) {
+      toast.error("Acréscimo não pode ser negativo");
+      return;
+    }
     setSaving(true);
     const r = await apiPatch<{ emprestimo: EmprestimoApi }>(
       `/api/emprestimos/${emprestimoId}/parcelas/${idx}`,
@@ -721,6 +775,9 @@ function PostergarModal({
         action: "postergar",
         novaData,
         observacao: observacao || undefined,
+        acrescimo: adicionarAcrescimo && acrescimoNum > 0 ? acrescimoNum : undefined,
+        motivoAcrescimo:
+          adicionarAcrescimo && acrescimoNum > 0 ? motivoAcrescimo : undefined,
       }
     );
     setSaving(false);
@@ -728,7 +785,13 @@ function PostergarModal({
       toast.error(r.error);
       return;
     }
-    toast.success(`Parcela ${parcela.numero} postergada pra ${formatDate(novaData)}`);
+    const msgExtra =
+      adicionarAcrescimo && acrescimoNum > 0
+        ? ` (+${formatCurrency(acrescimoNum)})`
+        : "";
+    toast.success(
+      `Parcela ${parcela.numero} postergada pra ${formatDate(novaData)}${msgExtra}`
+    );
     onDone();
   }
 
@@ -738,14 +801,19 @@ function PostergarModal({
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
           <span>
-            Postergar mantém o valor da parcela e gera novo vencimento. A data
-            original fica registrada como referência.
+            Postergar mantém ou aumenta o valor da parcela e gera novo
+            vencimento. A data original fica registrada como referência.
           </span>
         </div>
         <div>
           <Label>Vencimento atual</Label>
           <div className="text-sm font-medium">
             {formatDate(parcela.vencimento)} · {formatCurrency(parcela.valor)}
+            {parcela.acrescimo && parcela.acrescimo > 0 && (
+              <span className="text-amber-700 text-xs ml-2">
+                (já tem +{formatCurrency(parcela.acrescimo)} de acréscimo)
+              </span>
+            )}
           </div>
         </div>
         <div>
@@ -756,8 +824,56 @@ function PostergarModal({
             onChange={(e) => setNovaData(e.target.value)}
           />
         </div>
+
+        {/* Acréscimo opcional */}
+        <div className="border border-keu-black/10 rounded-lg p-3 bg-keu-gray-light/50">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={adicionarAcrescimo}
+              onChange={(e) => setAdicionarAcrescimo(e.target.checked)}
+              className="h-4 w-4 rounded border-keu-black/30 accent-keu-red"
+            />
+            <span className="text-sm font-semibold">
+              Cobrar juros/multa por essa postergação
+            </span>
+          </label>
+          {adicionarAcrescimo && (
+            <div className="mt-3 space-y-3">
+              <div>
+                <Label>Valor extra (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={acrescimo}
+                  onChange={(e) => setAcrescimo(e.target.value)}
+                  placeholder="ex: 10.00"
+                />
+                <div className="text-xs text-keu-black/60 mt-1">
+                  Só essa parcela vira{" "}
+                  <strong className="text-keu-red">
+                    {formatCurrency(novoValor)}
+                  </strong>{" "}
+                  · valorTotal do empréstimo aumenta em{" "}
+                  {formatCurrency(acrescimoNum)}.
+                </div>
+              </div>
+              <div>
+                <Label>Motivo</Label>
+                <Input
+                  value={motivoAcrescimo}
+                  onChange={(e) => setMotivoAcrescimo(e.target.value)}
+                  placeholder="ex: juros 5% por atraso, multa por adiamento"
+                  maxLength={300}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         <div>
-          <Label>Motivo (opcional)</Label>
+          <Label>Motivo da postergação (opcional)</Label>
           <Textarea
             rows={2}
             value={observacao}

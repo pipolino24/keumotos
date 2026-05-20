@@ -3,6 +3,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Interesse } from "@/lib/models/interesse";
 import { Venda } from "@/lib/models/venda";
 import { Aluguel } from "@/lib/models/aluguel";
+import { Emprestimo } from "@/lib/models/emprestimo";
 import { requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
@@ -74,10 +75,25 @@ export async function GET(req: NextRequest) {
           },
         },
       ]).option({ maxTimeMS: 5000 }),
+      // Empréstimos — cliente que pegou empréstimo (mesmo sem nenhuma outra
+      // interação) aparece na lista de clientes
+      Emprestimo.aggregate([
+        { $limit: PIPELINE_LIMIT },
+        {
+          $group: {
+            _id: { clienteId: "$clienteId", clienteNome: "$clienteNome" },
+            telefone: { $last: "$clienteTelefone" },
+            email: { $last: "$clienteEmail" },
+            emprestimos: { $sum: 1 },
+            ultimoAt: { $max: "$dataEmprestimo" },
+          },
+        },
+      ]).option({ maxTimeMS: 5000 }),
     ]);
     const interesses = settled[0].status === "fulfilled" ? settled[0].value : [];
     const vendas = settled[1].status === "fulfilled" ? settled[1].value : [];
     const alugueis = settled[2].status === "fulfilled" ? settled[2].value : [];
+    const emprestimos = settled[3].status === "fulfilled" ? settled[3].value : [];
 
     // Unifica por (clienteId || clienteNome) — vendedor vê tudo num só
     const byKey = new Map<
@@ -90,6 +106,7 @@ export async function GET(req: NextRequest) {
         interesses: number;
         vendas: number;
         alugueis: number;
+        emprestimos: number;
         totalGasto: number;
         ultimoAt?: Date;
       }
@@ -118,10 +135,16 @@ export async function GET(req: NextRequest) {
           interesses: 0,
           vendas: 0,
           alugueis: 0,
+          emprestimos: 0,
           totalGasto: 0,
         });
       }
-      return byKey.get(key)!;
+      // Atualiza telefone/email se vier preenchido (algumas tabelas têm
+      // info melhor — preferimos a mais recente que tenha valor)
+      const cur = byKey.get(key)!;
+      if (!cur.telefone && row.telefone) cur.telefone = row.telefone;
+      if (!cur.email && row.email) cur.email = row.email;
+      return cur;
     }
 
     for (const i of interesses) {
@@ -142,6 +165,12 @@ export async function GET(req: NextRequest) {
       if (!c) continue;
       c.alugueis += a.alugueis;
       if (!c.ultimoAt || a.ultimoAt > c.ultimoAt) c.ultimoAt = a.ultimoAt;
+    }
+    for (const e of emprestimos) {
+      const c = pegar(e);
+      if (!c) continue;
+      c.emprestimos += e.emprestimos;
+      if (!c.ultimoAt || e.ultimoAt > c.ultimoAt) c.ultimoAt = e.ultimoAt;
     }
 
     const clientes = Array.from(byKey.values()).sort(

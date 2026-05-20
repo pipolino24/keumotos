@@ -28,7 +28,10 @@ export interface IParcelaDoc {
   numero: number; // 1..N
   vencimento: Date;
   vencimentoOriginal?: Date; // preserva data antes de postergar
-  valor: number;
+  valor: number; // o que cliente deve nessa parcela (já INCLUI acréscimos)
+  valorOriginal?: number; // valor antes do primeiro acréscimo (snapshot)
+  acrescimo?: number; // total acumulado de juros/multa adicionados manualmente
+  motivoAcrescimo?: string; // texto livre — "juros 5% por atraso", "multa", etc
   status: StatusParcela;
   pagoEm?: Date;
   valorPago?: number; // pode diferir do valor (pagamento parcial / juros extra)
@@ -77,6 +80,9 @@ const ParcelaSchema = new Schema<IParcelaDoc>(
     vencimento: { type: Date, required: true },
     vencimentoOriginal: Date,
     valor: { type: Number, required: true, min: 0 },
+    valorOriginal: Number,
+    acrescimo: { type: Number, default: 0 },
+    motivoAcrescimo: String,
     status: {
       type: String,
       enum: ["pendente", "paga", "atrasada", "postergada"],
