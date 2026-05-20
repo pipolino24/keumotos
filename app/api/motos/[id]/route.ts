@@ -154,6 +154,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       }
     }
 
+    // Normaliza placa/chassi pra UPPERCASE antes de salvar (consistência)
+    if (placa) update.placa = placa;
+    if (chassi) update.chassi = chassi;
+    if (renavam) update.renavam = renavam;
+
     const moto = await Moto.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,

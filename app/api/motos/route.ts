@@ -208,7 +208,14 @@ export async function POST(req: NextRequest) {
     // Pool compartilhado: motos não têm vendedor responsável específico.
     // Qualquer staff cuida de qualquer moto.
 
-    const moto = await Moto.create(parsed.data);
+    // Normaliza placa/chassi pra UPPERCASE antes de salvar — garante
+    // que busca case-insensitive futura e display ficam consistentes.
+    const dataPraSalvar: Record<string, unknown> = { ...parsed.data };
+    if (placa) dataPraSalvar.placa = placa;
+    if (chassi) dataPraSalvar.chassi = chassi;
+    if (renavam) dataPraSalvar.renavam = renavam;
+
+    const moto = await Moto.create(dataPraSalvar);
     return NextResponse.json({ moto }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao salvar moto";
