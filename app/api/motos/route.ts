@@ -142,7 +142,16 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .lean()
       .maxTimeMS(15_000);
-    return NextResponse.json({ motos });
+    // Catálogo público (não-staff): pode CDN-cachear curtamente — venda nova
+    // demora 30s pra refletir. Staff: tira o cache pra ver estoque atualizado
+    // imediato (auth ainda checa no PATCH/POST).
+    const cacheHeader = isStaff
+      ? "private, no-store"
+      : "public, s-maxage=30, stale-while-revalidate=120";
+    return NextResponse.json(
+      { motos },
+      { headers: { "Cache-Control": cacheHeader } }
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     return NextResponse.json({ error: message }, { status: 500 });

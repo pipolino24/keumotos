@@ -327,7 +327,18 @@ export async function GET(req: NextRequest) {
       nome: c.clienteNome,
     }));
 
-    return NextResponse.json({ clientes: comAliases });
+    // CDN cache curto + SWR. /api/clientes faz 5 aggregates + profiles
+    // query — fica pesado se 20 vendedores fazem F5 no mesmo minuto.
+    // 30s no edge + 5min SWR é seguro (cliente novo pode esperar 30s pra
+    // aparecer; updates passam pelo invalidateApiCache no client mesmo).
+    return NextResponse.json(
+      { clientes: comAliases },
+      {
+        headers: {
+          "Cache-Control": "private, max-age=10, s-maxage=30, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";
     return NextResponse.json({ error: message }, { status: 500 });
