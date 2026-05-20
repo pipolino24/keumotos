@@ -243,26 +243,35 @@ export default function NovoMotoPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="marca" required>Marca</Label>
-                <Select
+                <Input
                   id="marca"
+                  placeholder="Ex: Honda"
                   required
                   value={form.marca}
                   onChange={(e) => set("marca", e.target.value)}
-                >
-                  <option value="">Selecione...</option>
-                  <option>Honda</option>
-                  <option>Yamaha</option>
-                  <option>Suzuki</option>
-                  <option>Kawasaki</option>
-                  <option>BMW</option>
-                  <option>Ducati</option>
-                  <option>Harley-Davidson</option>
-                  <option>Royal Enfield</option>
-                  <option>Triumph</option>
-                  <option>Dafra</option>
-                  <option>Shineray</option>
-                  <option>Outra</option>
-                </Select>
+                  list="marcas-sugestoes"
+                />
+                <datalist id="marcas-sugestoes">
+                  <option value="Honda" />
+                  <option value="Yamaha" />
+                  <option value="Suzuki" />
+                  <option value="Kawasaki" />
+                  <option value="BMW" />
+                  <option value="Ducati" />
+                  <option value="Harley-Davidson" />
+                  <option value="Royal Enfield" />
+                  <option value="Triumph" />
+                  <option value="Dafra" />
+                  <option value="Shineray" />
+                  <option value="Haojue" />
+                  <option value="Avelloz" />
+                  <option value="KTM" />
+                  <option value="Moto Guzzi" />
+                  <option value="Aprilia" />
+                  <option value="MV Agusta" />
+                  <option value="Vespa" />
+                  <option value="Piaggio" />
+                </datalist>
               </div>
               <div>
                 <Label htmlFor="modelo" required>Modelo</Label>
@@ -809,21 +818,36 @@ export default function NovoMotoPage() {
 }
 
 function capitalizarMarca(nome: string): string {
-  const upper = nome.toUpperCase();
+  const upper = nome.toUpperCase().trim();
   const map: Record<string, string> = {
     HONDA: "Honda",
     YAMAHA: "Yamaha",
     SUZUKI: "Suzuki",
     KAWASAKI: "Kawasaki",
     BMW: "BMW",
+    KTM: "KTM",
     DUCATI: "Ducati",
     "HARLEY-DAVIDSON": "Harley-Davidson",
     "ROYAL ENFIELD": "Royal Enfield",
     TRIUMPH: "Triumph",
     DAFRA: "Dafra",
     SHINERAY: "Shineray",
+    HAOJUE: "Haojue",
+    AVELLOZ: "Avelloz",
+    "MOTO GUZZI": "Moto Guzzi",
+    APRILIA: "Aprilia",
+    "MV AGUSTA": "MV Agusta",
+    VESPA: "Vespa",
+    PIAGGIO: "Piaggio",
+    KASINSKI: "Kasinski",
+    TRAXX: "Traxx",
+    SUNDOWN: "Sundown",
   };
-  return map[upper] ?? nome;
+  if (map[upper]) return map[upper];
+  return upper
+    .split(/\s+/)
+    .map((w) => (w.length <= 2 ? w : w[0] + w.slice(1).toLowerCase()))
+    .join(" ");
 }
 
 function mapearCombustivel(
