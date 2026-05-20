@@ -69,6 +69,20 @@ function isoToday(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Deriva o status real comparando datas — backend pode estar stale. */
+function statusDerivado(e: EmprestimoApi): EmprestimoApi["status"] {
+  if (e.status === "cancelado" || e.status === "quitado") return e.status;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const temAtrasada = e.parcelas.some((p) => {
+    if (p.status === "paga") return false;
+    const venc = new Date(p.vencimento);
+    venc.setHours(0, 0, 0, 0);
+    return venc.getTime() < hoje.getTime();
+  });
+  return temAtrasada ? "em_atraso" : "ativo";
+}
+
 /* ============= helper de cores por urgência ============= */
 
 type UrgenciaTone =

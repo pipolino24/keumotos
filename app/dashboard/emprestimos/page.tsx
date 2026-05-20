@@ -250,12 +250,30 @@ function urgenciaProxima(p: ParcelaApi | undefined): {
   };
 }
 
+/**
+ * Deriva status local pra evitar mostrar "Ativo" quando há parcela já
+ * vencida (backend só recalcula status em mutação, então pode estar stale).
+ */
+function statusDerivado(e: EmprestimoApi): EmprestimoApi["status"] {
+  if (e.status === "cancelado" || e.status === "quitado") return e.status;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const temAtrasada = e.parcelas.some((p) => {
+    if (p.status === "paga") return false;
+    const venc = new Date(p.vencimento);
+    venc.setHours(0, 0, 0, 0);
+    return venc.getTime() < hoje.getTime();
+  });
+  return temAtrasada ? "em_atraso" : "ativo";
+}
+
 function EmprestimoRow({ e }: { e: EmprestimoApi }) {
   const pagas = e.parcelas.filter((p) => p.status === "paga").length;
   const proxima = e.parcelas.find(
     (p) => p.status !== "paga" && p.status !== "postergada"
   );
   const urg = urgenciaProxima(proxima);
+  const statusReal = statusDerivado(e);
   // Card cancelado vira cinza desbotado
   const cardCls =
     e.status === "cancelado"
@@ -316,7 +334,7 @@ function EmprestimoRow({ e }: { e: EmprestimoApi }) {
           </div>
 
           <div className="flex-shrink-0">
-            <StatusBadge status={e.status} />
+            <StatusBadge status={statusReal} />
           </div>
         </div>
       </Card>
