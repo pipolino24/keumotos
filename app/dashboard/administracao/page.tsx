@@ -92,12 +92,24 @@ export default function AdministracaoPage() {
     error: errorAlugueis,
   } = useApi<{ alugueis: AluguelApi[] }>("/api/alugueis");
 
+  // Bug histórico: useApi com 5 endpoints paralelos às vezes mantinha
+  // `loading=true` mesmo após fetch resolver (race com setTimeout 0
+  // interno). Render baseado em `loading` travava. Agora derivamos de
+  // PRESENÇA de data — se chegou pra todos, libera; se 1 deu erro mas
+  // outros 4 carregaram, ainda renderiza (com seções vazias).
+  const ready =
+    motosData != null &&
+    usersData != null &&
+    contatosData != null &&
+    vendasData != null &&
+    alugueisData != null;
   const loading =
-    loadingMotos ||
-    loadingUsers ||
-    loadingContatos ||
-    loadingVendas ||
-    loadingAlugueis;
+    !ready &&
+    (loadingMotos ||
+      loadingUsers ||
+      loadingContatos ||
+      loadingVendas ||
+      loadingAlugueis);
   const error =
     errorMotos || errorUsers || errorContatos || errorVendas || errorAlugueis;
 
