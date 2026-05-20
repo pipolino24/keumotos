@@ -51,7 +51,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
     }
 
-    const before = { status: doc.status, observacoes: doc.observacoes };
+    const before: Record<string, unknown> = {
+      status: doc.status,
+      observacoes: doc.observacoes,
+    };
 
     if (body.status !== undefined) {
       if (!["ativo", "quitado", "em_atraso", "cancelado"].includes(body.status)) {

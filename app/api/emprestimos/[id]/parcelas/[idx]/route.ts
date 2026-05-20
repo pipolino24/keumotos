@@ -56,7 +56,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     const parcela = doc.parcelas[parcelaIdx];
-    const before = { ...parcela };
+    // before/snapshot pro audit log — `as Record` faz o cast pro tipo do
+    // emitAuditLog (IParcelaDoc tem campos opcionais mas o audit aceita unknown).
+    const before = { ...parcela } as Record<string, unknown>;
 
     if (action === "pagar") {
       if (parcela.status === "paga") {
@@ -136,7 +138,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       alvoId: id,
       alvoLabel: `${doc.clienteNome} · parcela ${parcela.numero}/${doc.totalParcelas}`,
       estadoAnterior: before,
-      estadoNovo: parcela,
+      estadoNovo: { ...parcela } as Record<string, unknown>,
     });
 
     return NextResponse.json({ emprestimo: doc.toObject() });
