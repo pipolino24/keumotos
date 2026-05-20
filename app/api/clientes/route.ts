@@ -173,15 +173,57 @@ export async function GET(req: NextRequest) {
       if (!c.ultimoAt || e.ultimoAt > c.ultimoAt) c.ultimoAt = e.ultimoAt;
     }
 
+    // Fonte adicional: TODOS os profiles Supabase com role=cliente, mesmo
+    // sem nenhuma interação ainda. Decisão de produto (2026-05): cadastro
+    // de cliente é ÚNICO — todo form (venda/aluguel/empréstimo) consulta E
+    // grava na mesma fonte. Aqui agregamos Interesse+Venda+Aluguel+
+    // Empréstimo+Profiles num só lugar.
+    try {
+      const { createSupabaseAdminClient } = await import(
+        "@/lib/supabase/admin"
+      );
+      const admin = createSupabaseAdminClient();
+      const { data: clientesProfiles } = await admin
+        .from("profiles")
+        .select("id, nome, email, telefone, cpf, created_at")
+        .eq("role", "cliente")
+        .limit(2000);
+      for (const p of clientesProfiles ?? []) {
+        if (!p.id) continue;
+        const key = `id:${p.id}`;
+        if (!byKey.has(key)) {
+          byKey.set(key, {
+            clienteId: p.id,
+            clienteNome: (p.nome as string) ?? undefined,
+            telefone: (p.telefone as string) ?? undefined,
+            email: (p.email as string) ?? undefined,
+            interesses: 0,
+            vendas: 0,
+            alugueis: 0,
+            emprestimos: 0,
+            totalGasto: 0,
+            ultimoAt: p.created_at ? new Date(p.created_at as string) : undefined,
+          });
+        } else {
+          const cur = byKey.get(key)!;
+          if (!cur.clienteNome && p.nome) cur.clienteNome = p.nome as string;
+          if (!cur.telefone && p.telefone) cur.telefone = p.telefone as string;
+          if (!cur.email && p.email) cur.email = p.email as string;
+        }
+      }
+    } catch {
+      // Degrada: lista sem profile-only clients se Supabase falhar
+    }
+
     const clientes = Array.from(byKey.values()).sort(
       (a, b) => (b.ultimoAt?.getTime() ?? 0) - (a.ultimoAt?.getTime() ?? 0)
     );
 
-    // Enrich: clientes com clienteId mas sem nome/telefone/email puxam do
-    // profile do Supabase. Acontece quando Interesse/Venda/Aluguel foi salvo
-    // só com a FK clienteId. 1 query batch pra todos os IDs faltantes.
+    // Enrich: clientes com clienteId mas sem nome puxam do profile.
+    // (rare path: Interesse/Venda com clienteId mas sem campos denormalizados
+    // E sem role=cliente)
     const idsSemDados = clientes
-      .filter((c) => c.clienteId && (!c.clienteNome || !c.email))
+      .filter((c) => c.clienteId && !c.clienteNome)
       .map((c) => c.clienteId!);
     if (idsSemDados.length > 0) {
       try {
@@ -194,7 +236,10 @@ export async function GET(req: NextRequest) {
           .select("id, nome, email, telefone")
           .in("id", Array.from(new Set(idsSemDados)));
         const byId = new Map(
-          (profiles ?? []).map((p) => [p.id as string, p as { id: string; nome?: string; email?: string; telefone?: string }])
+          (profiles ?? []).map((p) => [
+            p.id as string,
+            p as { id: string; nome?: string; email?: string; telefone?: string },
+          ])
         );
         for (const c of clientes) {
           if (!c.clienteId) continue;
@@ -205,11 +250,19 @@ export async function GET(req: NextRequest) {
           if (!c.telefone && p.telefone) c.telefone = p.telefone;
         }
       } catch {
-        // degrada — segue com "Sem nome" se profile lookup falhar
+        // degrada
       }
     }
 
-    return NextResponse.json({ clientes });
+    // Adiciona aliases `_id` e `nome` pra compatibilidade com forms antigos
+    // que esperavam o shape de /api/users (vendas/nova, aluguel/novo).
+    const comAliases = clientes.map((c) => ({
+      ...c,
+      _id: c.clienteId,
+      nome: c.clienteNome,
+    }));
+
+    return NextResponse.json({ clientes: comAliases });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro";
     return NextResponse.json({ error: message }, { status: 500 });

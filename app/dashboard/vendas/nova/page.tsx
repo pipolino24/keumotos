@@ -254,9 +254,13 @@ export default function NovaVendaPage() {
   const [error, setError] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState("");
 
+  // Fonte única de cliente: /api/clientes agrega profiles Supabase +
+  // qualquer cliente com Interesse/Venda/Aluguel/Empréstimo. Antes este
+  // form puxava só /api/users?role=cliente — cliente criado via
+  // empréstimo ou contato direto não aparecia aqui.
   const { data: clientesData, loading: loadingClientes } = useApi<{
-    users: ClienteApi[];
-  }>("/api/users?role=cliente");
+    clientes: ClienteApi[];
+  }>("/api/clientes");
 
   const { data: motosData, loading: loadingMotos } = useApi<{
     motos: MotoApi[];
@@ -283,7 +287,7 @@ export default function NovaVendaPage() {
   );
 
   const clientesFiltrados = useMemo(() => {
-    const all = clientesData?.users ?? [];
+    const all = clientesData?.clientes ?? [];
     if (!clienteSearch.trim()) return all;
     const q = clienteSearch.toLowerCase();
     return all.filter(
@@ -396,7 +400,7 @@ export default function NovaVendaPage() {
     valorVendidoNum < valorMinimoMoto;
 
   function clienteSelecionado(): ClienteApi | undefined {
-    return clientesData?.users.find((u) => u._id === form.clienteId);
+    return clientesData?.clientes.find((u) => u._id === form.clienteId);
   }
 
   function validarPagamentos(): string | null {

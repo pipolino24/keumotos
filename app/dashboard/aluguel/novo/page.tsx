@@ -201,9 +201,12 @@ export default function NovoAluguelPage() {
   const [error, setError] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState("");
 
+  // Fonte única (2026-05): /api/clientes agrega profiles + Interesse/
+  // Venda/Aluguel/Empréstimo. Antes este form puxava só Supabase profiles
+  // — cliente criado via empréstimo não aparecia aqui.
   const { data: clientesData, loading: loadingClientes } = useApi<{
-    users: ClienteApi[];
-  }>("/api/users?role=cliente");
+    clientes: ClienteApi[];
+  }>("/api/clientes");
 
   const { data: motosData, loading: loadingMotos } = useApi<{
     motos: MotoApi[];
@@ -230,7 +233,7 @@ export default function NovoAluguelPage() {
   );
 
   const clientesFiltrados = useMemo(() => {
-    const all = clientesData?.users ?? [];
+    const all = clientesData?.clientes ?? [];
     if (!clienteSearch.trim()) return all;
     const q = clienteSearch.toLowerCase();
     return all.filter(
@@ -290,7 +293,7 @@ export default function NovoAluguelPage() {
   }, [motoIdQuery, todasMotos]);
 
   function clienteSelecionado(): ClienteApi | undefined {
-    return clientesData?.users.find((u) => u._id === form.clienteId);
+    return clientesData?.clientes.find((u) => u._id === form.clienteId);
   }
 
   async function handleSubmit(e: React.FormEvent) {
