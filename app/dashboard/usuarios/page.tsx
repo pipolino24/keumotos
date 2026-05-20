@@ -138,6 +138,17 @@ export default function UsuariosPage() {
             Desempenho da equipe de vendas
           </p>
         </div>
+        {users.filter((u) => u.role === "vendedor").length === 0 ? (
+          <div className="p-10 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-keu-gray-light rounded-full mb-3">
+              <TrendingUp className="h-6 w-6 text-keu-black/30" />
+            </div>
+            <h3 className="font-bold mb-1">Sem vendedores ainda</h3>
+            <p className="text-sm text-keu-black/60">
+              Cadastre usuários com role "vendedor" pra ver o ranking aqui.
+            </p>
+          </div>
+        ) : (
         <div className="p-6 grid sm:grid-cols-2 gap-4">
           {users
             .filter((u) => u.role === "vendedor")
@@ -180,6 +191,7 @@ export default function UsuariosPage() {
               </div>
             ))}
         </div>
+        )}
       </Card>
 
       {/* TABELA */}
