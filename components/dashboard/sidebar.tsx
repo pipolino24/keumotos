@@ -45,7 +45,7 @@ const clienteNavItems = [
 
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
-  { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Aquisições" },
+  { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Compras & Repasses" },
   { href: "/dashboard/proprietarios", icon: Users, label: "Pessoas" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },

@@ -11,6 +11,7 @@ import {
   Eye,
   Lock,
   Loader2,
+  Handshake,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,9 +78,14 @@ export default function EstoquePage() {
         title="Estoque"
         description="Catálogo de motos cadastradas"
       >
+        <Link href="/dashboard/aquisicoes/nova">
+          <Button variant="outline">
+            <Handshake className="h-4 w-4" /> Compra/Repasse
+          </Button>
+        </Link>
         <Link href="/dashboard/estoque/novo">
           <Button>
-            <Plus className="h-4 w-4" /> Cadastrar Moto
+            <Plus className="h-4 w-4" /> Moto KEU
           </Button>
         </Link>
       </PageHeader>
