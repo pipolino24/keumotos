@@ -1506,32 +1506,43 @@ function StatCard({
   trendDirection?: "up" | "down" | "flat";
   trendValue?: string;
 }) {
-  const trendColor =
+  // Aceita color em formato legado (bg-X-500) e converte pra gradient
+  // padronizado (from-X-500 to-X-600 / from-keu-red to-keu-red-dark).
+  // Consistente com KPIs de /vendas, /aluguel, /contatos, /clientes etc.
+  const gradient = color.startsWith("from-")
+    ? color
+    : color
+        .replace(/^bg-emerald-500$/, "from-emerald-500 to-emerald-600")
+        .replace(/^bg-keu-red$/, "from-keu-red to-keu-red-dark")
+        .replace(/^bg-blue-500$/, "from-blue-500 to-blue-600")
+        .replace(/^bg-amber-500$/, "from-amber-500 to-amber-600")
+        .replace(/^bg-rose-500$/, "from-rose-500 to-rose-600");
+  const trendBadgeCls =
     trendDirection === "up"
-      ? "text-emerald-600 bg-emerald-50"
+      ? "text-emerald-100 bg-emerald-700/40"
       : trendDirection === "down"
-      ? "text-red-600 bg-red-50"
-      : "text-keu-black/50 bg-keu-gray-light";
+        ? "text-red-100 bg-red-700/40"
+        : "text-white/70 bg-white/15";
   const trendArrow =
     trendDirection === "up" ? "↑" : trendDirection === "down" ? "↓" : "—";
   return (
-    <Card className="p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden group">
-      <div
-        className={`${color} text-white w-10 h-10 rounded-lg flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform`}
-      >
+    <Card
+      className={`p-6 bg-gradient-to-br ${gradient} text-white border-0 hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden group`}
+    >
+      <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
         {icon}
       </div>
       <div className="text-3xl font-black mb-1 leading-none">{value}</div>
-      <div className="text-sm text-keu-black/60">{label}</div>
+      <div className="text-sm text-white/85">{label}</div>
       <div className="flex items-center gap-2 mt-3">
         {trendDirection && trendValue && (
           <span
-            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trendColor} inline-flex items-center gap-0.5`}
+            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${trendBadgeCls} inline-flex items-center gap-0.5`}
           >
             {trendArrow} {trendValue}
           </span>
         )}
-        <span className="text-xs text-keu-black/40 truncate">{trend}</span>
+        <span className="text-xs text-white/60 truncate">{trend}</span>
       </div>
     </Card>
   );

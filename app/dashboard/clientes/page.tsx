@@ -69,7 +69,7 @@ export default function ClientesPage() {
     <div>
       <PageHeader
         title="Clientes"
-        description="Todos os clientes ativos com vendas, aluguéis ou interesses registrados"
+        description="Todos os clientes ativos — com vendas, aluguéis, empréstimos ou interesses registrados"
       />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">

@@ -126,44 +126,30 @@ export default function NiveisPage() {
         </div>
       </Card>
 
-      {/* STATS */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="bg-keu-red/10 text-keu-red w-10 h-10 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-2xl font-black">{roles.length}</div>
-              <div className="text-xs text-keu-black/60">Cargos criados</div>
-            </div>
+      {/* STATS — gradient padronizado igual outras pages */}
+      <div className="grid sm:grid-cols-3 gap-4 mb-8 stagger-children">
+        <Card className="p-6 bg-gradient-to-br from-keu-red to-keu-red-dark text-white border-0">
+          <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+            <Shield className="h-5 w-5" />
           </div>
+          <div className="text-2xl font-black">{roles.length}</div>
+          <div className="text-sm text-white/85">Cargos criados</div>
         </Card>
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-2xl font-black">
-                {roles.filter((r) => r.ativo).length}
-              </div>
-              <div className="text-xs text-keu-black/60">Cargos ativos</div>
-            </div>
+        <Card className="p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0">
+          <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
+          <div className="text-2xl font-black">
+            {roles.filter((r) => r.ativo).length}
+          </div>
+          <div className="text-sm text-white/85">Cargos ativos</div>
         </Card>
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
-              <Lock className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-2xl font-black">{totalPerms}</div>
-              <div className="text-xs text-keu-black/60">
-                Permissões disponíveis
-              </div>
-            </div>
+        <Card className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+          <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+            <Lock className="h-5 w-5" />
           </div>
+          <div className="text-2xl font-black">{totalPerms}</div>
+          <div className="text-sm text-white/85">Permissões disponíveis</div>
         </Card>
       </div>
 
