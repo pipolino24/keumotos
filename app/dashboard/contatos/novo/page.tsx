@@ -182,7 +182,7 @@ export default function NovoContatoPage() {
                 <Input
                   id="telefone"
                   type="tel"
-                  placeholder="(11) 99999-9999"
+                  placeholder="(88) 99999-9999"
                   required
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
@@ -193,7 +193,7 @@ export default function NovoContatoPage() {
                 <Input
                   id="whatsapp"
                   type="tel"
-                  placeholder="(11) 99999-9999"
+                  placeholder="(88) 99999-9999"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                 />

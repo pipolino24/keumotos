@@ -243,7 +243,7 @@ export default function NovoUsuarioPage() {
                   className="pl-9"
                   value={form.telefone}
                   onChange={(e) => update("telefone", e.target.value)}
-                  placeholder="(81) 99999-9999"
+                  placeholder="(88) 99999-9999"
                 />
               </div>
             </div>
