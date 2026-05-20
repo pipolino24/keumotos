@@ -214,15 +214,25 @@ function StatBlock({
   value: string;
   color: string;
 }) {
+  // Aceita tanto color="bg-X-500" (legado) quanto "from-X to-Y" (gradient).
+  // Se vier solid bg-*, converte pra gradient correspondente — assim KPIs
+  // de /clientes ficam consistentes com /vendas/aluguel/contatos.
+  const gradient = color.startsWith("from-")
+    ? color
+    : color
+        .replace(/^bg-/, "from-")
+        .replace(/-(\d+)$/, "-$1 to-$1") // fallback simples — vamos sobrescrever via map
+        .replace(/from-blue-500.*/, "from-blue-500 to-blue-600")
+        .replace(/from-emerald-500.*/, "from-emerald-500 to-emerald-600")
+        .replace(/from-amber-500.*/, "from-amber-500 to-amber-600")
+        .replace(/from-keu-red.*/, "from-keu-red to-keu-red-dark");
   return (
-    <Card className="p-6 card-hover">
-      <div
-        className={`${color} text-white w-10 h-10 rounded-lg flex items-center justify-center mb-4`}
-      >
+    <Card className={`p-6 bg-gradient-to-br ${gradient} text-white border-0 card-hover`}>
+      <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
         {icon}
       </div>
       <div className="text-2xl font-black mb-1 truncate">{value}</div>
-      <div className="text-sm text-keu-black/60">{label}</div>
+      <div className="text-sm text-white/80">{label}</div>
     </Card>
   );
 }

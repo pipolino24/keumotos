@@ -76,10 +76,15 @@ export function TopMotosWidget({ limit = 5 }: { limit?: number }) {
                   <Bike className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate flex items-center gap-1.5">
-                    {m.marca} {m.modelo}
+                  <div className="font-semibold text-sm flex items-start gap-1.5">
+                    <span className="line-clamp-2 leading-tight">
+                      {m.marca} {m.modelo}
+                    </span>
                     {m.destaque && (
-                      <Badge variant="default" className="text-[9px]">
+                      <Badge
+                        variant="default"
+                        className="text-[9px] flex-shrink-0 mt-0.5"
+                      >
                         ★
                       </Badge>
                     )}

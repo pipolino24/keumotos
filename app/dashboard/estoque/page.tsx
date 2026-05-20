@@ -84,37 +84,34 @@ export default function EstoquePage() {
         </Link>
       </PageHeader>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         <StatBlock
           icon={<Package className="h-5 w-5" />}
-          color="bg-keu-red/10 text-keu-red"
+          gradient="from-keu-red to-keu-red-dark"
           label="Total no estoque"
           value={total}
           sub="motos cadastradas"
         />
         <StatBlock
           icon={<Bike className="h-5 w-5" />}
-          color="bg-emerald-500/10 text-emerald-600"
+          gradient="from-emerald-500 to-emerald-600"
           label="Disponíveis"
           value={disponiveis}
           sub="prontas para venda"
-          valueColor="text-emerald-600"
         />
         <StatBlock
           icon={<Bike className="h-5 w-5" />}
-          color="bg-amber-500/10 text-amber-600"
+          gradient="from-amber-500 to-amber-600"
           label="Reservadas"
           value={reservadas}
           sub="aguardando fechamento"
-          valueColor="text-amber-600"
         />
         <StatBlock
           icon={<Bike className="h-5 w-5" />}
-          color="bg-blue-500/10 text-blue-600"
+          gradient="from-blue-500 to-blue-600"
           label="Alugadas"
           value={alugadas}
           sub="em locação"
-          valueColor="text-blue-600"
         />
       </div>
 
@@ -188,7 +185,7 @@ export default function EstoquePage() {
           </div>
         </div>
 
-        {loading ? (
+        {loading && !data ? (
           <div className="p-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-keu-red mx-auto mb-3" />
             <div className="text-sm text-keu-black/60">Carregando motos...</div>
@@ -223,30 +220,28 @@ export default function EstoquePage() {
 }
 
 function StatBlock({
+  gradient,
   icon,
-  color,
   label,
   value,
   sub,
-  valueColor,
 }: {
+  gradient: string;
   icon: React.ReactNode;
-  color: string;
   label: string;
   value: number;
   sub: string;
-  valueColor?: string;
 }) {
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`${color} w-10 h-10 rounded-lg flex items-center justify-center`}>
-          {icon}
-        </div>
-        <span className="text-sm font-medium text-keu-black/60">{label}</span>
+    <Card className={`p-6 bg-gradient-to-br ${gradient} text-white border-0`}>
+      <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
+        {icon}
       </div>
-      <div className={`text-3xl font-black ${valueColor ?? ""}`}>{value}</div>
-      <div className="text-xs text-keu-black/60 mt-1">{sub}</div>
+      <div className="text-3xl font-black">{value}</div>
+      <div className="text-sm text-white/85 mt-0.5">{label}</div>
+      <div className="text-[11px] uppercase tracking-wide text-white/60 mt-1.5">
+        {sub}
+      </div>
     </Card>
   );
 }

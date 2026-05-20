@@ -63,7 +63,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    console.log(`[/api/me] OK → role=${profile.role} email=${profile.email} via=${via}`);
+    // Evita vazar email/role em Vercel logs em cada request. Log estruturado
+    // de role/via é útil pra debug — pra ver o email use Audit Logs.
+    console.debug(`[/api/me] OK role=${profile.role} via=${via}`);
     return NextResponse.json({
       id: profile.id,
       nome: profile.nome,
