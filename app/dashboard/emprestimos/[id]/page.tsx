@@ -279,7 +279,7 @@ export default function EmprestimoDetailPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
             <div className="flex items-center gap-3">
-              <StatusBadge status={e.status} />
+              <StatusBadge status={statusDerivado(e)} />
               <div className="text-xs text-keu-black/50">
                 criado em {formatDate(e.createdAt)}
               </div>
