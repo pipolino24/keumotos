@@ -121,8 +121,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     doc.markModified("parcelas");
     await doc.save();
 
+    // Mapeia action pra literal AcaoAudit (template literal não infere union)
+    const acaoMap = {
+      pagar: "emprestimo.parcela.pagar",
+      estornar: "emprestimo.parcela.estornar",
+      postergar: "emprestimo.parcela.postergar",
+    } as const;
     emitAuditLog({
-      acao: `emprestimo.parcela.${action}`,
+      acao: acaoMap[action as keyof typeof acaoMap],
       ator: auth.userId,
       atorNome: auth.email,
       atorRole: "admin",
