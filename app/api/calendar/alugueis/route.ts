@@ -162,13 +162,13 @@ function buildICS(alugueis: AluguelLike[], owner: string): string {
     const desc = `Cliente: ${cliente}${placa}\\nStatus: ${a.status ?? "—"}${valor}`;
     lines.push(
       "BEGIN:VEVENT",
-      `UID:aluguel-${id}@keumotos.com.br`,
+      `UID:aluguel-${id}@keumotos.com`,
       `DTSTAMP:${formatICSDate(now)}`,
       `DTSTART;VALUE=DATE:${formatICSAllDay(fim)}`,
       `SUMMARY:${escapeICS(titulo)}`,
       `DESCRIPTION:${desc}`,
       "TRANSP:TRANSPARENT",
-      `URL:https://keumotos.com.br/dashboard/aluguel/${id}`,
+      `URL:https://keumotos.com/dashboard/aluguel/${id}`,
       "END:VEVENT"
     );
   }

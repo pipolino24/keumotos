@@ -3,7 +3,7 @@
  *
  * Variáveis de ambiente requeridas:
  *   RESEND_API_KEY      — chave da Resend (https://resend.com/api-keys)
- *   RESEND_FROM         — remetente verificado (ex: "KEU Motos <no-reply@keumotos.com.br>")
+ *   RESEND_FROM         — remetente verificado (ex: "KEU Motos <no-reply@keumotos.com>")
  *
  * Custo (2026): 3.000 emails/mês grátis, depois US$ 20/mês até 50k,
  * US$ 0,90 por 1k além do plano.
@@ -19,7 +19,7 @@
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM =
-  process.env.RESEND_FROM || "KEU Motos <no-reply@keumotos.com.br>";
+  process.env.RESEND_FROM || "KEU Motos <no-reply@keumotos.com>";
 
 export interface SendEmailArgs {
   to: string | string[];
