@@ -208,14 +208,66 @@ export default function EmprestimosPage() {
   );
 }
 
+/* Mesmo cálculo do detail page — verde/amarelo/vermelho por dias até vencer. */
+function urgenciaProxima(p: ParcelaApi | undefined): {
+  borderL: string;
+  bg: string;
+  texto: string;
+  textoColor: string;
+} | null {
+  if (!p) return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const venc = new Date(p.vencimento);
+  venc.setHours(0, 0, 0, 0);
+  const dias = Math.round((venc.getTime() - hoje.getTime()) / 86400000);
+  if (dias < 0 || p.status === "atrasada") {
+    return {
+      borderL: "border-l-red-500",
+      bg: "bg-red-50",
+      texto: `Atrasada há ${Math.max(1, -dias)}d`,
+      textoColor: "text-red-700",
+    };
+  }
+  if (dias <= 3) {
+    return {
+      borderL: "border-l-amber-500",
+      bg: "bg-amber-50",
+      texto:
+        dias === 0
+          ? "Vence hoje"
+          : dias === 1
+            ? "Vence amanhã"
+            : `Vence em ${dias}d`,
+      textoColor: "text-amber-800",
+    };
+  }
+  return {
+    borderL: "border-l-emerald-500",
+    bg: "bg-white",
+    texto: `Próxima em ${dias}d`,
+    textoColor: "text-emerald-700",
+  };
+}
+
 function EmprestimoRow({ e }: { e: EmprestimoApi }) {
   const pagas = e.parcelas.filter((p) => p.status === "paga").length;
   const proxima = e.parcelas.find(
     (p) => p.status !== "paga" && p.status !== "postergada"
   );
+  const urg = urgenciaProxima(proxima);
+  // Card cancelado vira cinza desbotado
+  const cardCls =
+    e.status === "cancelado"
+      ? "opacity-60 grayscale border-l-4 border-l-keu-black/20"
+      : urg
+        ? `border-l-4 ${urg.borderL} ${urg.bg}`
+        : "border-l-4 border-l-emerald-500";
   return (
     <Link href={`/dashboard/emprestimos/${e._id}`}>
-      <Card className="p-5 hover:shadow-md hover:-translate-y-0.5 transition-all">
+      <Card
+        className={`p-5 hover:shadow-md hover:-translate-y-0.5 transition-all ${cardCls}`}
+      >
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4 min-w-0 flex-1">
             <div className="w-11 h-11 rounded-xl bg-keu-red/10 text-keu-red flex items-center justify-center flex-shrink-0">
@@ -256,9 +308,9 @@ function EmprestimoRow({ e }: { e: EmprestimoApi }) {
             <div className="font-bold">
               {pagas}/{e.totalParcelas}
             </div>
-            {proxima && (
-              <div className="text-xs text-keu-black/60 mt-0.5">
-                próxima {formatDate(proxima.vencimento)}
+            {urg && (
+              <div className={`text-xs font-semibold mt-0.5 ${urg.textoColor}`}>
+                {urg.texto}
               </div>
             )}
           </div>

@@ -66,6 +66,93 @@ function isoToday(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/* ============= helper de cores por urgência ============= */
+
+type UrgenciaTone =
+  | "paga"
+  | "atrasada"
+  | "postergada"
+  | "urgente" // vence em ≤ 3 dias
+  | "normal"; // vence em > 3 dias
+
+interface UrgenciaInfo {
+  tone: UrgenciaTone;
+  label: string;
+  diasRelativo: number; // negativo = atrasada N dias; positivo = vence em N dias
+  // Tailwind classes pré-computadas pra esse tom
+  bg: string;
+  text: string;
+  borderL: string;
+  badge: "info" | "success" | "danger" | "warning";
+}
+
+function diasEntreHojeE(dataIso: string): number {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const venc = new Date(dataIso);
+  venc.setHours(0, 0, 0, 0);
+  return Math.round((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function urgenciaParcela(p: ParcelaApi): UrgenciaInfo {
+  const dias = diasEntreHojeE(p.vencimento);
+  if (p.status === "paga") {
+    return {
+      tone: "paga",
+      label: "Paga",
+      diasRelativo: dias,
+      bg: "bg-emerald-50",
+      text: "text-emerald-700",
+      borderL: "border-l-emerald-500",
+      badge: "success",
+    };
+  }
+  if (p.status === "postergada") {
+    return {
+      tone: "postergada",
+      label: dias < 0 ? `Postergada · vencida há ${-dias}d` : `Postergada · vence em ${dias}d`,
+      diasRelativo: dias,
+      bg: "bg-amber-50",
+      text: "text-amber-800",
+      borderL: "border-l-amber-500",
+      badge: "warning",
+    };
+  }
+  // status pendente ou atrasada — derivamos pelo cálculo de dias
+  // pra evitar depender do backend ter rodado o "marca atrasada" recente.
+  if (dias < 0 || p.status === "atrasada") {
+    return {
+      tone: "atrasada",
+      label: dias < 0 ? `Em atraso há ${-dias}d` : "Em atraso",
+      diasRelativo: dias,
+      bg: "bg-red-50",
+      text: "text-red-700",
+      borderL: "border-l-red-500",
+      badge: "danger",
+    };
+  }
+  if (dias <= 3) {
+    return {
+      tone: "urgente",
+      label: dias === 0 ? "Vence hoje" : dias === 1 ? "Vence amanhã" : `Vence em ${dias}d`,
+      diasRelativo: dias,
+      bg: "bg-amber-50",
+      text: "text-amber-800",
+      borderL: "border-l-amber-500",
+      badge: "warning",
+    };
+  }
+  return {
+    tone: "normal",
+    label: `Vence em ${dias}d`,
+    diasRelativo: dias,
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    borderL: "border-l-emerald-500",
+    badge: "success",
+  };
+}
+
 export default function EmprestimoDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -426,41 +513,22 @@ function ParcelaRow({
   onPostergar: () => void;
   onEstornar: () => void;
 }) {
-  const statusMap = {
-    pendente: { tone: "info", label: "Pendente" },
-    paga: { tone: "success", label: "Paga" },
-    atrasada: { tone: "danger", label: "Em atraso" },
-    postergada: { tone: "warning", label: "Postergada" },
-  } as const;
-  const s = statusMap[parcela.status];
+  const urg = urgenciaParcela(parcela);
   return (
-    <div className="p-5 flex items-center gap-4 flex-wrap">
+    <div
+      className={`p-5 flex items-center gap-4 flex-wrap border-l-4 ${urg.borderL} ${urg.bg}`}
+    >
       <div
-        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
-          parcela.status === "paga"
-            ? "bg-emerald-500/10 text-emerald-700"
-            : parcela.status === "atrasada"
-              ? "bg-red-500/10 text-red-700"
-              : parcela.status === "postergada"
-                ? "bg-amber-500/10 text-amber-700"
-                : "bg-blue-500/10 text-blue-700"
-        }`}
+        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm bg-white ${urg.text} shadow-sm`}
       >
         {parcela.numero}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold">
-            {formatCurrency(parcela.valor)}
-          </span>
-          <Badge
-            variant={
-              s.tone as "info" | "success" | "danger" | "warning"
-            }
-            className="text-[10px]"
-          >
-            {s.label}
+          <span className="font-semibold">{formatCurrency(parcela.valor)}</span>
+          <Badge variant={urg.badge} className="text-[10px]">
+            {urg.label}
           </Badge>
         </div>
         <div className="text-xs text-keu-black/60 mt-0.5 flex items-center gap-2 flex-wrap">
@@ -474,10 +542,7 @@ function ParcelaRow({
             <span className="text-emerald-700">
               · pago {formatDate(parcela.pagoEm)}
               {parcela.valorPago && parcela.valorPago !== parcela.valor && (
-                <span>
-                  {" "}
-                  ({formatCurrency(parcela.valorPago)})
-                </span>
+                <span> ({formatCurrency(parcela.valorPago)})</span>
               )}
             </span>
           )}

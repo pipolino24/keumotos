@@ -138,15 +138,23 @@ EmprestimoSchema.index({ "parcelas.vencimento": 1, "parcelas.status": 1 });
 /**
  * Recalcula o status do empréstimo a partir do estado das parcelas.
  * Chame sempre depois de mudar uma parcela.
+ *
+ * Cuidado: comparação por dia (sem horas) — uma parcela "vence hoje" não
+ * está atrasada até a virada do dia. Sem isso, dependendo da hora UTC,
+ * o status oscila durante o próprio dia de vencimento.
  */
 export function recalcularStatus(doc: IEmprestimoDoc): StatusEmprestimo {
   if (doc.status === "cancelado") return "cancelado";
   const todasPagas = doc.parcelas.every((p) => p.status === "paga");
   if (todasPagas) return "quitado";
   const hoje = new Date();
-  const temAtrasada = doc.parcelas.some(
-    (p) => p.status !== "paga" && p.vencimento < hoje
-  );
+  hoje.setHours(0, 0, 0, 0);
+  const temAtrasada = doc.parcelas.some((p) => {
+    if (p.status === "paga") return false;
+    const venc = new Date(p.vencimento);
+    venc.setHours(0, 0, 0, 0);
+    return venc.getTime() < hoje.getTime();
+  });
   if (temAtrasada) return "em_atraso";
   return "ativo";
 }

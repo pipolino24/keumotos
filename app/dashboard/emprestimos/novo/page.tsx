@@ -24,12 +24,16 @@ import { formatCurrency } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 import { apiPost } from "@/lib/api-client";
 
+/**
+ * Shape do retorno de /api/clientes (campos agregados de Interesse/Venda/
+ * Aluguel via $group). Note que vem como `telefone`/`email` SEM o prefixo
+ * `cliente` — bug que existia aqui antes de checar a API.
+ */
 interface ClienteApi {
   clienteId?: string;
   clienteNome: string;
-  clienteTelefone?: string;
-  clienteEmail?: string;
-  clienteCpf?: string;
+  telefone?: string;
+  email?: string;
 }
 
 const FREQUENCIAS = [
@@ -92,8 +96,8 @@ export default function NovoEmprestimoPage() {
       .filter(
         (c) =>
           c.clienteNome.toLowerCase().includes(term) ||
-          (c.clienteCpf ?? "").toLowerCase().includes(term) ||
-          (c.clienteTelefone ?? "").toLowerCase().includes(term)
+          (c.telefone ?? "").toLowerCase().includes(term) ||
+          (c.email ?? "").toLowerCase().includes(term)
       )
       .slice(0, 30);
   }, [clientes, search]);
@@ -111,9 +115,9 @@ export default function NovoEmprestimoPage() {
     setForm((f) => ({
       ...f,
       clienteNome: c.clienteNome,
-      clienteTelefone: c.clienteTelefone ?? "",
-      clienteEmail: c.clienteEmail ?? "",
-      clienteCpf: c.clienteCpf ?? "",
+      clienteTelefone: c.telefone ?? "",
+      clienteEmail: c.email ?? "",
+      clienteCpf: "", // /api/clientes ainda não retorna CPF agregado
     }));
   }
 
@@ -296,8 +300,8 @@ export default function NovoEmprestimoPage() {
                       >
                         <div className="font-medium">{c.clienteNome}</div>
                         <div className="text-xs text-keu-black/60 flex gap-3 mt-0.5">
-                          {c.clienteTelefone && <span>{c.clienteTelefone}</span>}
-                          {c.clienteCpf && <span>CPF {c.clienteCpf}</span>}
+                          {c.telefone && <span>{c.telefone}</span>}
+                          {c.email && <span>{c.email}</span>}
                         </div>
                       </button>
                     ))}
@@ -314,11 +318,11 @@ export default function NovoEmprestimoPage() {
                 <div className="flex-1 min-w-0">
                   <div className="font-bold">{clienteSelecionado.clienteNome}</div>
                   <div className="text-xs text-keu-black/60 flex gap-3 mt-0.5">
-                    {clienteSelecionado.clienteTelefone && (
-                      <span>{clienteSelecionado.clienteTelefone}</span>
+                    {clienteSelecionado.telefone && (
+                      <span>{clienteSelecionado.telefone}</span>
                     )}
-                    {clienteSelecionado.clienteCpf && (
-                      <span>CPF {clienteSelecionado.clienteCpf}</span>
+                    {clienteSelecionado.email && (
+                      <span>{clienteSelecionado.email}</span>
                     )}
                   </div>
                 </div>
