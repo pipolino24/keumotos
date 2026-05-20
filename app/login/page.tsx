@@ -187,13 +187,15 @@ function LoginPageInner() {
               </Button>
 
               <p className="text-center text-sm text-keu-black/60">
-                Não tem uma conta?{" "}
-                <Link
-                  href="/register"
+                Não tem conta?{" "}
+                <a
+                  href="https://wa.me/5588998505859?text=Quero%20conhecer%20a%20KEU"
+                  target="_blank"
+                  rel="noopener"
                   className="font-semibold text-keu-red hover:underline"
                 >
-                  Cadastre-se grátis
-                </Link>
+                  Fale com a equipe
+                </a>
               </p>
             </form>
           </div>

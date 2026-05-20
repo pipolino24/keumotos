@@ -121,13 +121,13 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <HeaderUserButton />
             <Link
-              href="/register"
+              href="/login"
               className={cn(
                 buttonVariants({ size: "sm" }),
                 "hidden sm:inline-flex"
               )}
             >
-              Cadastre-se
+              Entrar
             </Link>
           </div>
         </div>
@@ -623,11 +623,6 @@ export default async function HomePage() {
                 <li>
                   <Link href="/login" className="hover:text-keu-red">
                     Login
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/register" className="hover:text-keu-red">
-                    Cadastro
                   </Link>
                 </li>
                 <li>

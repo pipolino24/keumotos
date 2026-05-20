@@ -567,11 +567,6 @@ export default async function MotosPage({
                   </Link>
                 </li>
                 <li>
-                  <Link href="/register" className="hover:text-keu-red">
-                    Cadastro
-                  </Link>
-                </li>
-                <li>
                   <Link href="/motos" className="hover:text-keu-red">
                     Motos
                   </Link>

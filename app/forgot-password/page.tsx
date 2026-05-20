@@ -118,12 +118,14 @@ export default function ForgotPasswordPage() {
               </Button>
               <p className="text-xs text-keu-black/50 text-center">
                 Não tem conta?{" "}
-                <Link
-                  href="/register"
+                <a
+                  href="https://wa.me/5588998505859?text=Quero%20conhecer%20a%20KEU"
+                  target="_blank"
+                  rel="noopener"
                   className="font-semibold text-keu-red hover:underline"
                 >
-                  Cadastre-se
-                </Link>
+                  Fale com a equipe
+                </a>
               </p>
             </form>
           )}
