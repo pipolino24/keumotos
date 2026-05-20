@@ -84,26 +84,33 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Dados FIPE são públicos e atualizados mensalmente — cacheável por
+    // hora no CDN (Vercel Edge), poupando hits no upstream Parallelum
+    // (que tem rate limit). s-maxage só vale pro CDN; client guarda 5min.
+    const cacheHeaders = {
+      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400, max-age=300",
+    };
+
     if (brand && model && year) {
       const data = await fipeValue(brand, model, year, type);
-      return NextResponse.json({
-        ...data,
-        priceNumber: parseFipePrice(data.price),
-      });
+      return NextResponse.json(
+        { ...data, priceNumber: parseFipePrice(data.price) },
+        { headers: cacheHeaders }
+      );
     }
 
     if (brand && model) {
       const years = await fipeYears(brand, model, type);
-      return NextResponse.json({ years });
+      return NextResponse.json({ years }, { headers: cacheHeaders });
     }
 
     if (brand) {
       const models = await fipeModels(brand, type);
-      return NextResponse.json({ models });
+      return NextResponse.json({ models }, { headers: cacheHeaders });
     }
 
     const brands = await fipeBrands(type);
-    return NextResponse.json({ brands });
+    return NextResponse.json({ brands }, { headers: cacheHeaders });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro FIPE";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -1,9 +1,20 @@
 "use client";
 
 import { useState, useRef } from "react";
-import imageCompression from "browser-image-compression";
 import { Image as ImageIcon, X, Loader2, Upload, AlertCircle, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// browser-image-compression é ~70KB minified. Lazy-load: só baixa o
+// bundle quando o user de fato seleciona uma imagem pra upload. Antes,
+// toda página com ImageUpload (cadastro de moto, edição, aquisição)
+// carregava esse chunk no first paint mesmo se ninguém clicasse upload.
+let _compressionLib: typeof import("browser-image-compression") | null = null;
+async function loadCompression() {
+  if (_compressionLib) return _compressionLib.default;
+  const mod = await import("browser-image-compression");
+  _compressionLib = mod;
+  return mod.default;
+}
 
 interface ImageUploadProps {
   value: string[];
@@ -56,6 +67,7 @@ export function ImageUpload({
     setProgress(0);
 
     try {
+      const imageCompression = await loadCompression();
       const compressed: string[] = [];
       let i = 0;
       let totalOriginalBytes = 0;

@@ -183,6 +183,13 @@ MotoSchema.index({ status: 1, tipo: 1, destaque: -1, valorAnunciado: 1 });
 MotoSchema.index({ origem: 1, createdAt: -1 });
 // Estoque por setor
 MotoSchema.index({ setor: 1, status: 1 });
+// Unicidade soft (sparse) pra chassi e renavam — POST /api/motos faz
+// exists check com regex case-insensitive antes de criar. Sem index, o
+// check faz collscan a cada cadastro. Ano sparse pra permitir vazio.
+MotoSchema.index({ chassi: 1 }, { sparse: true });
+MotoSchema.index({ renavam: 1 }, { sparse: true });
+// Anos pra filtros do catálogo público
+MotoSchema.index({ anoModelo: -1, status: 1 });
 
 export const Moto: Model<IMotoDoc> =
   mongoose.models.Moto || mongoose.model<IMotoDoc>("Moto", MotoSchema);
