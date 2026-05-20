@@ -99,22 +99,20 @@ export function useApi<T>(
 
     const cacheHit = readCache<T>(url);
     if (cacheHit !== null && tick === 0) {
-      const t = setTimeout(() => {
-        if (mounted) {
-          setData(cacheHit);
-          setLoading(false);
-        }
-      }, 0);
-      void t;
+      // Cache hit: sync set, sem precisar de loading state
+      setData(cacheHit);
+      setLoading(false);
     } else {
-      const t = setTimeout(() => {
-        if (mounted) {
-          setLoading(true);
-          setError(null);
-        }
-      }, 0);
-      void t;
+      // Sem cache: já temos useState(loading=true) no init.
+      // Resetar error pra refetch limpo.
+      setError(null);
     }
+    // ANTES: usávamos setTimeout(setLoading(true), 0) "pra evitar setState
+    // warning do React 19". Mas isso criava race condition: se a fetch
+    // resolvia ANTES do setTimeout (CDN cache rápido, dedup hit), o
+    // setLoading(true) atrasado executava DEPOIS do setLoading(false) do
+    // fetch resolve — `loading` ficava preso em true pra sempre.
+    // /dashboard/administracao reproduzia 100% das vezes.
 
     fetchDedup<T>(url).then((r) => {
       // Sempre atualiza o cache mesmo se a instância desmontou.
