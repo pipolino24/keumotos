@@ -23,7 +23,9 @@ import {
   Mail,
   MapPin,
   CreditCard,
+  CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -32,6 +34,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { FipeSelector, type FipeResult } from "@/components/ui/fipe-selector";
 import { formatCurrency } from "@/lib/utils";
+import { lookupCep, formatCep } from "@/lib/cep";
 
 type TipoAquisicao = "comprada" | "repasse";
 
@@ -166,12 +169,41 @@ export default function NovaAquisicaoPage() {
   const [form, setForm] = useState<AquisicaoForm>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepSuccess, setCepSuccess] = useState(false);
 
   function set<K extends keyof AquisicaoForm>(
     key: K,
     value: AquisicaoForm[K]
   ) {
     setForm((p) => ({ ...p, [key]: value }));
+  }
+
+  async function handleCepChange(raw: string) {
+    const formatted = formatCep(raw);
+    set("propCep", formatted);
+    setCepSuccess(false);
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const data = await lookupCep(digits);
+      if (data) {
+        setForm((p) => ({
+          ...p,
+          propEndereco: data.logradouro || p.propEndereco,
+          propBairro: data.bairro || p.propBairro,
+          propCidade: data.cidade || p.propCidade,
+          propEstado: data.estado || p.propEstado,
+        }));
+        setCepSuccess(true);
+        toast.success(`${data.cidade}/${data.estado}`);
+      } else {
+        toast.error("CEP não encontrado");
+      }
+    } finally {
+      setCepLoading(false);
+    }
   }
 
   function handleFipe(r: FipeResult) {
@@ -527,12 +559,22 @@ export default function NovaAquisicaoPage() {
               <div className="grid grid-cols-6 gap-4">
                 <div className="col-span-2">
                   <Label htmlFor="propCep">CEP</Label>
-                  <Input
-                    id="propCep"
-                    placeholder="00000-000"
-                    value={form.propCep}
-                    onChange={(e) => set("propCep", e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="propCep"
+                      placeholder="00000-000"
+                      value={form.propCep}
+                      onChange={(e) => handleCepChange(e.target.value)}
+                      maxLength={9}
+                      inputMode="numeric"
+                    />
+                    {cepLoading && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-keu-red" />
+                    )}
+                    {cepSuccess && !cepLoading && (
+                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+                    )}
+                  </div>
                 </div>
                 <div className="col-span-3">
                   <Label htmlFor="propEnd">Endereço</Label>
