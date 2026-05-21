@@ -35,3 +35,38 @@ export function formatPhone(phone: string): string {
 export function formatKm(km: number): string {
   return new Intl.NumberFormat("pt-BR").format(km) + " km";
 }
+
+/**
+ * Mask para input de CPF — aceita string com ou sem máscara e devolve
+ * "000.000.000-00" (incompleta enquanto user digita). Usar em onChange:
+ *   onChange={(e) => set("cpf", formatCpfInput(e.target.value))}
+ */
+export function formatCpfInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+/**
+ * Mask para input de telefone BR. Aceita 10 ou 11 dígitos.
+ * Formatos: "(88) 9999-9999" ou "(88) 99999-9999".
+ */
+export function formatPhoneInput(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length === 0 ? "" : `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/**
+ * Mask para input de placa Mercosul (AAA-0A00) ou antiga (AAA-0000).
+ * Aceita 7 chars alfanuméricos, uppercase forçado.
+ */
+export function formatPlacaInput(raw: string): string {
+  const d = raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+  if (d.length <= 3) return d;
+  return `${d.slice(0, 3)}-${d.slice(3)}`;
+}

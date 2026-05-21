@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { formatCpfInput, formatPhoneInput } from "@/lib/utils";
 
 type Role = "cliente" | "vendedor" | "afiliado";
 
@@ -248,8 +249,12 @@ export default function NovoUsuarioPage() {
                   id="telefone"
                   className="pl-9"
                   value={form.telefone}
-                  onChange={(e) => update("telefone", e.target.value)}
+                  onChange={(e) =>
+                    update("telefone", formatPhoneInput(e.target.value))
+                  }
                   placeholder="(88) 99999-9999"
+                  inputMode="numeric"
+                  maxLength={15}
                 />
               </div>
             </div>
@@ -261,8 +266,12 @@ export default function NovoUsuarioPage() {
                   id="cpf"
                   className="pl-9"
                   value={form.cpf}
-                  onChange={(e) => update("cpf", e.target.value)}
+                  onChange={(e) =>
+                    update("cpf", formatCpfInput(e.target.value))
+                  }
                   placeholder="000.000.000-00"
+                  inputMode="numeric"
+                  maxLength={14}
                 />
               </div>
             </div>

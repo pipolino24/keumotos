@@ -21,6 +21,7 @@ import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { toast } from "sonner";
 import { useApi } from "@/lib/hooks/use-api";
+import { formatPhoneInput } from "@/lib/utils";
 
 interface MotoApi {
   _id: string;
@@ -185,7 +186,9 @@ export default function NovoContatoPage() {
                   placeholder="(88) 99999-9999"
                   required
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={(e) => setTelefone(formatPhoneInput(e.target.value))}
+                  inputMode="numeric"
+                  maxLength={15}
                 />
               </div>
               <div>
@@ -195,7 +198,9 @@ export default function NovoContatoPage() {
                   type="tel"
                   placeholder="(88) 99999-9999"
                   value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
+                  onChange={(e) => setWhatsapp(formatPhoneInput(e.target.value))}
+                  inputMode="numeric"
+                  maxLength={15}
                 />
               </div>
               <div className="sm:col-span-2">

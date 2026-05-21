@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { lookupCep, formatCep } from "@/lib/cep";
+import { formatCpfInput, formatPhoneInput } from "@/lib/utils";
 
 type PixTipo = "cpf" | "email" | "telefone" | "aleatoria";
 
@@ -214,8 +215,10 @@ export default function NovoProprietarioPage() {
                   required
                   className="pl-9"
                   value={form.cpf}
-                  onChange={(e) => set("cpf", e.target.value)}
+                  onChange={(e) => set("cpf", formatCpfInput(e.target.value))}
                   placeholder="000.000.000-00"
+                  inputMode="numeric"
+                  maxLength={14}
                 />
               </div>
             </div>
@@ -248,8 +251,12 @@ export default function NovoProprietarioPage() {
                   required
                   className="pl-9"
                   value={form.telefone}
-                  onChange={(e) => set("telefone", e.target.value)}
+                  onChange={(e) =>
+                    set("telefone", formatPhoneInput(e.target.value))
+                  }
                   placeholder="(88) 99999-9999"
+                  inputMode="numeric"
+                  maxLength={15}
                 />
               </div>
             </div>
@@ -261,8 +268,12 @@ export default function NovoProprietarioPage() {
                   id="whatsapp"
                   className="pl-9"
                   value={form.whatsapp}
-                  onChange={(e) => set("whatsapp", e.target.value)}
+                  onChange={(e) =>
+                    set("whatsapp", formatPhoneInput(e.target.value))
+                  }
                   placeholder="(88) 99999-9999"
+                  inputMode="numeric"
+                  maxLength={15}
                 />
               </div>
             </div>
