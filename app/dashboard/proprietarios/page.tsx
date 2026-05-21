@@ -87,7 +87,7 @@ export default function ProprietariosPage() {
         title="Pessoas"
         description="Donos de motos consignadas, vendedores externos e clientes de aluguel"
       >
-        <Link href="/dashboard/aquisicoes/nova">
+        <Link href="/dashboard/proprietarios/novo">
           <Button>
             <UserPlus className="h-4 w-4" /> Nova pessoa
           </Button>
@@ -287,14 +287,19 @@ function EmptyState() {
       </div>
       <h3 className="font-bold text-lg mb-1">Nenhuma pessoa cadastrada ainda</h3>
       <p className="text-sm text-keu-black/60 mb-6 max-w-sm mx-auto">
-        Pessoas são cadastradas automaticamente quando você registra uma
-        aquisição (compra/repasse) ou uma locação.
+        Você pode cadastrar um proprietário direto, ou ele é criado
+        automaticamente quando você registra uma aquisição (compra/repasse).
       </p>
-      <Link href="/dashboard/aquisicoes/nova">
-        <Button>
-          <UserPlus className="h-4 w-4" /> Cadastre o primeiro
-        </Button>
-      </Link>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <Link href="/dashboard/proprietarios/novo">
+          <Button>
+            <UserPlus className="h-4 w-4" /> Cadastre o primeiro
+          </Button>
+        </Link>
+        <Link href="/dashboard/aquisicoes/nova">
+          <Button variant="outline">Via aquisição</Button>
+        </Link>
+      </div>
     </div>
   );
 }
