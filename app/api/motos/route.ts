@@ -66,6 +66,8 @@ export async function GET(req: NextRequest) {
         { marca: { $regex: termo, $options: "i" } },
         { modelo: { $regex: termo, $options: "i" } },
         { placa: { $regex: termo, $options: "i" } },
+        { renavam: { $regex: termo, $options: "i" } },
+        { chassi: { $regex: termo, $options: "i" } },
       ];
     }
     if (marca) {

@@ -146,7 +146,7 @@ export default function EstoquePage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
                 <Input
-                  placeholder="Marca, modelo, placa..."
+                  placeholder="Marca, modelo, placa, RENAVAM, chassi..."
                   className="pl-9 w-64"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

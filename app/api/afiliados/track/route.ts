@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Afiliado } from "@/lib/models/afiliado";
 import { Indicacao } from "@/lib/models/indicacao";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,24 @@ export const dynamic = "force-dynamic";
  * POST /api/afiliados/track
  * Registra clique/visualização de moto via link de afiliado.
  * Body: { codigo: string, motoId?: string }
+ *
+ * Rate limit: público, então 30 req/min por IP — suficiente pra navegação
+ * normal de um cliente real, suficiente pra cortar bots que tentam inflar
+ * cliques de afiliado próprio.
  */
 export async function POST(req: NextRequest) {
+  const ipForLimit = getClientIp(req);
+  const rl = rateLimit({
+    key: `afiliados-track:${ipForLimit}`,
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas requisições, tenta em 1min" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
   try {
     await connectMongo();
     const data = await req.json();
