@@ -15,12 +15,14 @@ import {
   MapPin,
   Building2,
   KeyRound,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { lookupCep, formatCep } from "@/lib/cep";
 
 type PixTipo = "cpf" | "email" | "telefone" | "aleatoria";
 
@@ -49,9 +51,38 @@ export default function NovoProprietarioPage() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepSuccess, setCepSuccess] = useState(false);
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((p) => ({ ...p, [k]: v }));
+  }
+
+  async function handleCepChange(raw: string) {
+    const formatted = formatCep(raw);
+    set("cep", formatted);
+    setCepSuccess(false);
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const data = await lookupCep(digits);
+      if (data) {
+        setForm((p) => ({
+          ...p,
+          endereco: data.logradouro || p.endereco,
+          bairro: data.bairro || p.bairro,
+          cidade: data.cidade || p.cidade,
+          estado: data.estado || p.estado,
+        }));
+        setCepSuccess(true);
+        toast.success(`CEP encontrado: ${data.cidade}/${data.estado}`);
+      } else {
+        toast.error("CEP não encontrado — preencha manualmente");
+      }
+    } finally {
+      setCepLoading(false);
+    }
   }
 
   const valid =
@@ -269,12 +300,25 @@ export default function NovoProprietarioPage() {
           <div className="grid sm:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="cep">CEP</Label>
-              <Input
-                id="cep"
-                value={form.cep}
-                onChange={(e) => set("cep", e.target.value)}
-                placeholder="00000-000"
-              />
+              <div className="relative">
+                <Input
+                  id="cep"
+                  value={form.cep}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                  placeholder="00000-000"
+                  maxLength={9}
+                  inputMode="numeric"
+                />
+                {cepLoading && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-keu-red" />
+                )}
+                {cepSuccess && !cepLoading && (
+                  <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+                )}
+              </div>
+              <p className="text-[11px] text-keu-black/50 mt-1">
+                Preenche logradouro/bairro/cidade automaticamente
+              </p>
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="endereco">Logradouro</Label>
