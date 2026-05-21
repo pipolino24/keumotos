@@ -16,7 +16,9 @@ import {
   Trash2,
   Lock,
   FileText,
+  CheckCircle2,
 } from "lucide-react";
+import { lookupCep, formatCep } from "@/lib/cep";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -42,6 +44,8 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
   const [savingPwd, setSavingPwd] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [novaSenha, setNovaSenha] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepSuccess, setCepSuccess] = useState(false);
 
   function setEnd<K extends keyof EnderecoCompleto>(
     key: K,
@@ -51,6 +55,37 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
       ...p,
       endereco: { ...(p.endereco ?? {}), [key]: value },
     }));
+  }
+
+  async function handleCepChange(raw: string) {
+    const formatted = formatCep(raw);
+    setEnd("cep", formatted);
+    setCepSuccess(false);
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const data = await lookupCep(digits);
+      if (data) {
+        setProfile((p) => ({
+          ...p,
+          endereco: {
+            ...(p.endereco ?? {}),
+            cep: formatted,
+            rua: data.logradouro || p.endereco?.rua,
+            bairro: data.bairro || p.endereco?.bairro,
+            cidade: data.cidade || p.endereco?.cidade,
+            uf: data.estado || p.endereco?.uf,
+          },
+        }));
+        setCepSuccess(true);
+        toast.success(`${data.cidade}/${data.estado}`);
+      } else {
+        toast.error("CEP não encontrado");
+      }
+    } finally {
+      setCepLoading(false);
+    }
   }
 
   async function handleSave() {
@@ -292,12 +327,22 @@ export function PerfilForm({ profile: initial }: { profile: Profile }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="cep">CEP</Label>
-            <Input
-              id="cep"
-              placeholder="00000-000"
-              value={profile.endereco?.cep ?? ""}
-              onChange={(e) => setEnd("cep", e.target.value)}
-            />
+            <div className="relative">
+              <Input
+                id="cep"
+                placeholder="00000-000"
+                value={profile.endereco?.cep ?? ""}
+                onChange={(e) => handleCepChange(e.target.value)}
+                maxLength={9}
+                inputMode="numeric"
+              />
+              {cepLoading && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-keu-red" />
+              )}
+              {cepSuccess && !cepLoading && (
+                <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-600" />
+              )}
+            </div>
           </div>
           <div className="col-span-2">
             <Label htmlFor="rua">Rua</Label>
