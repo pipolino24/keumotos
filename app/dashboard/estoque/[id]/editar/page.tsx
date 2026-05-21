@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useApi, invalidateApiCache } from "@/lib/hooks/use-api";
+import { formatPlacaInput } from "@/lib/utils";
 
 // Campos editáveis pelo PATCH /api/motos/[id]. Mantemos em sync com
 // CAMPOS_EDITAVEIS no backend pra não enviar nada que o server rejeite.
@@ -402,7 +403,7 @@ export default function EditarMotoPage() {
                   maxLength={8}
                   value={form.placa}
                   onChange={(e) =>
-                    set("placa", e.target.value.toUpperCase())
+                    set("placa", formatPlacaInput(e.target.value))
                   }
                 />
               </div>

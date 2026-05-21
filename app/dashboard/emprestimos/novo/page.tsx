@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCpfInput, formatPhoneInput } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 import { apiPost } from "@/lib/api-client";
 
@@ -355,8 +355,12 @@ export default function NovoEmprestimoPage() {
                   <Input
                     id="tel"
                     value={form.clienteTelefone}
-                    onChange={(e) => set("clienteTelefone", e.target.value)}
+                    onChange={(e) =>
+                      set("clienteTelefone", formatPhoneInput(e.target.value))
+                    }
                     placeholder="(88) 99999-9999"
+                    inputMode="numeric"
+                    maxLength={15}
                   />
                 </div>
                 <div>
@@ -364,8 +368,12 @@ export default function NovoEmprestimoPage() {
                   <Input
                     id="cpf"
                     value={form.clienteCpf}
-                    onChange={(e) => set("clienteCpf", e.target.value)}
+                    onChange={(e) =>
+                      set("clienteCpf", formatCpfInput(e.target.value))
+                    }
                     placeholder="000.000.000-00"
+                    inputMode="numeric"
+                    maxLength={14}
                   />
                 </div>
                 <div className="sm:col-span-2">

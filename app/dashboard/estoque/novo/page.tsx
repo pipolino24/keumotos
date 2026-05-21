@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { FipeSelector, type FipeResult } from "@/components/ui/fipe-selector";
 import { invalidateApiCache } from "@/lib/hooks/use-api";
+import { formatPlacaInput } from "@/lib/utils";
 
 type MotoForm = {
   marca: string;
@@ -421,7 +422,7 @@ export default function NovoMotoPage() {
                   className="font-mono uppercase"
                   maxLength={8}
                   value={form.placa}
-                  onChange={(e) => set("placa", e.target.value.toUpperCase())}
+                  onChange={(e) => set("placa", formatPlacaInput(e.target.value))}
                 />
               </div>
               <div>

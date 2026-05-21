@@ -36,7 +36,7 @@ import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCpfInput, formatPhoneInput } from "@/lib/utils";
 import { useCurrentUser, isAdmin } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { apiPost, apiPatch } from "@/lib/api-client";
@@ -821,7 +821,11 @@ export default function NovaVendaPage() {
                     id="novoCliTelefone"
                     placeholder="(88) 99999-9999"
                     value={form.novoCliTelefone}
-                    onChange={(e) => set("novoCliTelefone", e.target.value)}
+                    onChange={(e) =>
+                      set("novoCliTelefone", formatPhoneInput(e.target.value))
+                    }
+                    inputMode="numeric"
+                    maxLength={15}
                   />
                 </div>
                 <div>
@@ -831,7 +835,11 @@ export default function NovaVendaPage() {
                     className="font-mono"
                     placeholder="000.000.000-00"
                     value={form.novoCliCpf}
-                    onChange={(e) => set("novoCliCpf", e.target.value)}
+                    onChange={(e) =>
+                      set("novoCliCpf", formatCpfInput(e.target.value))
+                    }
+                    inputMode="numeric"
+                    maxLength={14}
                   />
                 </div>
                 <div className="col-span-2">
