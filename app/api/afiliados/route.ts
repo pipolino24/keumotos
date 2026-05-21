@@ -91,8 +91,14 @@ export async function POST(req: NextRequest) {
           );
         }
         userId = existing.id;
-        // Promove pro role "afiliado" se ainda não for admin
-        const existingRole = (existing.user_metadata?.role as string) || "cliente";
+        // Promove pro role "afiliado" se ainda não for admin/afiliado.
+        // Lê do profiles (source-of-truth), não do user_metadata (mutável pelo user).
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
+        const existingRole = (prof?.role as string) || "cliente";
         if (existingRole !== "afiliado" && existingRole !== "admin") {
           await admin.auth.admin.updateUserById(userId, {
             user_metadata: { ...existing.user_metadata, role: "afiliado" },

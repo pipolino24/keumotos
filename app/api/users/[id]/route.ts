@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { emitAuditLog } from "@/lib/audit/emit";
+import { requireAuth } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -9,19 +9,16 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-async function ensureCallerOrAdmin(targetId: string) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
-    };
-  }
-  const role = (user.user_metadata?.role as string) || "cliente";
-  if (user.id !== targetId && role !== "admin") {
+/**
+ * Autoriza caller a acessar/mexer no perfil de `targetId`.
+ * Liberado pra: o próprio usuário (id === targetId) OU admin.
+ * SECURITY: role vem de requireAuth() que lê da tabela profiles —
+ * NÃO de user_metadata (que é mutável pelo próprio user).
+ */
+async function ensureCallerOrAdmin(targetId: string, req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth;
+  if (auth.userId !== targetId && auth.role !== "admin") {
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -30,17 +27,30 @@ async function ensureCallerOrAdmin(targetId: string) {
       ),
     };
   }
+  // Busca nome do caller pra audit trail
+  let callerNome = auth.email || "?";
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("nome")
+      .eq("id", auth.userId)
+      .single();
+    if (prof?.nome) callerNome = prof.nome as string;
+  } catch {
+    /* fallback pro email */
+  }
   return {
     ok: true as const,
-    callerId: user.id,
-    callerRole: role,
-    callerNome: (user.user_metadata?.nome as string) || user.email || "?",
+    callerId: auth.userId,
+    callerRole: auth.role as string,
+    callerNome,
   };
 }
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
-  const auth = await ensureCallerOrAdmin(id);
+  const auth = await ensureCallerOrAdmin(id, req);
   if (!auth.ok) return auth.response;
 
   const admin = createSupabaseAdminClient();
@@ -60,7 +70,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
-  const auth = await ensureCallerOrAdmin(id);
+  const auth = await ensureCallerOrAdmin(id, req);
   if (!auth.ok) return auth.response;
 
   const data = await req.json();
@@ -89,13 +99,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       }
       // Bloqueia self-demotion: se admin tenta tirar próprio role de admin,
       // verifica que existe outro admin no sistema (anti-lockout).
-      const supabaseSrv = await createSupabaseServerClient();
-      const { data: callerUser } = await supabaseSrv.auth.getUser();
-      if (
-        callerUser.user &&
-        callerUser.user.id === id &&
-        data.role !== "admin"
-      ) {
+      if (auth.callerId === id && data.role !== "admin") {
         const adminCheck = createSupabaseAdminClient();
         const { count } = await adminCheck
           .from("profiles")
@@ -184,9 +188,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   return NextResponse.json({ user: { ...updated, _id: updated.id } });
 }
 
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { id } = await params;
-  const auth = await ensureCallerOrAdmin(id);
+  const auth = await ensureCallerOrAdmin(id, req);
   if (!auth.ok) return auth.response;
   if (auth.callerRole !== "admin") {
     return NextResponse.json(

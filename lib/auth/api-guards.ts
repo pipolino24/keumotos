@@ -34,7 +34,7 @@ async function resolveBearer(bearer: string): Promise<AuthOk | null> {
     const admin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: prof, error: profErr } = await admin
+    const { data: prof } = await admin
       .from("profiles")
       .select("role,email")
       .eq("id", data.user.id)
@@ -86,8 +86,20 @@ export async function requireAuth(req?: NextRequest): Promise<AuthOk | AuthDenie
       response: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
     };
   }
-  const role = ((user.user_metadata?.role as UserRole) || "cliente") as UserRole;
-  return { ok: true, userId: user.id, email: user.email ?? "", role };
+  // SECURITY: role precisa vir da tabela profiles (server-source-of-truth).
+  // user_metadata é mutável pelo próprio usuário via auth.updateUser({data:{...}})
+  // — se confiarmos nele, qualquer cliente vira admin com 1 chamada.
+  const admin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("role,email")
+    .eq("id", user.id)
+    .single();
+  const role = ((prof?.role as UserRole) ?? "cliente") as UserRole;
+  const email = (prof?.email as string) ?? user.email ?? "";
+  return { ok: true, userId: user.id, email, role };
 }
 
 /**

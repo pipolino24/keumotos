@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { connectMongo } from "@/lib/mongodb";
 import { emitNotification } from "@/lib/notifications/emit";
-import { requireAuth } from "@/lib/auth/api-guards";
+import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -95,18 +94,11 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user: caller },
-    } = await supabase.auth.getUser();
-
-    if (!caller) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    }
-    const callerRole = (caller.user_metadata?.role as string) || "cliente";
-    if (callerRole !== "admin") {
-      return NextResponse.json({ error: "Apenas admin pode criar usuários" }, { status: 403 });
-    }
+    // SECURITY: role precisa vir da tabela profiles (server-source-of-truth),
+    // não de user_metadata — que é mutável pelo próprio usuário via
+    // auth.updateUser({data:{role:"admin"}}) e abriria escalação de privilégio.
+    const authz = await requireRole(["admin"], req);
+    if (!authz.ok) return authz.response;
 
     const data = await req.json();
     if (!data.email || !data.nome) {

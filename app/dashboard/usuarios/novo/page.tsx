@@ -163,6 +163,7 @@ export default function NovoUsuarioPage() {
                   role: "vendedor",
                   setor: "multimarcas",
                   senha: "",
+                  documentos: [],
                 });
               }}
             >
