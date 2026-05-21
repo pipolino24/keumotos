@@ -80,6 +80,7 @@ const CAMPOS_EDITAVEIS = [
   "status",
   "destaque",
   "fotos",
+  "documentos",
   "descricao",
   "observacoes",
   "vendedorResponsavel",

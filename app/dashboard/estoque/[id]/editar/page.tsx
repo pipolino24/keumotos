@@ -58,6 +58,7 @@ type MotoForm = {
   descricao: string;
   observacoes: string;
   fotos: string[];
+  documentos: string[];
 };
 
 interface MotoApi extends Omit<MotoForm,
@@ -118,6 +119,7 @@ function motoToForm(m: MotoApi): MotoForm {
     descricao: m.descricao ?? "",
     observacoes: m.observacoes ?? "",
     fotos: m.fotos ?? [],
+    documentos: m.documentos ?? [],
   };
 }
 
@@ -804,6 +806,23 @@ export default function EditarMotoPage() {
               maxWidth={1400}
               quality={0.78}
               hint="JPG, PNG, HEIC. Comprime automaticamente."
+            />
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-bold mb-1">Documento do veículo</h3>
+            <p className="text-xs text-keu-black/60 mb-4">
+              CRLV / CRV — frente e/ou verso. Uso interno, não aparece no
+              catálogo público.
+            </p>
+            <ImageUpload
+              value={form.documentos}
+              onChange={(documentos) => set("documentos", documentos)}
+              max={4}
+              maxSizeKB={300}
+              maxWidth={1600}
+              quality={0.80}
+              hint="Fotografe o CRLV em boa iluminação"
             />
           </Card>
         </div>

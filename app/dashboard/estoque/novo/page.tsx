@@ -59,6 +59,7 @@ type MotoForm = {
   descricao: string;
   observacoes: string;
   fotos: string[];
+  documentos: string[];
 };
 
 const initial: MotoForm = {
@@ -95,6 +96,7 @@ const initial: MotoForm = {
   descricao: "",
   observacoes: "",
   fotos: [],
+  documentos: [],
 };
 
 export default function NovoMotoPage() {
@@ -830,6 +832,25 @@ export default function NovoMotoPage() {
               Recomendamos pelo menos 4 fotos: frente, lateral, traseira e
               painel.
             </p>
+          </Card>
+
+          {/* DOCUMENTOS DO VEÍCULO (CRLV) */}
+          <Card className="p-6">
+            <h3 className="font-bold mb-1">Documento do veículo</h3>
+            <p className="text-xs text-keu-black/60 mb-4">
+              CRLV / CRV — frente e/ou verso. Uso interno (prova de
+              propriedade na venda/transferência). Não aparece no catálogo
+              público.
+            </p>
+            <ImageUpload
+              value={form.documentos}
+              onChange={(documentos) => set("documentos", documentos)}
+              max={4}
+              maxSizeKB={300}
+              maxWidth={1600}
+              quality={0.80}
+              hint="Fotografe o CRLV em boa iluminação — comprimimos pra ~300KB"
+            />
           </Card>
 
           <Card className="p-6">

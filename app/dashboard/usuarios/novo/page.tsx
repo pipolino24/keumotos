@@ -16,11 +16,13 @@ import {
   CreditCard,
   Shield,
   KeyRound,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { PageHeader } from "@/components/dashboard/page-header";
 
 type Role = "cliente" | "vendedor" | "afiliado";
@@ -35,6 +37,8 @@ export default function NovoUsuarioPage() {
     role: "vendedor" as Role,
     setor: "multimarcas",
     senha: "",
+    // RG/CNH — frente e/ou verso. Salvos em profile.documentos (JSONB).
+    documentos: [] as string[],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +78,7 @@ export default function NovoUsuarioPage() {
           role: form.role,
           setor: form.setor,
           senha: form.senha || undefined,
+          documentos: form.documentos.length > 0 ? form.documentos : undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -314,7 +319,32 @@ export default function NovoUsuarioPage() {
           </div>
         </Card>
 
-        <div className="flex gap-2 justify-end">
+        {/* DOCUMENTOS DO CLIENTE (RG/CNH frente + verso) */}
+        <Card className="p-6 mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-blue-500/10 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold">Documentos (opcional)</h2>
+              <p className="text-xs text-keu-black/60">
+                RG, CNH ou CPF — frente e verso. Importante pra venda /
+                aluguel / empréstimo.
+              </p>
+            </div>
+          </div>
+          <ImageUpload
+            value={form.documentos}
+            onChange={(documentos) => update("documentos", documentos)}
+            max={4}
+            maxSizeKB={300}
+            maxWidth={1600}
+            quality={0.80}
+            hint="Suba frente e verso do RG ou CNH. Comprimimos pra ~300KB"
+          />
+        </Card>
+
+        <div className="flex gap-2 justify-end mt-6">
           <Link href="/dashboard/usuarios">
             <Button type="button" variant="outline" disabled={saving}>
               Cancelar

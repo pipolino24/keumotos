@@ -50,6 +50,13 @@ export const motoCreateSchema = z.object({
     .array(z.string().max(8_000_000, "Foto muito grande (>8MB)"))
     .max(20, "Máximo 20 fotos")
     .default([]),
+  // CRLV/CRV — frente e/ou verso (até 4 imagens). NÃO entra no catálogo
+  // público (projeção em /api/motos remove).
+  documentos: z
+    .array(z.string().max(8_000_000, "Documento muito grande (>8MB)"))
+    .max(4, "Máximo 4 documentos")
+    .default([])
+    .optional(),
   descricao: z.string().optional(),
   observacoes: z.string().optional(),
   origem: z.enum(["propria", "comprada", "repasse"]).default("comprada"),

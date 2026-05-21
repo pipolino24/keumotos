@@ -160,6 +160,14 @@ export async function POST(req: NextRequest) {
     if (data.cnh) extras.cnh = data.cnh;
     if (data.endereco) extras.endereco = data.endereco;
     if (data.pix) extras.pix = data.pix;
+    // Documentos (RG/CNH frente+verso em base64) salvos no profile.documentos
+    // (JSONB). Limita a 4 e ~8MB por imagem pra evitar payload absurdo.
+    if (Array.isArray(data.documentos)) {
+      const docsValidos = data.documentos
+        .filter((d: unknown) => typeof d === "string" && d.length < 8_000_000)
+        .slice(0, 4);
+      if (docsValidos.length > 0) extras.documentos = docsValidos;
+    }
     if (Object.keys(extras).length > 0) {
       await admin.from("profiles").update(extras).eq("id", created.user.id);
     }

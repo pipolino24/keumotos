@@ -18,6 +18,8 @@ const CAMPOS_PRIVADOS = {
   repasse: 0,
   // vendedorResponsavel é staff ID — não vaza pra catálogo público
   vendedorResponsavel: 0,
+  // CRLV/CRV — interno, nunca aparece no catálogo público
+  documentos: 0,
 };
 
 const PAGE_SIZE_DEFAULT = 12;

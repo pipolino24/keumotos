@@ -36,6 +36,10 @@ export interface IMotoDoc {
     | "devolvida";
   destaque?: boolean;
   fotos: string[];
+  // CRLV/CRV do veículo (frente e/ou verso). Pode subir 1 ou 2 imagens —
+  // documentos NÃO aparecem no catálogo público, são internos pra prova
+  // de propriedade durante venda/transferência.
+  documentos?: string[];
   descricao?: string;
   observacoes?: string;
   dataEntrada: Date;
@@ -130,6 +134,7 @@ const MotoSchema = new Schema<IMotoDoc>(
     },
     destaque: { type: Boolean, default: false },
     fotos: { type: [String], default: [] },
+    documentos: { type: [String], default: [] },
     descricao: String,
     observacoes: String,
     dataEntrada: { type: Date, required: true, default: Date.now },
