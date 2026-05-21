@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/api-guards";
 import { sendEmail, isEmailConfigured } from "@/lib/email";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,21 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
+
+  // Rate limit por usuário: Resend cobra por email. Token comprometido podia
+  // gerar custo + dano reputacional (domínio entra em blacklist). 100/min
+  // cobre uso humano legítimo (envio em lote pra ~10-20 clientes).
+  const rl = rateLimit({
+    key: `email-send:${auth.userId}:${getClientIp(req)}`,
+    limit: 100,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitos envios em pouco tempo, espere 1min" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
 
   if (!isEmailConfigured()) {
     return NextResponse.json(

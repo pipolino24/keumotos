@@ -4,6 +4,7 @@ import {
   sendWhatsAppTemplate,
   isWhatsAppConfigured,
 } from "@/lib/whatsapp";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,21 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
+
+  // Rate limit por usuário (não IP): WhatsApp Cloud API cobra por mensagem
+  // template. Um token comprometido podia gerar custo real. 60 envios/min
+  // é alto pro uso humano legítimo, baixo o suficiente pra cortar bot.
+  const rl = rateLimit({
+    key: `whatsapp-send:${auth.userId}:${getClientIp(req)}`,
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitos envios em pouco tempo, espere 1min" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
 
   if (!isWhatsAppConfigured()) {
     return NextResponse.json(
