@@ -33,6 +33,8 @@ interface MotoApi {
   anoModelo: number;
   cor: string;
   placa?: string;
+  renavam?: string;
+  chassi?: string;
   valorCompra: number;
   valorAnunciado: number;
   origem: string;
@@ -99,7 +101,9 @@ export default function AquisicoesPage() {
         !m.marca.toLowerCase().includes(s) &&
         !m.modelo.toLowerCase().includes(s) &&
         !(m.proprietarioNome ?? "").toLowerCase().includes(s) &&
-        !(m.placa ?? "").toLowerCase().includes(s)
+        !(m.placa ?? "").toLowerCase().includes(s) &&
+        !(m.renavam ?? "").toLowerCase().includes(s) &&
+        !(m.chassi ?? "").toLowerCase().includes(s)
       )
         return false;
     }
@@ -223,7 +227,7 @@ export default function AquisicoesPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
               <Input
-                placeholder="Marca, modelo, dono, placa..."
+                placeholder="Marca, modelo, dono, placa, RENAVAM, chassi..."
                 className="pl-9 w-72"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
