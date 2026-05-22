@@ -315,62 +315,7 @@ export default function AluguelDetalhePage() {
                 </div>
               )}
 
-              {aluguel.avarias && aluguel.avarias.length > 0 && (
-                <div>
-                  <div className="text-xs uppercase tracking-wide font-semibold text-red-600 mb-3 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" /> Avarias registradas (
-                    {aluguel.avarias.length})
-                  </div>
-                  <div className="space-y-3">
-                    {aluguel.avarias.map((av, idx) => (
-                      <div
-                        key={av._id ?? idx}
-                        className="p-4 border border-red-200 bg-red-50 rounded-xl"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm">
-                              {av.descricao}
-                            </div>
-                            <div className="text-xs text-keu-black/60 flex items-center gap-3 mt-1">
-                              {av.reparado && (
-                                <span className="inline-flex items-center gap-1 text-emerald-700">
-                                  <Wrench className="h-3 w-3" /> Reparado
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-red-700">
-                              {formatCurrency(av.custoEstimado ?? 0)}
-                            </div>
-                          </div>
-                        </div>
-                        {av.fotos && av.fotos.length > 0 && (
-                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
-                            {av.fotos.map((src, i) => (
-                              <a
-                                key={i}
-                                href={src}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="block aspect-square rounded-lg overflow-hidden bg-white border border-red-200"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={src}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Avarias mostradas no card dedicado AvariasCard abaixo */}
             </Card>
           )}
 
@@ -461,6 +406,14 @@ export default function AluguelDetalhePage() {
               onChange={refetch}
             />
           )}
+
+          {/* AVARIAS — registráveis durante OU depois da locação */}
+          <AvariasCard
+            aluguelId={aluguel._id}
+            avarias={aluguel.avarias ?? []}
+            custoTotalAvarias={aluguel.custoTotalAvarias ?? 0}
+            onChange={refetch}
+          />
         </div>
 
         {/* SIDEBAR */}
@@ -968,6 +921,404 @@ function ContratosBotao({ aluguelId }: { aluguelId: string }) {
         <FileText className="h-4 w-4" /> Gerar contrato
       </Button>
     </Link>
+  );
+}
+
+// ============================================================================
+// AVARIAS CARD — registrar/editar/remover durante ou após locação
+// ============================================================================
+
+function AvariasCard({
+  aluguelId,
+  avarias,
+  custoTotalAvarias,
+  onChange,
+}: {
+  aluguelId: string;
+  avarias: AvariaApi[];
+  custoTotalAvarias: number;
+  onChange: () => void;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [salvando, setSalvando] = useState<string | null>(null);
+
+  const totalReparadas = avarias.filter((a) => a.reparado).length;
+  const totalPendentes = avarias.length - totalReparadas;
+
+  async function toggleReparado(av: AvariaApi) {
+    if (!av._id) return;
+    setSalvando(av._id);
+    try {
+      const res = await fetch(
+        `/api/alugueis/${aluguelId}/avarias/${av._id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reparado: !av.reparado }),
+        }
+      );
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha");
+      }
+      toast.success(av.reparado ? "Marcada como pendente" : "Marcada como reparada");
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setSalvando(null);
+    }
+  }
+
+  async function removerAvaria(av: AvariaApi) {
+    if (!av._id) return;
+    if (
+      !(await confirmDialog({
+        title: "Remover avaria",
+        message: `Remover "${av.descricao}"? Esta ação não pode ser desfeita.`,
+        confirmText: "Remover",
+        variant: "destructive",
+      }))
+    )
+      return;
+    setSalvando(av._id);
+    try {
+      const res = await fetch(
+        `/api/alugueis/${aluguelId}/avarias/${av._id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha ao remover");
+      }
+      toast.success("Avaria removida");
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setSalvando(null);
+    }
+  }
+
+  return (
+    <>
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-black/5">
+          <div className="bg-red-500/10 text-red-600 w-10 h-10 rounded-lg flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-bold">Avarias da moto</h2>
+            <p className="text-sm text-keu-black/60">
+              {avarias.length === 0
+                ? "Nenhuma avaria registrada"
+                : `${avarias.length} registrada${avarias.length > 1 ? "s" : ""} · ${totalReparadas} reparada${totalReparadas !== 1 ? "s" : ""} · ${totalPendentes} pendente${totalPendentes !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+          {custoTotalAvarias > 0 && (
+            <div className="text-right">
+              <div className="text-xs text-keu-black/60 uppercase tracking-wide">
+                Total
+              </div>
+              <div className="font-bold text-red-700">
+                {formatCurrency(custoTotalAvarias)}
+              </div>
+            </div>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setModalOpen(true)}
+          >
+            <Plus className="h-4 w-4" /> Registrar
+          </Button>
+        </div>
+
+        {avarias.length === 0 ? (
+          <div className="text-center py-6 text-sm text-keu-black/60">
+            <ShieldCheck className="h-10 w-10 mx-auto mb-2 text-emerald-500 opacity-60" />
+            Nenhuma avaria. Quando o cliente devolver com algum dano, registre
+            aqui pra rastrear no histórico da moto.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {avarias.map((av) => (
+              <div
+                key={av._id}
+                className={`p-4 rounded-xl border ${
+                  av.reparado
+                    ? "border-emerald-200 bg-emerald-50/50"
+                    : "border-red-200 bg-red-50"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-sm">
+                        {av.descricao}
+                      </span>
+                      {av.reparado && (
+                        <Badge variant="success" className="text-[10px]">
+                          <Wrench className="h-3 w-3" /> Reparado
+                        </Badge>
+                      )}
+                      {av.cobradoCaucao && (
+                        <Badge variant="warning" className="text-[10px]">
+                          Cobrado caução
+                        </Badge>
+                      )}
+                    </div>
+                    {av.registradoEm && (
+                      <div className="text-xs text-keu-black/60">
+                        Registrado em {formatDate(av.registradoEm)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-bold text-red-700">
+                      {formatCurrency(av.custoEstimado ?? 0)}
+                    </div>
+                  </div>
+                </div>
+                {av.fotos && av.fotos.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 my-3">
+                    {av.fotos.map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block aspect-square rounded-lg overflow-hidden bg-white border border-keu-black/10"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={src}
+                          alt=""
+                          className="w-full h-full object-cover hover:scale-105 transition"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2 flex-wrap mt-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleReparado(av)}
+                    disabled={salvando === av._id}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-keu-black/10 hover:bg-white inline-flex items-center gap-1"
+                  >
+                    {salvando === av._id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : av.reparado ? (
+                      <X className="h-3 w-3" />
+                    ) : (
+                      <Wrench className="h-3 w-3" />
+                    )}
+                    {av.reparado ? "Marcar pendente" : "Marcar reparada"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removerAvaria(av)}
+                    disabled={salvando === av._id}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-100 inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="h-3 w-3" /> Remover
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {modalOpen && (
+        <RegistrarAvariaModal
+          aluguelId={aluguelId}
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => {
+            setModalOpen(false);
+            onChange();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function RegistrarAvariaModal({
+  aluguelId,
+  onClose,
+  onSuccess,
+}: {
+  aluguelId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [descricao, setDescricao] = useState("");
+  const [custoEstimado, setCustoEstimado] = useState<number | "">("");
+  const [fotos, setFotos] = useState<string[]>([]);
+  const [cobradoCaucao, setCobradoCaucao] = useState(false);
+  const [reparado, setReparado] = useState(false);
+  const [criarRevisao, setCriarRevisao] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (descricao.trim().length < 3) {
+      setError("Descreva a avaria (mín. 3 letras).");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const res = await apiPost(`/api/alugueis/${aluguelId}/avarias`, {
+        descricao: descricao.trim(),
+        custoEstimado:
+          typeof custoEstimado === "number" && custoEstimado >= 0
+            ? custoEstimado
+            : undefined,
+        fotos,
+        cobradoCaucao,
+        reparado,
+        criarRevisao,
+      });
+      if (res.error) throw new Error(res.error);
+      toast.success("Avaria registrada");
+      onSuccess();
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "Erro";
+      setError(m);
+      toast.error(m);
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <form
+        onSubmit={salvar}
+        className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
+        <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
+          <div>
+            <h3 className="font-black text-lg">Registrar avaria</h3>
+            <p className="text-sm text-keu-black/60">
+              Documente o dano com fotos + custo estimado pra cobrar o cliente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-keu-gray-light rounded-lg"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div>
+            <Label>Descrição *</Label>
+            <Textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: arranhão profundo na lateral direita, espelho retrovisor quebrado..."
+              rows={3}
+              required
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Custo estimado (R$)</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={custoEstimado}
+                onChange={(e) =>
+                  setCustoEstimado(
+                    e.target.value ? Number(e.target.value) : ""
+                  )
+                }
+                placeholder="200.00"
+              />
+              <p className="text-[11px] text-keu-black/50 mt-1">
+                Soma deste valor entra em "Total avarias" do resumo financeiro.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Status</Label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={cobradoCaucao}
+                  onChange={(e) => setCobradoCaucao(e.target.checked)}
+                  className="rounded"
+                />
+                Cobrado do caução
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={reparado}
+                  onChange={(e) => setReparado(e.target.checked)}
+                  className="rounded"
+                />
+                Já reparado
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={criarRevisao}
+                  onChange={(e) => setCriarRevisao(e.target.checked)}
+                  className="rounded"
+                />
+                Criar revisão no histórico da moto
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <Label>Fotos da avaria (até 20)</Label>
+            <ImageUpload
+              value={fotos}
+              onChange={setFotos}
+              max={20}
+              hint="Tire fotos do dano por vários ângulos. Servem de prova se cliente contestar."
+            />
+            <p className="text-[11px] text-keu-black/50 mt-1">
+              Fotos servem de comprovante se cliente contestar a cobrança.
+            </p>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" /> {error}
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 border-t border-keu-black/5 flex gap-3 justify-end">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={salvando}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={salvando}>
+            {salvando ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Registrar avaria
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
