@@ -1146,6 +1146,22 @@ function AvariasCard({
   );
 }
 
+// Catálogo de avarias comuns com custo médio sugerido. Permite registrar
+// avaria em 2 cliques em vez de digitar do zero. Valores baseados em média
+// de oficina (atualizar conforme realidade local).
+const AVARIAS_COMUNS: Array<{ desc: string; custoMedio: number }> = [
+  { desc: "Arranhão leve na lateral", custoMedio: 80 },
+  { desc: "Arranhão profundo no tanque", custoMedio: 250 },
+  { desc: "Retrovisor quebrado", custoMedio: 90 },
+  { desc: "Manopla danificada", custoMedio: 60 },
+  { desc: "Carenagem rachada", custoMedio: 350 },
+  { desc: "Piscas/lanterna quebrados", custoMedio: 70 },
+  { desc: "Pedal de câmbio entortado", custoMedio: 120 },
+  { desc: "Banco rasgado", custoMedio: 200 },
+  { desc: "Pneu furado/cortado", custoMedio: 180 },
+  { desc: "Avaria sem categoria", custoMedio: 0 },
+];
+
 function RegistrarAvariaModal({
   aluguelId,
   onClose,
@@ -1163,6 +1179,11 @@ function RegistrarAvariaModal({
   const [criarRevisao, setCriarRevisao] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function escolherPreset(p: (typeof AVARIAS_COMUNS)[number]) {
+    setDescricao(p.desc);
+    setCustoEstimado(p.custoMedio > 0 ? p.custoMedio : "");
+  }
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -1222,6 +1243,30 @@ function RegistrarAvariaModal({
         </div>
 
         <div className="p-6 space-y-5">
+          <div>
+            <Label>Atalhos — avarias comuns</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {AVARIAS_COMUNS.map((p) => (
+                <button
+                  key={p.desc}
+                  type="button"
+                  onClick={() => escolherPreset(p)}
+                  className="text-[11px] px-2.5 py-1 rounded-full bg-keu-gray-light hover:bg-keu-red hover:text-white transition border border-keu-black/10"
+                >
+                  {p.desc}
+                  {p.custoMedio > 0 && (
+                    <span className="ml-1 opacity-70">
+                      · R$ {p.custoMedio}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-keu-black/50 mt-2">
+              Clique pra preencher rapidamente. Custo é só sugestão, pode ajustar.
+            </p>
+          </div>
+
           <div>
             <Label>Descrição *</Label>
             <Textarea
