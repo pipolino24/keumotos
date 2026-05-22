@@ -10,8 +10,8 @@ import {
 } from "@react-pdf/renderer";
 import type { IPessoaSnap, IMotoSnap, IPlanoSnap } from "@/lib/models/contrato";
 
-// Tenta usar Helvetica (built-in). Sem font embedding remoto pra evitar
-// dependência externa que pode travar o build na Vercel.
+// Sem fontes externas — Helvetica é built-in. Hyphenation desligado pra
+// não cortar nomes em locais estranhos.
 Font.registerHyphenationCallback((word) => [word]);
 
 const styles = StyleSheet.create({
@@ -24,14 +24,29 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
     color: "#000",
   },
+  // Watermark — logo desbotado no centro de fundo
+  watermark: {
+    position: "absolute",
+    top: "30%",
+    left: "20%",
+    width: "60%",
+    opacity: 0.06,
+    objectFit: "contain",
+  },
   header: {
     alignItems: "center",
     marginBottom: 14,
   },
   logoBox: {
-    width: 200,
-    height: 90,
+    width: 220,
+    height: 80,
     objectFit: "contain",
+  },
+  slogan: {
+    fontSize: 8,
+    color: "#999",
+    marginTop: -4,
+    fontStyle: "italic",
   },
   sectionTitle: {
     fontFamily: "Helvetica-Bold",
@@ -42,6 +57,7 @@ const styles = StyleSheet.create({
   paragraph: {
     marginBottom: 6,
   },
+  // Tabela 2-col com par label-valor
   table: {
     width: "100%",
     borderStyle: "solid",
@@ -50,22 +66,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   row: { flexDirection: "row" },
-  cell: {
+  cellLabel: {
+    fontFamily: "Helvetica-Bold",
+    backgroundColor: "#f0f0f0",
+    padding: 4,
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#000",
-    padding: 4,
-    minHeight: 18,
-    fontSize: 9,
+    fontSize: 8.5,
   },
-  cellLabel: {
-    fontFamily: "Helvetica-Bold",
-    backgroundColor: "#f1f1f1",
+  cellValue: {
+    padding: 4,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#000",
+    fontSize: 9,
   },
   partyLabel: {
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
-    marginTop: 2,
+    marginTop: 6,
     marginBottom: 4,
   },
   introA: {
@@ -91,6 +111,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#555",
   },
+  footerLogo: {
+    position: "absolute",
+    bottom: 18,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  footerLogoImg: {
+    width: 80,
+    height: 28,
+    objectFit: "contain",
+    opacity: 0.6,
+  },
   signatureBlock: {
     marginTop: 60,
   },
@@ -103,39 +136,87 @@ const styles = StyleSheet.create({
   centerText: { textAlign: "center" },
 });
 
-// Tabela 2-colunas (label + valor) lado a lado, repetida 2x por linha
-function FieldRow({
-  fields,
+/**
+ * Calcula font-size adaptativa pro nome: textos longos encolhem pra caber
+ * na célula sem quebrar layout. >50 chars → 7px, >35 → 8px, default 9px.
+ */
+function adaptiveFontSize(text: string | undefined, defaultSize = 9): number {
+  if (!text) return defaultSize;
+  const len = text.length;
+  if (len > 60) return 6.5;
+  if (len > 45) return 7.5;
+  if (len > 30) return 8.5;
+  return defaultSize;
+}
+
+/**
+ * Célula de tabela com label fixa + valor. labelWidth e flex controlam
+ * largura. wrap=true permite quebra natural (default true em Text v3).
+ * fontSize adapta automaticamente pelo conteúdo.
+ */
+function FieldCell({
+  label,
+  value,
+  labelWidth = 70,
+  noRightBorder = false,
+  flex = 1,
 }: {
-  fields: { label: string; value?: string | number }[];
+  label: string;
+  value?: string | number;
+  labelWidth?: number;
+  noRightBorder?: boolean;
+  flex?: number;
 }) {
-  // sempre par; junta de 2 em 2
-  const pairs: { label: string; value?: string | number }[][] = [];
-  for (let i = 0; i < fields.length; i += 2) {
-    pairs.push(fields.slice(i, i + 2));
-  }
+  const valueStr = value != null && value !== "" ? String(value) : "";
+  const fs = adaptiveFontSize(valueStr);
   return (
-    <View style={styles.table}>
-      {pairs.map((pair, idx) => (
-        <View key={idx} style={styles.row}>
-          {pair.map((f, j) => (
-            <View key={j} style={{ flex: 1, flexDirection: "row" }}>
-              <View
-                style={[
-                  styles.cell,
-                  styles.cellLabel,
-                  { width: 70, borderLeftWidth: idx === 0 && j === 0 ? 0 : 0 },
-                ]}
-              >
-                <Text>{f.label}</Text>
-              </View>
-              <View style={[styles.cell, { flex: 1 }]}>
-                <Text>{f.value ? String(f.value) : ""}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      ))}
+    <View style={{ flex, flexDirection: "row" }}>
+      <View style={[styles.cellLabel, { width: labelWidth }]}>
+        <Text>{label}</Text>
+      </View>
+      <View
+        style={[
+          styles.cellValue,
+          {
+            flex: 1,
+            fontSize: fs,
+            ...(noRightBorder ? { borderRightWidth: 0 } : {}),
+          },
+        ]}
+      >
+        {/* Sempre 1 linha no PDF — Text quebra naturalmente. minHeight pra altura uniforme */}
+        <Text style={{ fontSize: fs }}>{valueStr}</Text>
+      </View>
+    </View>
+  );
+}
+
+// Linha de tabela com 2 pares label/valor lado a lado
+function DoubleField(props: {
+  left: { label: string; value?: string | number; labelWidth?: number };
+  right: { label: string; value?: string | number; labelWidth?: number };
+}) {
+  return (
+    <View style={styles.row}>
+      <FieldCell {...props.left} />
+      <FieldCell {...props.right} noRightBorder />
+    </View>
+  );
+}
+
+// Linha de tabela com 1 par label/valor ocupando linha inteira
+function FullField({
+  label,
+  value,
+  labelWidth = 70,
+}: {
+  label: string;
+  value?: string | number;
+  labelWidth?: number;
+}) {
+  return (
+    <View style={styles.row}>
+      <FieldCell label={label} value={value} labelWidth={labelWidth} noRightBorder />
     </View>
   );
 }
@@ -145,8 +226,6 @@ function fmtMoney(v: number | undefined) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-// Formatação manual (sem depender de Intl locale pt-BR — Vercel functions
-// normalmente rodam em C/POSIX locale, daí "long" devolve em inglês).
 const MESES_PT = [
   "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
   "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
@@ -161,15 +240,8 @@ function fmtDate(d: Date | string | undefined) {
   return `${dia} DE ${mes} DE ${ano}`;
 }
 
-/**
- * Deriva periodicidade ("quinzenais", "mensais", "semanais") a partir da
- * string `datasVencimento` informada pelo staff. Default: "mensais".
- * "06 e 21" → quinzenais (2 datas no mês), "todo dia 5" → mensais,
- * "5 e 20" → quinzenais.
- */
 function periodicidade(datas?: string): string {
   if (!datas) return "mensais";
-  // Conta números no string — 2+ = quinzenal/dupla
   const numbers = datas.match(/\d+/g) || [];
   if (numbers.length >= 2) return "quinzenais";
   if (/semana/i.test(datas)) return "semanais";
@@ -184,12 +256,40 @@ export interface ContratoPdfProps {
   plano: IPlanoSnap;
   observacoes?: string;
   dataContrato: Date | string;
-  /**
-   * Logo opcional como data URI (base64). Se não vier, o cabeçalho
-   * renderiza apenas o texto "KEU LOCA MOTOS". Mantém PDF leve
-   * quando logo não está pronto.
-   */
   logoDataUrl?: string;
+}
+
+function PageDecorations({ logoDataUrl }: { logoDataUrl?: string }) {
+  return (
+    <>
+      {logoDataUrl ? <Image src={logoDataUrl} style={styles.watermark} fixed /> : null}
+      <View style={styles.footerLogo} fixed>
+        {logoDataUrl ? <Image src={logoDataUrl} style={styles.footerLogoImg} /> : null}
+      </View>
+      <Text
+        style={styles.pageNumber}
+        render={({ pageNumber, totalPages }) =>
+          `Pag. ${pageNumber} / ${totalPages}`
+        }
+        fixed
+      />
+    </>
+  );
+}
+
+function PdfHeader({ logoDataUrl }: { logoDataUrl?: string }) {
+  return (
+    <View style={styles.header}>
+      {logoDataUrl ? (
+        <Image src={logoDataUrl} style={styles.logoBox} />
+      ) : (
+        <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 22 }}>
+          KEU LOCA MOTOS
+        </Text>
+      )}
+      <Text style={styles.slogan}>Realizando Sonhos</Text>
+    </View>
+  );
 }
 
 export function ContratoPdf({
@@ -209,17 +309,10 @@ export function ContratoPdf({
       title={`Contrato KEU Loca Motos${numero ? ` ${numero}` : ""}`}
       author="KEU Loca Motos"
     >
+      {/* PÁGINA 1 — IDENTIFICAÇÃO DAS PARTES + VEÍCULO + PLANO */}
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          {logoDataUrl ? (
-            <Image src={logoDataUrl} style={styles.logoBox} />
-          ) : (
-            <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 22 }}>
-              KEU LOCA MOTOS
-            </Text>
-          )}
-          <Text style={{ fontSize: 8, color: "#666" }}>Realizando Sonhos</Text>
-        </View>
+        <PageDecorations logoDataUrl={logoDataUrl} />
+        <PdfHeader logoDataUrl={logoDataUrl} />
 
         <Text style={styles.sectionTitle}>I – DA IDENTIFICAÇÃO DAS PARTES</Text>
         <Text style={styles.introA}>
@@ -231,82 +324,143 @@ export function ContratoPdf({
           João Cabral, Juazeiro do Norte – CE, Telefone: (88) 99850-5859
         </Text>
 
-        <Text style={styles.partyLabel}>B– CONTRATANTE:</Text>
-        <FieldRow
-          fields={[
-            { label: "NOME", value: contratante.nome },
-            { label: "SEXO", value: contratante.sexo },
-            { label: "NASCIMENTO", value: contratante.nascimento },
-            { label: "CNH", value: contratante.cnh },
-            { label: "NATURAL", value: contratante.natural },
-            { label: "PROFISSÃO", value: contratante.profissao },
-            { label: "CPF", value: contratante.cpf },
-            { label: "RG", value: contratante.rg },
-          ]}
-        />
-        {/* Linhas de largura total */}
-        <View style={[styles.table, { marginTop: -8 }]}>
+        <Text style={styles.partyLabel}>B – CONTRATANTE:</Text>
+        <View style={styles.table}>
+          <DoubleField
+            left={{ label: "NOME", value: contratante.nome, labelWidth: 50 }}
+            right={{ label: "SEXO", value: contratante.sexo, labelWidth: 40 }}
+          />
           <View style={styles.row}>
-            <View
-              style={[styles.cell, styles.cellLabel, { width: 70 }]}
-            >
-              <Text>ENDEREÇO</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{contratante.endereco ?? ""}</Text>
-            </View>
+            <FieldCell
+              label="NASCIMENTO"
+              value={contratante.nascimento}
+              labelWidth={70}
+              flex={1}
+            />
+            <FieldCell
+              label="CNH"
+              value={contratante.cnh}
+              labelWidth={35}
+              flex={1}
+            />
+            <FieldCell
+              label="NATURAL"
+              value={contratante.natural}
+              labelWidth={55}
+              flex={1}
+              noRightBorder
+            />
           </View>
           <View style={styles.row}>
-            <View style={[styles.cell, styles.cellLabel, { width: 70 }]}>
-              <Text>CONTATOS</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{contratante.telefone ?? ""}</Text>
-            </View>
-            <View style={[styles.cell, styles.cellLabel, { width: 50 }]}>
-              <Text>EMAIL</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{contratante.email ?? ""}</Text>
-            </View>
+            <FieldCell
+              label="PROFISSÃO"
+              value={contratante.profissao}
+              labelWidth={60}
+              flex={1}
+            />
+            <FieldCell
+              label="CPF"
+              value={contratante.cpf}
+              labelWidth={35}
+              flex={1}
+            />
+            <FieldCell
+              label="RG"
+              value={contratante.rg}
+              labelWidth={35}
+              flex={1}
+              noRightBorder
+            />
+          </View>
+          <FullField label="ENDEREÇO" value={contratante.endereco} />
+          <View style={styles.row}>
+            <FieldCell
+              label="CONTATOS"
+              value={contratante.telefone}
+              labelWidth={60}
+              flex={1}
+            />
+            <FieldCell
+              label="EMAIL"
+              value={contratante.email}
+              labelWidth={40}
+              flex={1.6}
+              noRightBorder
+            />
           </View>
         </View>
 
         <Text style={styles.partyLabel}>C – DADOS DO AVALISTA VOLUNTÁRIO:</Text>
-        <FieldRow
-          fields={[
-            { label: "NOME", value: hasAvalista ? avalista?.nome : "" },
-            { label: "SEXO", value: avalista?.sexo },
-            { label: "NASCIMENTO", value: avalista?.nascimento },
-            { label: "CNH", value: avalista?.cnh },
-            { label: "NATURAL", value: avalista?.natural },
-            { label: "PROFISSÃO", value: avalista?.profissao },
-            { label: "CPF", value: avalista?.cpf },
-            { label: "RG", value: avalista?.rg },
-          ]}
-        />
-        <View style={[styles.table, { marginTop: -8 }]}>
+        <View style={styles.table}>
+          <DoubleField
+            left={{
+              label: "NOME",
+              value: hasAvalista ? avalista?.nome : "",
+              labelWidth: 50,
+            }}
+            right={{
+              label: "SEXO",
+              value: avalista?.sexo,
+              labelWidth: 40,
+            }}
+          />
           <View style={styles.row}>
-            <View style={[styles.cell, styles.cellLabel, { width: 70 }]}>
-              <Text>ENDEREÇO</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{avalista?.endereco ?? ""}</Text>
-            </View>
+            <FieldCell
+              label="NASCIMENTO"
+              value={avalista?.nascimento}
+              labelWidth={70}
+              flex={1}
+            />
+            <FieldCell
+              label="CNH"
+              value={avalista?.cnh}
+              labelWidth={35}
+              flex={1}
+            />
+            <FieldCell
+              label="NATURAL"
+              value={avalista?.natural}
+              labelWidth={55}
+              flex={1}
+              noRightBorder
+            />
           </View>
           <View style={styles.row}>
-            <View style={[styles.cell, styles.cellLabel, { width: 70 }]}>
-              <Text>CONTATOS</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{avalista?.telefone ?? ""}</Text>
-            </View>
-            <View style={[styles.cell, styles.cellLabel, { width: 50 }]}>
-              <Text>EMAIL</Text>
-            </View>
-            <View style={[styles.cell, { flex: 1 }]}>
-              <Text>{avalista?.email ?? ""}</Text>
-            </View>
+            <FieldCell
+              label="PROFISSÃO"
+              value={avalista?.profissao}
+              labelWidth={60}
+              flex={1}
+            />
+            <FieldCell
+              label="CPF"
+              value={avalista?.cpf}
+              labelWidth={35}
+              flex={1}
+            />
+            <FieldCell
+              label="RG"
+              value={avalista?.rg}
+              labelWidth={35}
+              flex={1}
+              noRightBorder
+            />
+          </View>
+          <FullField label="ENDEREÇO" value={avalista?.endereco} />
+          <View style={styles.row}>
+            <FieldCell
+              label="CONTATOS"
+              value={avalista?.telefone}
+              labelWidth={60}
+              flex={1}
+            />
+            <FieldCell
+              label="EMAIL"
+              value={avalista?.email}
+              labelWidth={40}
+              flex={1.6}
+              noRightBorder
+            />
           </View>
         </View>
 
@@ -315,88 +469,99 @@ export function ContratoPdf({
           de propriedade da LOCADORA ao LOCATÁRIO, conforme especificações
           abaixo:
         </Text>
-        <FieldRow
-          fields={[
-            { label: "MARCA", value: moto.marca },
-            { label: "CHASSI", value: moto.chassi },
-            { label: "MODELO", value: moto.modelo },
-            { label: "PLACA", value: moto.placa },
-            {
+        <View style={styles.table}>
+          <DoubleField
+            left={{ label: "MARCA", value: moto.marca, labelWidth: 60 }}
+            right={{
+              label: "CHASSI",
+              value: moto.chassi,
+              labelWidth: 60,
+            }}
+          />
+          <DoubleField
+            left={{ label: "MODELO", value: moto.modelo, labelWidth: 60 }}
+            right={{ label: "PLACA", value: moto.placa, labelWidth: 60 }}
+          />
+          <DoubleField
+            left={{
               label: "ANO/MODELO",
               value: moto.anoModelo ? String(moto.anoModelo) : "",
-            },
-            {
+              labelWidth: 60,
+            }}
+            right={{
               label: "KM",
               value: typeof moto.km === "number" ? `${moto.km} km` : "",
-            },
-            { label: "COR", value: moto.cor },
-            { label: "OBS.", value: moto.obs },
-          ]}
-        />
+              labelWidth: 60,
+            }}
+          />
+          <DoubleField
+            left={{ label: "COR", value: moto.cor, labelWidth: 60 }}
+            right={{ label: "OBS.", value: moto.obs, labelWidth: 60 }}
+          />
+        </View>
 
         <Text style={styles.sectionTitle}>
           III – DO VALOR DA CONTRATAÇÃO, CONDIÇÕES DO PLANO E ENCARGOS:
         </Text>
-        <FieldRow
-          fields={[
-            {
+        <View style={styles.table}>
+          <DoubleField
+            left={{
               label: "PARCELAS",
               value: `${plano.parcelas} PARCELAS`,
-            },
-            {
+              labelWidth: 75,
+            }}
+            right={{
               label: "ENTRADA",
               value: fmtMoney(plano.valorEntrada),
-            },
-            {
+              labelWidth: 65,
+            }}
+          />
+          <DoubleField
+            left={{
               label: "VALOR PARCELA",
               value: fmtMoney(plano.valorParcela),
-            },
-            {
+              labelWidth: 90,
+            }}
+            right={{
               label: "PLANO",
               value: plano.planoEscolhido,
-            },
-            {
+              labelWidth: 65,
+            }}
+          />
+          <DoubleField
+            left={{
               label: "MULTA ATRASO",
               value: `${plano.multaPercent}%`,
-            },
-            {
+              labelWidth: 90,
+            }}
+            right={{
               label: "VENCIMENTOS",
               value: plano.datasVencimento,
-            },
-            {
+              labelWidth: 80,
+            }}
+          />
+          <DoubleField
+            left={{
               label: "JUROS/DIA",
               value: `${plano.jurosDiaPercent}% ao dia`,
-            },
-            {
+              labelWidth: 90,
+            }}
+            right={{
               label: "1º VENCTO",
               value: plano.vencimentoPrimeira,
-            },
-          ]}
-        />
-        {observacoes ? (
-          <View style={[styles.table, { marginTop: -8 }]}>
-            <View style={styles.row}>
-              <View style={[styles.cell, styles.cellLabel, { width: 90 }]}>
-                <Text>Observações</Text>
-              </View>
-              <View style={[styles.cell, { flex: 1 }]}>
-                <Text>{observacoes}</Text>
-              </View>
-            </View>
-          </View>
-        ) : null}
-
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `Pag. ${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
+              labelWidth: 65,
+            }}
+          />
+          {observacoes ? (
+            <FullField label="OBSERVAÇÕES" value={observacoes} labelWidth={90} />
+          ) : null}
+        </View>
       </Page>
 
       {/* PÁGINA 2 — CLÁUSULAS */}
       <Page size="A4" style={styles.page}>
+        <PageDecorations logoDataUrl={logoDataUrl} />
+
         <Text style={styles.clauseTitle}>CLÁUSULA IV – OPÇÃO DE QUITAÇÃO</Text>
         <Text style={styles.paragraph}>
           Ao final das {plano.parcelas} parcelas {periodicidade(plano.datasVencimento)},
@@ -502,18 +667,12 @@ export function ContratoPdf({
           O descumprimento desta cláusula poderá implicar em penalidades e/ou
           rescisão contratual.
         </Text>
-
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `Pag. ${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
       </Page>
 
       {/* PÁGINA 3 — FORO + ASSINATURAS */}
       <Page size="A4" style={styles.page}>
+        <PageDecorations logoDataUrl={logoDataUrl} />
+
         <Text style={styles.clauseTitle}>X. DO FORO</Text>
         <Text style={styles.paragraph}>
           As partes elegem a Comarca de Juazeiro do Norte como o único
@@ -536,7 +695,12 @@ export function ContratoPdf({
             CONTRATANTE/LOCATÁRIO:
           </Text>
           <View style={styles.signatureLine} />
-          <Text style={[styles.centerText, { fontFamily: "Helvetica-Bold" }]}>
+          <Text
+            style={[
+              styles.centerText,
+              { fontFamily: "Helvetica-Bold", fontSize: adaptiveFontSize(contratante.nome, 10) },
+            ]}
+          >
             {contratante.nome.toUpperCase()}
           </Text>
           <Text style={styles.centerText}>CPF {contratante.cpf}</Text>
@@ -548,7 +712,12 @@ export function ContratoPdf({
               AVALISTA:
             </Text>
             <View style={styles.signatureLine} />
-            <Text style={[styles.centerText, { fontFamily: "Helvetica-Bold" }]}>
+            <Text
+              style={[
+                styles.centerText,
+                { fontFamily: "Helvetica-Bold", fontSize: adaptiveFontSize(avalista?.nome, 10) },
+              ]}
+            >
               {avalista?.nome?.toUpperCase()}
             </Text>
             <Text style={styles.centerText}>CPF {avalista?.cpf}</Text>
@@ -566,14 +735,6 @@ export function ContratoPdf({
           <Text style={styles.centerText}>CPF 061.104.423-48</Text>
           <Text style={styles.centerText}>KEU LOCA MOTOS</Text>
         </View>
-
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `Pag. ${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
       </Page>
     </Document>
   );

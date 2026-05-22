@@ -10,13 +10,15 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  MoreVertical,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useApi } from "@/lib/hooks/use-api";
+import { useApi, invalidateApiCache } from "@/lib/hooks/use-api";
 import { formatCurrency, formatDate, tempoDia } from "@/lib/utils";
 
 interface ContratoApi {
@@ -48,23 +50,36 @@ export default function ContratosPage() {
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<string>("");
 
-  const { data, loading } = useApi<{ contratos: ContratoApi[] }>(
-    `/api/contratos${filtroStatus ? `?status=${filtroStatus}` : ""}`
+  const params = new URLSearchParams();
+  if (filtroStatus) params.set("status", filtroStatus);
+  if (search.trim()) params.set("q", search.trim());
+  const url = `/api/contratos${params.toString() ? `?${params}` : ""}`;
+  const { data, loading, refetch } = useApi<{ contratos: ContratoApi[] }>(
+    url,
+    [filtroStatus, search]
   );
 
   const contratos = data?.contratos ?? [];
-  const filtered = search
-    ? contratos.filter((c) => {
-        const s = search.toLowerCase();
-        return (
-          c.contratante.nome.toLowerCase().includes(s) ||
-          (c.contratante.cpf ?? "").includes(s) ||
-          (c.moto.placa ?? "").toLowerCase().includes(s) ||
-          c.moto.marca.toLowerCase().includes(s) ||
-          c.moto.modelo.toLowerCase().includes(s)
-        );
-      })
-    : contratos;
+  const filtered = contratos;
+
+  async function mudarStatus(id: string, novoStatus: string, nome: string) {
+    try {
+      const res = await fetch(`/api/contratos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: novoStatus }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Falha ao atualizar");
+      }
+      toast.success(`${nome} → ${novoStatus}`);
+      invalidateApiCache();
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    }
+  }
 
   const total = contratos.length;
   const ativos = contratos.filter((c) => c.status === "ativo").length;
@@ -195,7 +210,7 @@ export default function ContratosPage() {
                       {c.geradoPorNome ? ` · por ${c.geradoPorNome}` : ""}
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 flex-shrink-0 items-center">
                     <a
                       href={`/api/contratos/${c._id}/pdf`}
                       target="_blank"
@@ -210,9 +225,15 @@ export default function ContratosPage() {
                         href={`/dashboard/clientes/${c.clienteId}`}
                         className="inline-flex items-center text-xs px-3 py-1.5 rounded-lg border border-keu-black/10 hover:bg-keu-gray-light"
                       >
-                        Ver cliente
+                        Cliente
                       </Link>
                     )}
+                    <StatusMenu
+                      current={c.status}
+                      onChange={(s) =>
+                        mudarStatus(c._id, s, c.contratante.nome)
+                      }
+                    />
                   </div>
                 </div>
               );
@@ -220,6 +241,58 @@ export default function ContratosPage() {
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+function StatusMenu({
+  current,
+  onChange,
+}: {
+  current: string;
+  onChange: (status: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const opts = [
+    { v: "ativo", label: "Marcar ativo" },
+    { v: "assinado", label: "Marcar assinado" },
+    { v: "concluido", label: "Marcar concluído" },
+    { v: "rescindido", label: "Rescindir" },
+  ].filter((o) => o.v !== current);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="p-1.5 rounded-lg hover:bg-keu-gray-light text-keu-black/60"
+        aria-label="Mudar status"
+        title="Mudar status"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setOpen(false)}
+          />
+          <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-2xl border border-keu-black/10 overflow-hidden z-20 py-1">
+            {opts.map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => {
+                  onChange(o.v);
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-keu-gray-light"
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

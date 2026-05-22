@@ -24,7 +24,20 @@ import {
   formatCpfInput,
   formatPhoneInput,
   formatCurrency,
+  isValidCpf,
 } from "@/lib/utils";
+
+// "DD/MM/AAAA" → "AAAA-MM-DD" pra <input type="date"> (e vice-versa)
+function toIsoDate(br: string): string {
+  const m = br.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return "";
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+function toBrDate(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
 
 interface AluguelApi {
   _id: string;
@@ -198,6 +211,14 @@ export default function NovoContratoPage() {
     }
     if (!form.nome.trim() || !form.cpf.trim()) {
       toast.error("Nome e CPF do contratante são obrigatórios");
+      return;
+    }
+    if (!isValidCpf(form.cpf)) {
+      toast.error("CPF do contratante é inválido — confira os dígitos");
+      return;
+    }
+    if (form.avNome.trim() && form.avCpf.trim() && !isValidCpf(form.avCpf)) {
+      toast.error("CPF do avalista é inválido");
       return;
     }
     if (!form.parcelas || !form.valorParcela) {
@@ -404,9 +425,9 @@ export default function NovoContratoPage() {
               <Label htmlFor="nascimento">Nascimento</Label>
               <Input
                 id="nascimento"
-                placeholder="DD/MM/AAAA"
-                value={form.nascimento}
-                onChange={(e) => set("nascimento", e.target.value)}
+                type="date"
+                value={toIsoDate(form.nascimento)}
+                onChange={(e) => set("nascimento", toBrDate(e.target.value))}
               />
             </div>
             <div>
@@ -524,9 +545,11 @@ export default function NovoContratoPage() {
               <Label htmlFor="avNascimento">Nascimento</Label>
               <Input
                 id="avNascimento"
-                placeholder="DD/MM/AAAA"
-                value={form.avNascimento}
-                onChange={(e) => set("avNascimento", e.target.value)}
+                type="date"
+                value={toIsoDate(form.avNascimento)}
+                onChange={(e) =>
+                  set("avNascimento", toBrDate(e.target.value))
+                }
               />
             </div>
             <div>

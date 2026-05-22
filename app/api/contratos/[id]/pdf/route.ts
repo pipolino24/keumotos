@@ -60,11 +60,34 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     }
 
     // Lazy import — só carrega quando o endpoint é chamado, não no warm-up
-    const [{ renderToBuffer }, { ContratoPdf }, React] = await Promise.all([
-      import("@react-pdf/renderer"),
-      import("@/lib/contrato/template"),
-      import("react"),
-    ]);
+    const [{ renderToBuffer }, { ContratoPdf }, React, fs, path] =
+      await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/lib/contrato/template"),
+        import("react"),
+        import("node:fs/promises"),
+        import("node:path"),
+      ]);
+
+    // Carrega o logo do disk (public/logos/keu-loca-motos.webp). Server-side
+    // tem acesso ao filesystem. Convertemos pra data URL pra embarcar no PDF.
+    // Falha silenciosa: se não achar, PDF sai sem logo (texto KEU LOCA MOTOS).
+    let logoDataUrl: string | undefined;
+    try {
+      const logoPath = path.join(
+        process.cwd(),
+        "public",
+        "logos",
+        "keu-loca-motos.webp"
+      );
+      const buf = await fs.readFile(logoPath);
+      logoDataUrl = `data:image/webp;base64,${buf.toString("base64")}`;
+    } catch (e) {
+      console.warn(
+        "[contrato pdf] logo não carregado:",
+        e instanceof Error ? e.message : e
+      );
+    }
 
     const numero = String(contrato._id).slice(-6).toUpperCase();
     const element = React.createElement(ContratoPdf, {
@@ -75,6 +98,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
       plano: contrato.plano,
       observacoes: contrato.observacoes,
       dataContrato: contrato.dataContrato,
+      logoDataUrl,
     });
 
     // renderToBuffer espera ReactElement

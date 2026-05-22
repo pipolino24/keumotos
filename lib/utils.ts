@@ -72,6 +72,33 @@ export function formatPlacaInput(raw: string): string {
 }
 
 /**
+ * Valida CPF pelo algoritmo dos 2 dígitos verificadores. Aceita string com
+ * ou sem máscara. Retorna true se válido. Bloqueia também CPFs notoriamente
+ * falsos com todos os dígitos iguais (000.000.000-00, 111.111.111-11, etc).
+ */
+export function isValidCpf(raw: string): boolean {
+  const cpf = raw.replace(/\D/g, "");
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+  // Primeiro dígito verificador
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf[i], 10) * (10 - i);
+  }
+  let d1 = 11 - (sum % 11);
+  if (d1 >= 10) d1 = 0;
+  if (d1 !== parseInt(cpf[9], 10)) return false;
+  // Segundo dígito verificador
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cpf[i], 10) * (11 - i);
+  }
+  let d2 = 11 - (sum % 11);
+  if (d2 >= 10) d2 = 0;
+  return d2 === parseInt(cpf[10], 10);
+}
+
+/**
  * Tempo relativo compacto (sem sufixo). Granularidade minuto/hora/dia.
  * Output: "agora" | "5m" | "2h" | "3d". Pra widgets e bell.
  */

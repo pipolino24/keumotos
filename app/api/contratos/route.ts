@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     const clienteIdParam = searchParams.get("clienteId");
     const aluguelIdParam = searchParams.get("aluguelId");
     const statusParam = searchParams.get("status");
+    const qParam = searchParams.get("q");
 
     const query: Record<string, unknown> = {};
     // Cliente: só vê próprios contratos
@@ -39,6 +40,20 @@ export async function GET(req: NextRequest) {
     }
     if (aluguelIdParam) query.aluguelId = aluguelIdParam;
     if (statusParam) query.status = statusParam;
+    if (qParam && qParam.length > 0) {
+      // Anti-ReDoS: limita tamanho e escapa metacaracteres
+      const termo = qParam
+        .slice(0, 80)
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = { $regex: termo, $options: "i" };
+      query.$or = [
+        { "contratante.nome": re },
+        { "contratante.cpf": re },
+        { "moto.placa": re },
+        { "moto.marca": re },
+        { "moto.modelo": re },
+      ];
+    }
 
     const contratos = await Contrato.find(query)
       .sort({ createdAt: -1 })
