@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Contrato } from "@/lib/models/contrato";
 import { requireAuth } from "@/lib/auth/api-guards";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 // React-pdf precisa de Node runtime (não Edge) — APIs do Node.js
@@ -23,6 +24,20 @@ interface Ctx {
 export async function GET(req: NextRequest, { params }: Ctx) {
   const auth = await requireAuth(req);
   if (!auth.ok) return auth.response;
+
+  // Rate limit: gerar PDF é CPU-intensivo (~200ms-1s no Vercel). 60/min/user
+  // cobre uso humano normal mas trava bot tentando esgotar recursos.
+  const rl = rateLimit({
+    key: `contratos-pdf:${auth.userId}:${getClientIp(req)}`,
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas requisições de PDF, aguarde 1min" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
 
   try {
     await connectMongo();

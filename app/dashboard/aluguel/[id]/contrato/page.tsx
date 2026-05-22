@@ -93,9 +93,16 @@ export default function NovoContratoPage() {
   );
   const moto = motoData?.moto;
 
-  // Perfil do cliente (Supabase profiles) — só carrega se tem clienteId
+  // Perfil do cliente (Supabase profiles) — só carrega se clienteId é um
+  // UUID válido (Supabase auth). Cliente "anônimo" do aluguel não tem
+  // profile — pula a chamada pra evitar 404 no console.
+  const isUuid =
+    aluguel?.clienteId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      aluguel.clienteId
+    );
   const { data: profileData } = useApi<{ user: ProfileApi }>(
-    aluguel?.clienteId ? `/api/users/${aluguel.clienteId}` : ""
+    isUuid ? `/api/users/${aluguel!.clienteId}` : ""
   );
   const profile = profileData?.user;
 

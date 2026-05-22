@@ -172,11 +172,7 @@ export default function AluguelDetalhePage() {
         }
         description={`Locação #${aluguel._id.slice(-6).toUpperCase()}`}
       >
-        <Link href={`/dashboard/aluguel/${aluguel._id}/contrato`}>
-          <Button variant="outline">
-            <FileText className="h-4 w-4" /> Gerar contrato
-          </Button>
-        </Link>
+        <ContratosBotao aluguelId={aluguel._id} />
         <AluguelStatusBadge status={aluguel.status} />
       </PageHeader>
 
@@ -579,6 +575,61 @@ function InfoBox({
       </div>
       <div className="font-bold text-sm">{value}</div>
     </div>
+  );
+}
+
+interface ContratoMini {
+  _id: string;
+  status: string;
+  dataContrato: string;
+}
+
+function ContratosBotao({ aluguelId }: { aluguelId: string }) {
+  const { data, loading } = useApi<{ contratos: ContratoMini[] }>(
+    `/api/contratos?aluguelId=${aluguelId}`
+  );
+  const contratos = data?.contratos ?? [];
+  const ativo = contratos.find(
+    (c) => c.status === "ativo" || c.status === "assinado"
+  );
+
+  if (loading) {
+    return (
+      <Button variant="outline" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" /> Contratos
+      </Button>
+    );
+  }
+
+  if (ativo) {
+    const numero = ativo._id.slice(-6).toUpperCase();
+    return (
+      <div className="flex gap-2 flex-wrap">
+        <a
+          href={`/api/contratos/${ativo._id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Abrir contrato #${numero}`}
+        >
+          <Button variant="outline">
+            <FileText className="h-4 w-4" /> Ver contrato #{numero}
+          </Button>
+        </a>
+        <Link href={`/dashboard/aluguel/${aluguelId}/contrato`}>
+          <Button variant="ghost" size="sm">
+            + novo
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <Link href={`/dashboard/aluguel/${aluguelId}/contrato`}>
+      <Button variant="outline">
+        <FileText className="h-4 w-4" /> Gerar contrato
+      </Button>
+    </Link>
   );
 }
 

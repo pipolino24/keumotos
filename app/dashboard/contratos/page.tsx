@@ -145,8 +145,16 @@ export default function ContratosPage() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<FileText className="h-8 w-8" />}
-            title={search ? "Nenhum contrato bate a busca" : "Nenhum contrato ainda"}
-            description="Contratos são gerados quando você cadastra um aluguel novo e clica em Gerar contrato."
+            title={
+              search || filtroStatus
+                ? "Nenhum contrato bate o filtro"
+                : "Nenhum contrato ainda"
+            }
+            description={
+              search || filtroStatus
+                ? "Tente outro termo de busca ou limpe os filtros."
+                : "Contratos são gerados quando você abre o detalhe de um aluguel e clica em Gerar contrato."
+            }
           />
         ) : (
           <div className="divide-y divide-keu-black/5">

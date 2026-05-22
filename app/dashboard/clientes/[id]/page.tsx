@@ -13,6 +13,8 @@ import {
   Calendar,
   TrendingUp,
   MessageCircle,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -360,6 +362,105 @@ export default function ClienteDetalhePage({
           </Card>
         </div>
       </div>
+
+      {/* CONTRATOS DO CLIENTE */}
+      <ContratosDoCliente clienteId={id} />
+    </div>
+  );
+}
+
+interface ContratoMini {
+  _id: string;
+  contratante: { nome: string };
+  moto: { marca: string; modelo: string; placa?: string };
+  plano: { parcelas: number; valorParcela: number };
+  status: string;
+  dataContrato: string;
+  geradoPorNome?: string;
+}
+
+function ContratosDoCliente({ clienteId }: { clienteId: string }) {
+  const { data, loading } = useApi<{ contratos: ContratoMini[] }>(
+    `/api/contratos?clienteId=${clienteId}`
+  );
+  const contratos = data?.contratos ?? [];
+  return (
+    <div className="mt-6">
+      <Card>
+        <div className="p-5 border-b border-keu-black/5 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-keu-red" />
+              Contratos ({contratos.length})
+            </h3>
+            <p className="text-xs text-keu-black/60">
+              Histórico de contratos de locação gerados pra esse cliente
+            </p>
+          </div>
+          {contratos.length > 0 && (
+            <Link
+              href="/dashboard/contratos"
+              className="text-xs text-keu-red font-semibold hover:underline"
+            >
+              Ver todos
+            </Link>
+          )}
+        </div>
+        {loading ? (
+          <div className="p-6 text-center">
+            <Loader2 className="h-5 w-5 animate-spin text-keu-red mx-auto" />
+          </div>
+        ) : contratos.length === 0 ? (
+          <div className="p-6 text-center text-sm text-keu-black/40">
+            Nenhum contrato gerado pra esse cliente ainda
+          </div>
+        ) : (
+          <div className="divide-y divide-keu-black/5">
+            {contratos.slice(0, 10).map((c) => {
+              const numero = c._id.slice(-6).toUpperCase();
+              return (
+                <div
+                  key={c._id}
+                  className="p-3 px-6 flex items-center justify-between gap-3 text-sm flex-wrap"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-keu-black/40">
+                        #{numero}
+                      </span>
+                      <Badge
+                        variant={
+                          c.status === "assinado" || c.status === "concluido"
+                            ? "success"
+                            : c.status === "rescindido"
+                            ? "danger"
+                            : "warning"
+                        }
+                        className="text-[10px] uppercase"
+                      >
+                        {c.status}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-keu-black/60 mt-0.5">
+                      {c.moto.marca} {c.moto.modelo}
+                      {c.moto.placa ? ` · ${c.moto.placa}` : ""} ·{" "}
+                      {c.plano.parcelas}x · {formatDate(c.dataContrato)}
+                    </div>
+                  </div>
+                  <a
+                    href={`/api/contratos/${c._id}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-keu-red text-white font-semibold hover:bg-keu-red-dark transition inline-flex items-center gap-1.5"
+                  >
+                    PDF
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Contrato } from "@/lib/models/contrato";
+import { Moto } from "@/lib/models/moto";
 import { contratoCreateSchema } from "@/lib/schemas";
 import { requireRole, requireAuth } from "@/lib/auth/api-guards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +68,21 @@ export async function POST(req: NextRequest) {
   const auth = await requireRole(["admin", "vendedor"], req);
   if (!auth.ok) return auth.response;
 
+  // Rate limit por usuário: gerar contrato é operação relativamente pesada
+  // (cria documento + snapshot). 30/min é alto pro uso humano, baixo o
+  // suficiente pra cortar script/bot acidental.
+  const rl = rateLimit({
+    key: `contratos-create:${auth.userId}:${getClientIp(req)}`,
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Muitas criações em pouco tempo, aguarde 1min" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+
   try {
     await connectMongo();
     const raw = await req.json();
@@ -76,6 +94,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: `Validação: ${issues}` },
         { status: 400 }
+      );
+    }
+
+    // motoId precisa ser ObjectId válido (anti NoSQL operator injection)
+    if (!mongoose.Types.ObjectId.isValid(parsed.data.motoId)) {
+      return NextResponse.json(
+        { error: "motoId inválido" },
+        { status: 400 }
+      );
+    }
+    if (
+      parsed.data.aluguelId &&
+      !mongoose.Types.ObjectId.isValid(parsed.data.aluguelId)
+    ) {
+      return NextResponse.json(
+        { error: "aluguelId inválido" },
+        { status: 400 }
+      );
+    }
+    // Sanity check: moto existe (defende contra contratos órfãos)
+    const motoExists = await Moto.exists({ _id: parsed.data.motoId });
+    if (!motoExists) {
+      return NextResponse.json(
+        { error: "Moto não encontrada no estoque" },
+        { status: 404 }
       );
     }
 

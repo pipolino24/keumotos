@@ -145,15 +145,35 @@ function fmtMoney(v: number | undefined) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Formatação manual (sem depender de Intl locale pt-BR — Vercel functions
+// normalmente rodam em C/POSIX locale, daí "long" devolve em inglês).
+const MESES_PT = [
+  "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+  "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO",
+];
 function fmtDate(d: Date | string | undefined) {
   if (!d) return "";
   const dt = typeof d === "string" ? new Date(d) : d;
   if (isNaN(dt.getTime())) return String(d);
-  return dt.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const dia = String(dt.getDate()).padStart(2, "0");
+  const mes = MESES_PT[dt.getMonth()];
+  const ano = dt.getFullYear();
+  return `${dia} DE ${mes} DE ${ano}`;
+}
+
+/**
+ * Deriva periodicidade ("quinzenais", "mensais", "semanais") a partir da
+ * string `datasVencimento` informada pelo staff. Default: "mensais".
+ * "06 e 21" → quinzenais (2 datas no mês), "todo dia 5" → mensais,
+ * "5 e 20" → quinzenais.
+ */
+function periodicidade(datas?: string): string {
+  if (!datas) return "mensais";
+  // Conta números no string — 2+ = quinzenal/dupla
+  const numbers = datas.match(/\d+/g) || [];
+  if (numbers.length >= 2) return "quinzenais";
+  if (/semana/i.test(datas)) return "semanais";
+  return "mensais";
 }
 
 export interface ContratoPdfProps {
@@ -379,11 +399,11 @@ export function ContratoPdf({
       <Page size="A4" style={styles.page}>
         <Text style={styles.clauseTitle}>CLÁUSULA IV – OPÇÃO DE QUITAÇÃO</Text>
         <Text style={styles.paragraph}>
-          Ao final dos {plano.parcelas} (parcelas) quinzenais, estando todos os
-          pagamentos devidamente quitados, o LOCATÁRIO terá direito à
-          transferência do veículo para seu nome, ficando desde já ciente de
-          que todas as despesas relativas à transferência serão de sua inteira
-          responsabilidade, incluindo, mas não se limitando a:
+          Ao final das {plano.parcelas} parcelas {periodicidade(plano.datasVencimento)},
+          estando todos os pagamentos devidamente quitados, o LOCATÁRIO terá
+          direito à transferência do veículo para seu nome, ficando desde já
+          ciente de que todas as despesas relativas à transferência serão de
+          sua inteira responsabilidade, incluindo, mas não se limitando a:
         </Text>
         <View style={styles.list}>
           <Text style={styles.listItem}>• Taxas de cartório</Text>
