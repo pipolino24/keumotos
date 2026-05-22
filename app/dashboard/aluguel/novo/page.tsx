@@ -60,6 +60,8 @@ interface ClienteApi {
   cpf?: string;
 }
 
+type Periodicidade = "semanal" | "quinzenal" | "mensal" | "personalizada";
+
 type AluguelForm = {
   clienteMode: "existente" | "novo";
   clienteId: string;
@@ -72,8 +74,13 @@ type AluguelForm = {
   dataInicio: string;
   dataFim: string;
 
-  valorTotal: number | "";
-  valorTotalEditado: boolean;
+  // Aluguel é PERIÓDICO — cliente paga a cada N dias enquanto tiver a moto.
+  // periodicidadeOpcao define o ciclo (7/15/30 dias ou personalizado).
+  // valorParcela é quanto paga por ciclo.
+  periodicidade: Periodicidade;
+  diasPersonalizado: number | ""; // só usado se periodicidade === "personalizada"
+  valorParcela: number | "";
+
   km_inicial: number | "";
   observacoes: string;
 
@@ -99,14 +106,33 @@ const initial: AluguelForm = {
   motoId: "",
   dataInicio: todayISO(),
   dataFim: tomorrowISO(),
-  valorTotal: "",
-  valorTotalEditado: false,
+  periodicidade: "mensal",
+  diasPersonalizado: "",
+  valorParcela: "",
   km_inicial: "",
   observacoes: "",
   fotosInicio: [],
   observacoesInicio: "",
   caucao: "",
 };
+
+/** Quantos dias um ciclo da periodicidade tem. */
+function diasPorCiclo(p: Periodicidade, custom?: number | ""): number {
+  if (p === "semanal") return 7;
+  if (p === "quinzenal") return 15;
+  if (p === "mensal") return 30;
+  return typeof custom === "number" && custom > 0 ? custom : 0;
+}
+
+/** Label legível pra periodicidade ("semanal", "a cada 10 dias"). */
+function labelPeriodicidade(p: Periodicidade, custom?: number | ""): string {
+  if (p === "semanal") return "semanal";
+  if (p === "quinzenal") return "quinzenal";
+  if (p === "mensal") return "mensal";
+  return typeof custom === "number" && custom > 0
+    ? `a cada ${custom} dias`
+    : "personalizada";
+}
 
 interface CalculoValor {
   dias: number;
@@ -244,13 +270,17 @@ export default function NovoAluguelPage() {
     );
   }, [dias, motoSelecionada]);
 
-  // Valor total exibido: usa valor digitado pelo usuário; senão, a sugestão calculada.
+  // Locação periódica: valor total = valorParcela × N ciclos dentro do período.
+  // Ex: 30 dias com periodicidade quinzenal (15 dias) = 2 parcelas. Arredonda
+  // pra cima — cliente paga ciclo inteiro mesmo se devolver no meio.
+  const cicloDias = diasPorCiclo(form.periodicidade, form.diasPersonalizado);
+  const numParcelas = cicloDias > 0 ? Math.max(1, Math.ceil(dias / cicloDias)) : 0;
+  const valorTotalCalc =
+    typeof form.valorParcela === "number" && form.valorParcela > 0
+      ? form.valorParcela * numParcelas
+      : 0;
   const valorTotalExibido: number | "" =
-    form.valorTotalEditado
-      ? form.valorTotal
-      : calculo.valor > 0
-        ? calculo.valor
-        : form.valorTotal;
+    valorTotalCalc > 0 ? valorTotalCalc : "";
 
   function set<K extends keyof AluguelForm>(key: K, value: AluguelForm[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -316,8 +346,21 @@ export default function NovoAluguelPage() {
       toast.error(m);
       return;
     }
-    if (valorTotalExibido === "" || Number(valorTotalExibido) <= 0) {
-      const m = "Informe o valor total.";
+    if (
+      typeof form.valorParcela !== "number" ||
+      form.valorParcela <= 0
+    ) {
+      const m = "Informe o valor da parcela do aluguel.";
+      setError(m);
+      toast.error(m);
+      return;
+    }
+    if (
+      form.periodicidade === "personalizada" &&
+      (typeof form.diasPersonalizado !== "number" || form.diasPersonalizado < 1)
+    ) {
+      const m =
+        "Informe de quantos em quantos dias o cliente paga a parcela.";
       setError(m);
       toast.error(m);
       return;
@@ -395,6 +438,19 @@ export default function NovoAluguelPage() {
         modalidadeAplicada: calculo.modalidade ?? undefined,
         diasContratados: dias,
         valorTotal: Number(valorTotalExibido),
+
+        // === LOCAÇÃO PERIÓDICA — cliente paga a cada N dias ===
+        // Reusa os campos do schema legado de Conquista pra não migrar o
+        // model: valorParcela + frequenciaParcela + numeroParcelas. Sem
+        // valorEntrada (locação não tem) e sem opção de quitação.
+        valorParcela: Number(form.valorParcela),
+        numeroParcelas: numParcelas,
+        frequenciaParcela:
+          form.periodicidade === "quinzenal"
+            ? "quinzenal"
+            : form.periodicidade === "mensal"
+              ? "mensal"
+              : undefined, // semanal/personalizada → não setado (schema só aceita quinzenal/mensal)
 
         // Caução opcional — valor que pode ser devolvido ao cliente no fim
         caucao:
@@ -786,7 +842,38 @@ export default function NovoAluguelPage() {
               )}
 
               <div>
-                <Label required>Valor total</Label>
+                <Label required>Periodicidade da parcela</Label>
+                <Select
+                  value={form.periodicidade}
+                  onChange={(e) =>
+                    set("periodicidade", e.target.value as Periodicidade)
+                  }
+                >
+                  <option value="semanal">Semanal (7 dias)</option>
+                  <option value="quinzenal">Quinzenal (15 dias)</option>
+                  <option value="mensal">Mensal (30 dias)</option>
+                  <option value="personalizada">Personalizada</option>
+                </Select>
+                {form.periodicidade === "personalizada" && (
+                  <Input
+                    type="number"
+                    min="1"
+                    max="365"
+                    className="mt-2"
+                    placeholder="A cada quantos dias?"
+                    value={form.diasPersonalizado}
+                    onChange={(e) =>
+                      set(
+                        "diasPersonalizado",
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
+                  />
+                )}
+              </div>
+
+              <div>
+                <Label required>Valor da parcela</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
                     R$
@@ -797,34 +884,70 @@ export default function NovoAluguelPage() {
                     step="any"
                     required
                     className="pl-9"
-                    value={valorTotalExibido}
-                    onChange={(e) => {
-                      setForm((p) => ({
-                        ...p,
-                        valorTotal: e.target.value
-                          ? Number(e.target.value)
-                          : "",
-                        valorTotalEditado: true,
-                      }));
-                    }}
+                    placeholder="Ex: 200"
+                    value={form.valorParcela}
+                    onChange={(e) =>
+                      set(
+                        "valorParcela",
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
                   />
                 </div>
-                {form.valorTotalEditado && calculo.valor > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm((p) => ({
-                        ...p,
-                        valorTotal: "",
-                        valorTotalEditado: false,
-                      }));
-                    }}
-                    className="text-xs text-keu-red hover:underline mt-1"
-                  >
-                    Restaurar sugestão ({formatCurrency(calculo.valor)})
-                  </button>
-                )}
+                <p className="text-[11px] text-keu-black/50 mt-1">
+                  Quanto o cliente paga a cada ciclo{" "}
+                  {labelPeriodicidade(
+                    form.periodicidade,
+                    form.diasPersonalizado
+                  )}
+                  .
+                </p>
               </div>
+
+              {numParcelas > 0 && cicloDias > 0 && (
+                <div className="col-span-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs space-y-0.5">
+                  <div className="font-bold text-emerald-900">
+                    Resumo do plano de locação
+                  </div>
+                  <div className="text-emerald-800">
+                    {dias} dia{dias > 1 ? "s" : ""} ÷ {cicloDias} = {numParcelas}{" "}
+                    parcela{numParcelas > 1 ? "s" : ""}{" "}
+                    {labelPeriodicidade(
+                      form.periodicidade,
+                      form.diasPersonalizado
+                    )}{" "}
+                    de{" "}
+                    <strong>
+                      {formatCurrency(
+                        typeof form.valorParcela === "number"
+                          ? form.valorParcela
+                          : 0
+                      )}
+                    </strong>{" "}
+                    ={" "}
+                    <strong>
+                      {formatCurrency(
+                        typeof valorTotalExibido === "number"
+                          ? valorTotalExibido
+                          : 0
+                      )}
+                    </strong>{" "}
+                    no total
+                  </div>
+                  {calculo.modalidade && calculo.valor > 0 && (
+                    <div className="text-[11px] text-emerald-700/80">
+                      💡 Sugestão da moto (
+                      {calculo.modalidade === "diaria"
+                        ? "diária"
+                        : calculo.modalidade === "semanal"
+                          ? "semanal"
+                          : "mensal"}
+                      ):{" "}
+                      <strong>{formatCurrency(calculo.valor)}</strong> no período
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Aviso: Plano Conquista NÃO é aluguel */}
               <div className="col-span-2 border-t border-keu-black/5 pt-4 mt-2">
