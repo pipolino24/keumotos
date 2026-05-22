@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { formatCurrency, formatDate, tempoDia } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
 
@@ -391,8 +391,8 @@ export default function UsuariosPage() {
                     <td className="p-4 text-xs text-keu-black/60">
                       {formatDate(u.createdAt)}
                     </td>
-                    <td className="p-4 text-xs text-keu-black/60" title={u.ultimoAcesso ? formatDate(u.ultimoAcesso) : ""}>
-                      {u.ultimoAcesso ? tempoDia(u.ultimoAcesso) : "nunca"}
+                    <td className="p-4 text-xs text-keu-black/60">
+                      {u.ultimoAcesso ? formatDate(u.ultimoAcesso) : "—"}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-1">

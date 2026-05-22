@@ -180,12 +180,12 @@ export default function ContatosPage() {
   return (
     <div>
       <PageHeader
-        title="Leads"
-        description="Gerencie todos os contatos de potenciais clientes — capturados do site ou cadastrados manualmente"
+        title="Contatos & Leads"
+        description="Gerencie todos os contatos de potenciais clientes"
       >
         <Link href="/dashboard/contatos/novo">
           <Button>
-            <UserPlus className="h-4 w-4" /> Novo lead
+            <UserPlus className="h-4 w-4" /> Novo contato
           </Button>
         </Link>
       </PageHeader>

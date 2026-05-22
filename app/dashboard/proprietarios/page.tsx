@@ -79,15 +79,15 @@ export default function ProprietariosPage() {
   return (
     <div>
       <Link
-        href="/dashboard/estoque"
+        href="/dashboard/aquisicoes"
         className="inline-flex items-center gap-2 text-sm font-medium text-keu-black/60 hover:text-keu-red transition mb-4"
       >
-        <ArrowLeft className="h-4 w-4" /> Voltar para estoque
+        <ArrowLeft className="h-4 w-4" /> Voltar para aquisições
       </Link>
 
       <PageHeader
-        title="Fornecedores"
-        description="Donos externos de motos consignadas, vendedores e clientes de aluguel"
+        title="Pessoas"
+        description="Donos de motos consignadas, vendedores externos e clientes de aluguel"
       >
         <Link href="/dashboard/proprietarios/novo">
           <Button>

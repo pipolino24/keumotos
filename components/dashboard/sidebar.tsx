@@ -34,7 +34,7 @@ const staffNavItems = [
   { href: "/dashboard/vendas", icon: ShoppingCart, label: "Vendas" },
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
-  { href: "/dashboard/contatos", icon: Phone, label: "Leads" },
+  { href: "/dashboard/contatos", icon: Phone, label: "Contatos" },
   { href: "/dashboard/clientes", icon: Users, label: "Clientes" },
 ];
 
@@ -44,13 +44,11 @@ const clienteNavItems = [
   { href: "/dashboard/favoritos", icon: Heart, label: "Favoritos" },
 ];
 
-// Aquisições NÃO entra no menu — é acessada via botão "Compra/Repasse" no
-// /estoque (cadastro de moto), pois é um TIPO de cadastro de estoque, não
-// uma área separada. A listagem fica em /estoque?origem=aquisicao.
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
+  { href: "/dashboard/aquisicoes", icon: ShoppingBag, label: "Compras & Repasses" },
   { href: "/dashboard/emprestimos", icon: Banknote, label: "Empréstimos" },
-  { href: "/dashboard/proprietarios", icon: Users, label: "Fornecedores" },
+  { href: "/dashboard/proprietarios", icon: Users, label: "Pessoas" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
   { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];

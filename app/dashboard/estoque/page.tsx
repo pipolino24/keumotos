@@ -54,7 +54,6 @@ export default function EstoquePage() {
   const [search, setSearch] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
-  const [filtroOrigem, setFiltroOrigem] = useState("");
 
   const params = new URLSearchParams();
   if (filtroStatus) params.set("status", filtroStatus);
@@ -67,18 +66,8 @@ export default function EstoquePage() {
     search,
   ]);
 
-  // Origem é filtrada client-side (a API /api/motos não tem ?origem= ainda
-  // e adicionar exigiria mexer no schema do Mongo query). Para os volumes
-  // de KEU isso é trivial.
-  const motosTodas = data?.motos ?? [];
-  const motos = filtroOrigem
-    ? motosTodas.filter((m) => m.origem === filtroOrigem)
-    : motosTodas;
+  const motos = data?.motos ?? [];
   const total = motos.length;
-  const totalAquisicoes = motosTodas.filter(
-    (m) => m.origem === "comprada" || m.origem === "repasse"
-  ).length;
-  const totalProprias = motosTodas.filter((m) => m.origem === "propria").length;
   const disponiveis = motos.filter((m) => m.status === "disponivel").length;
   const reservadas = motos.filter((m) => m.status === "reservada").length;
   const alugadas = motos.filter((m) => m.status === "alugada").length;
@@ -87,7 +76,7 @@ export default function EstoquePage() {
     <div>
       <PageHeader
         title="Estoque"
-        description="Catálogo de motos cadastradas — próprias, compras e repasses"
+        description="Catálogo de motos cadastradas"
       >
         <Link href="/dashboard/aquisicoes/nova">
           <Button variant="outline">
@@ -167,12 +156,11 @@ export default function EstoquePage() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Pill
-              label={`Todas (${motosTodas.length})`}
-              active={!filtroStatus && !filtroTipo && !filtroOrigem}
+              label={`Todas (${total})`}
+              active={!filtroStatus && !filtroTipo}
               onClick={() => {
                 setFiltroStatus("");
                 setFiltroTipo("");
-                setFiltroOrigem("");
               }}
             />
             <Pill
@@ -200,42 +188,7 @@ export default function EstoquePage() {
               active={filtroStatus === "manutencao"}
               onClick={() => setFiltroStatus("manutencao")}
             />
-            <span className="w-px h-6 bg-keu-black/10 mx-1 self-center" />
-            <Pill
-              label={`Próprias (${totalProprias})`}
-              active={filtroOrigem === "propria"}
-              onClick={() =>
-                setFiltroOrigem(filtroOrigem === "propria" ? "" : "propria")
-              }
-            />
-            <Pill
-              label={`Compras (${motosTodas.filter((m) => m.origem === "comprada").length})`}
-              active={filtroOrigem === "comprada"}
-              onClick={() =>
-                setFiltroOrigem(filtroOrigem === "comprada" ? "" : "comprada")
-              }
-            />
-            <Pill
-              label={`Repasses (${motosTodas.filter((m) => m.origem === "repasse").length})`}
-              active={filtroOrigem === "repasse"}
-              onClick={() =>
-                setFiltroOrigem(filtroOrigem === "repasse" ? "" : "repasse")
-              }
-            />
           </div>
-          {totalAquisicoes > 0 && (
-            <p className="text-[11px] text-keu-black/50 mt-2">
-              💡 Compras e Repasses (vindas de proprietários externos) também
-              aparecem aqui. Pra cadastrar uma, use o botão{" "}
-              <Link
-                href="/dashboard/aquisicoes/nova"
-                className="text-keu-red font-semibold hover:underline"
-              >
-                Compra/Repasse
-              </Link>
-              .
-            </p>
-          )}
         </div>
 
         {loading && !data ? (
