@@ -34,6 +34,7 @@ import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget"
 import { ColdLeadsWidget } from "@/components/dashboard/cold-leads-widget";
 import { ProximasAcoesWidget } from "@/components/dashboard/proximas-acoes-widget";
 import { MeuVendedorWidget } from "@/components/dashboard/meu-vendedor-widget";
+import { InadimplenciaWidget } from "@/components/dashboard/inadimplencia-widget";
 import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
@@ -923,7 +924,8 @@ interface AluguelStaff {
   numeroParcelas?: number;
   parcelasPagas?: number;
   proximaParcelaEm?: string;
-  frequenciaParcela?: "quinzenal" | "mensal";
+  frequenciaParcela?: "semanal" | "quinzenal" | "mensal" | "personalizada";
+  cicloDias?: number;
 }
 
 function StaffDashboard() {
@@ -1069,7 +1071,9 @@ function StaffDashboard() {
     }
   }
   for (const a of todosAlugueis) {
-    if (a.tipoPlano !== "conquista") continue;
+    // Inclui TODOS os aluguéis que têm parcelas — locação periódica
+    // OU Plano Conquista legado. Antes filtrava só Conquista, deixando
+    // as locações periódicas (que agora são o caso comum) de fora.
     if (!a.proximaParcelaEm || !a.valorParcela) continue;
     const prox = new Date(a.proximaParcelaEm);
     if (prox > limite30) continue;
@@ -1327,6 +1331,8 @@ function StaffDashboard() {
               </div>
             )}
           </Card>
+
+          <InadimplenciaWidget />
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
