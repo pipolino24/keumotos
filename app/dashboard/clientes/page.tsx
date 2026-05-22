@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonListRow } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, tempoDia } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 
 interface ClienteRow {
@@ -27,17 +27,6 @@ interface ClienteRow {
   alugueis: number;
   totalGasto: number;
   ultimoAt?: string;
-}
-
-function tempo(iso?: string): string {
-  if (!iso) return "—";
-  const diff = Date.now() - new Date(iso).getTime();
-  const d = Math.floor(diff / 86400000);
-  if (d < 1) return "hoje";
-  if (d === 1) return "ontem";
-  if (d < 30) return `${d}d atrás`;
-  const m = Math.floor(d / 30);
-  return `${m}m atrás`;
 }
 
 export default function ClientesPage() {
@@ -174,7 +163,7 @@ export default function ClientesPage() {
                       {formatCurrency(c.totalGasto)}
                     </div>
                     <div className="text-[10px] text-keu-black/50">
-                      ativ. {tempo(c.ultimoAt)}
+                      ativ. {tempoDia(c.ultimoAt)}
                     </div>
                   </div>
                   {tem && (

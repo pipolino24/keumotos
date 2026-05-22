@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
+import { tempoRelativo } from "@/lib/utils";
 
 interface LeadQuente {
   clienteId?: string;
@@ -29,15 +30,6 @@ const tipoLabel: Record<string, string> = {
   solicitou_compra: "solicitou compra",
   favoritou: "favoritou",
 };
-
-function tempo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3600000);
-  if (h < 1) return "agora";
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-}
 
 export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
   const { data, loading } = useApi<{ leads: LeadQuente[] }>(
@@ -127,7 +119,7 @@ export function LeadsQuentesWidget({ limit = 5 }: { limit?: number }) {
                     {lead.motosCount > 1 ? "s" : ""} ·{" "}
                     {tipoLabel[lead.ultimoTipo] ?? lead.ultimoTipo}{" "}
                     {lead.ultimaMoto && `"${lead.ultimaMoto}"`} ·{" "}
-                    {tempo(lead.ultimoAt)} atrás
+                    {tempoRelativo(lead.ultimoAt)} atrás
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">

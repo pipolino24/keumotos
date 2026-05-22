@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, Check, CheckCheck, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, tempoRelativo } from "@/lib/utils";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 
 const tipoEmoji: Record<string, string> = {
@@ -18,17 +18,6 @@ const tipoEmoji: Record<string, string> = {
   novo_cliente: "👋",
   documento_pendente: "📄",
 };
-
-function tempoRelativo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "agora";
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d`;
-}
 
 export function NotificationsBell() {
   const { notifications, unreadCount, markRead, markAllRead, archive } =

@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
+import { cn, tempoAtras } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface NotificationItem {
@@ -44,17 +44,6 @@ const tipoEmoji: Record<string, string> = {
   novo_cliente: "👋",
   documento_pendente: "📄",
 };
-
-function tempo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "agora";
-  if (m < 60) return `${m}m atrás`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h atrás`;
-  const d = Math.floor(h / 24);
-  return `${d}d atrás`;
-}
 
 type Aba = "inbox" | "arquivadas";
 
@@ -216,7 +205,7 @@ export default function NotificacoesPage() {
                       )}
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-[10px] text-keu-black/40 uppercase font-bold">
-                          {tempo(n.createdAt)}
+                          {tempoAtras(n.createdAt)}
                         </span>
                         {n.prioridade === "alta" && (
                           <Badge variant="warning" className="text-[9px]">

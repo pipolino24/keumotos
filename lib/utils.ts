@@ -70,3 +70,45 @@ export function formatPlacaInput(raw: string): string {
   if (d.length <= 3) return d;
   return `${d.slice(0, 3)}-${d.slice(3)}`;
 }
+
+/**
+ * Tempo relativo compacto (sem sufixo). Granularidade minuto/hora/dia.
+ * Output: "agora" | "5m" | "2h" | "3d". Pra widgets e bell.
+ */
+export function tempoRelativo(iso?: string | null): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
+
+/**
+ * Tempo relativo verbose com sufixo "atrás". Granularidade minuto/hora/dia.
+ * Output: "agora" | "5m atrás" | "2h atrás" | "3d atrás".
+ */
+export function tempoAtras(iso?: string | null): string {
+  if (!iso) return "—";
+  const r = tempoRelativo(iso);
+  return r === "agora" ? r : `${r} atrás`;
+}
+
+/**
+ * Tempo relativo com granularidade dia (sem minuto/hora).
+ * Output: "hoje" | "ontem" | "5d atrás" | "2m atrás".
+ * Pra listagens onde o "minuto exato" não importa.
+ */
+export function tempoDia(iso?: string | null): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d < 1) return "hoje";
+  if (d === 1) return "ontem";
+  if (d < 30) return `${d}d atrás`;
+  const m = Math.floor(d / 30);
+  return `${m}m atrás`;
+}
