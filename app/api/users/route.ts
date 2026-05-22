@@ -61,6 +61,27 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
+    // Enriquece com last_sign_in_at do auth.users (Supabase guarda timestamp
+    // do último login mas só na tabela auth, não em profiles). Listing é
+    // capped a 200 — pra organização KEU isso cobre 100% sem paginar.
+    // Falha silenciosa: se a listagem dá erro, profiles continuam funcionando
+    // mas sem o campo ultimoAcesso.
+    let lastSignInById: Map<string, string | null> = new Map();
+    try {
+      const { data: authList } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      lastSignInById = new Map(
+        (authList?.users ?? []).map((u) => [
+          u.id,
+          u.last_sign_in_at ?? null,
+        ])
+      );
+    } catch (e) {
+      console.warn("[/api/users] auth.listUsers falhou:", e instanceof Error ? e.message : e);
+    }
+
     // Para não-admin, removemos campos sensíveis no servidor antes de
     // devolver o payload (defesa em profundidade — a RLS já restringe).
     const PII_FIELDS = [
@@ -78,7 +99,12 @@ export async function GET(req: NextRequest) {
       if (!isAdmin) {
         for (const f of PII_FIELDS) delete p[f];
       }
-      return { ...p, _id: p.id };
+      const id = p.id as string;
+      return {
+        ...p,
+        _id: id,
+        ultimoAcesso: lastSignInById.get(id) ?? null,
+      };
     });
     return NextResponse.json({ users });
   } catch (err) {

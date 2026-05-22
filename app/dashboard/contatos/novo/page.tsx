@@ -119,8 +119,8 @@ export default function NovoContatoPage() {
       </Link>
 
       <PageHeader
-        title="Novo contato"
-        description="Cadastre um novo lead no pipeline"
+        title="Novo lead"
+        description="Cadastre manualmente um lead que veio por outro canal (telefone, presencial, indicação)"
       >
         <Link href="/dashboard/contatos">
           <Button type="button" variant="outline" disabled={saving}>

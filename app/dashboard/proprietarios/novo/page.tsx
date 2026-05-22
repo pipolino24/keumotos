@@ -166,7 +166,7 @@ export default function NovoProprietarioPage() {
 
       <PageHeader
         title="Cadastrar proprietário"
-        description="Dono externo de moto, fornecedor ou pessoa de contato. Para registrar a moto vinda dele, use Compras & Repasses."
+        description="Dono externo de moto, fornecedor ou pessoa de contato. Para registrar a moto vinda dele, use o botão Compra/Repasse no Estoque."
       />
 
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
