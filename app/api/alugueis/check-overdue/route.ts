@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Aluguel } from "@/lib/models/aluguel";
 import { Notification } from "@/lib/models/notification";
-import { requireAdmin } from "@/lib/auth/api-guards";
+import { requireAdminOrCron } from "@/lib/auth/api-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +19,16 @@ export const dynamic = "force-dynamic";
  * Pra rodar como cron: configure schedule no Vercel apontando pra esse
  * endpoint com requireAdmin (cron secret).
  */
+// Vercel Cron dispara via GET. Aceitamos ambos pra permitir que admin
+// também rode manualmente via POST do dashboard se quiser.
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
+
 export async function POST(req: NextRequest) {
-  // Admin-only: a operação faz updateMany + insertMany e gera notificações em
-  // massa. Vendedor não precisa disparar manualmente — admin/cron-job é o caller.
-  const auth = await requireAdmin(req);
+  // Admin-only OU Vercel Cron (header Authorization: Bearer CRON_SECRET).
+  // A operação faz updateMany + insertMany e gera notificações em massa.
+  const auth = await requireAdminOrCron(req);
   if (!auth.ok) return auth.response;
   try {
     await connectMongo();

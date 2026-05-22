@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/alugueis/check-overdue",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/alugueis/check-parcelas",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

@@ -129,3 +129,37 @@ export async function requireRole(
 export async function requireAdmin(req?: NextRequest): Promise<AuthOk | AuthDenied> {
   return requireRole(["admin"], req);
 }
+
+/**
+ * Verifica se a request vem do Vercel Cron com o CRON_SECRET correto.
+ *
+ * Vercel envia `Authorization: Bearer $CRON_SECRET` quando dispara o
+ * endpoint configurado em vercel.json. Esse header NÃO é o JWT do
+ * usuário — é um secret estável que só a infra Vercel conhece.
+ */
+export function isVercelCron(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const auth = req.headers.get("authorization") ?? "";
+  return auth === `Bearer ${secret}`;
+}
+
+/**
+ * Permite acesso se for admin OU se a request veio do Vercel Cron.
+ * Usado em endpoints de manutenção que precisam rodar agendado.
+ */
+export async function requireAdminOrCron(
+  req: NextRequest
+): Promise<AuthOk | AuthDenied> {
+  if (isVercelCron(req)) {
+    // Identidade sintética pra cron — não é um usuário real, mas
+    // satisfaz a forma AuthOk pros endpoints que esperam `auth.userId` etc.
+    return {
+      ok: true,
+      userId: "system:vercel-cron",
+      email: "cron@vercel",
+      role: "admin",
+    };
+  }
+  return requireAdmin(req);
+}
