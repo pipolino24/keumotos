@@ -4,6 +4,7 @@ import { connectMongo } from "@/lib/mongodb";
 import { Contrato } from "@/lib/models/contrato";
 import { requireAuth } from "@/lib/auth/api-guards";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { KEU_LOGO_DATA_URL } from "@/lib/contrato/logo";
 
 export const dynamic = "force-dynamic";
 // React-pdf precisa de Node runtime (não Edge) — APIs do Node.js
@@ -11,58 +12,6 @@ export const runtime = "nodejs";
 
 interface Ctx {
   params: Promise<{ id: string }>;
-}
-
-// Cache do logo em memória da function instance. Quente entre invocações
-// na mesma Lambda — não baixa de novo se for o mesmo deployment.
-let _logoCache: string | null = null;
-
-/**
- * Carrega o logo da KEU LOCA MOTOS como data URL. Estratégias em ordem:
- *  1) Cache em memória da function instance
- *  2) Filesystem (dev local — public/logos/...)
- *  3) Fetch HTTP do próprio host (Vercel — public/ é servido pelo CDN
- *     mas NÃO está dentro do bundle das functions)
- *
- * Falha silenciosa em todas as estratégias — se nada funciona, retorna
- * undefined e o PDF sai com texto "KEU LOCA MOTOS" em vez de logo.
- */
-async function loadLogo(origin: string): Promise<string | undefined> {
-  if (_logoCache) return _logoCache;
-  // Tentativa 1: filesystem (dev local)
-  try {
-    const [fs, path] = await Promise.all([
-      import("node:fs/promises"),
-      import("node:path"),
-    ]);
-    const logoPath = path.join(
-      process.cwd(),
-      "public",
-      "logos",
-      "keu-loca-motos.webp"
-    );
-    const buf = await fs.readFile(logoPath);
-    _logoCache = `data:image/webp;base64,${buf.toString("base64")}`;
-    return _logoCache;
-  } catch {
-    /* segue pro fallback HTTP */
-  }
-  // Tentativa 2: fetch do próprio host (Vercel)
-  try {
-    const res = await fetch(`${origin}/logos/keu-loca-motos.webp`, {
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    _logoCache = `data:image/webp;base64,${buf.toString("base64")}`;
-    return _logoCache;
-  } catch (e) {
-    console.warn(
-      "[contrato pdf] logo não carregado:",
-      e instanceof Error ? e.message : e
-    );
-    return undefined;
-  }
 }
 
 /**
@@ -118,9 +67,10 @@ export async function GET(req: NextRequest, { params }: Ctx) {
       import("react"),
     ]);
 
-    // Carrega o logo em paralelo com a renderização — fs local OU fetch HTTP
-    // do próprio host (Vercel). Cache em memória entre invocações da function.
-    const logoDataUrl = await loadLogo(req.nextUrl.origin);
+    // Logo embarcado direto no bundle (lib/contrato/logo.ts ~83KB base64).
+    // Sem fs.readFile (public/ não está no bundle das lambdas) nem fetch
+    // HTTP (lento + suscetível a timeout em Vercel functions).
+    const logoDataUrl = KEU_LOGO_DATA_URL;
 
     const numero = String(contrato._id).slice(-6).toUpperCase();
     const element = React.createElement(ContratoPdf, {
