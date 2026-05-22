@@ -203,9 +203,14 @@ export default function ContratosPage() {
                       {c.moto.placa ? ` · ${c.moto.placa}` : ""}
                     </div>
                     <div className="text-xs text-keu-black/50 mt-1">
-                      {c.plano.parcelas}x de {formatCurrency(c.plano.valorParcela)}
+                      {/* Locação tradicional tem parcelas=1; mostrar como valor único.
+                          Contratos legados com parcelas>1 (Plano Conquista) mostram
+                          formato Nx de R$. */}
+                      {c.plano.parcelas > 1
+                        ? `${c.plano.parcelas}× de ${formatCurrency(c.plano.valorParcela)}`
+                        : formatCurrency(c.plano.valorParcela)}
                       {c.plano.valorEntrada > 0
-                        ? ` + entrada ${formatCurrency(c.plano.valorEntrada)}`
+                        ? ` · caução ${formatCurrency(c.plano.valorEntrada)}`
                         : ""}
                       {c.geradoPorNome ? ` · por ${c.geradoPorNome}` : ""}
                     </div>

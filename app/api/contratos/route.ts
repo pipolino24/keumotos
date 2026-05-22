@@ -7,6 +7,23 @@ import { contratoCreateSchema } from "@/lib/schemas";
 import { requireRole, requireAuth } from "@/lib/auth/api-guards";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { isValidCpf } from "@/lib/utils";
+
+// "DD/MM/AAAA" → Date | null (anti-overflow + tolera AAAA-MM-DD ISO)
+function parseBrDate(s?: string): Date | null {
+  if (!s) return null;
+  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) {
+    const d = new Date(`${brMatch[3]}-${brMatch[2]}-${brMatch[1]}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const isoMatch = s.match(/^\d{4}-\d{2}-\d{2}/);
+  if (isoMatch) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +151,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Moto não encontrada no estoque" },
         { status: 404 }
+      );
+    }
+    // CPF do contratante: valida server-side (form valida client mas
+    // request pode vir via curl/script sem passar pelo form)
+    if (
+      parsed.data.contratante.cpf &&
+      !isValidCpf(parsed.data.contratante.cpf)
+    ) {
+      return NextResponse.json(
+        { error: "CPF do contratante inválido" },
+        { status: 400 }
+      );
+    }
+    if (parsed.data.avalista?.cpf && !isValidCpf(parsed.data.avalista.cpf)) {
+      return NextResponse.json(
+        { error: "CPF do avalista inválido" },
+        { status: 400 }
+      );
+    }
+    // Datas da locação: se ambas fornecidas, dataFim deve ser > dataInicio
+    // (caso normal: começo da locação 22/05/26, fim 22/06/26).
+    const dInicio = parseBrDate(parsed.data.plano.vencimentoPrimeira);
+    const dFim = parseBrDate(parsed.data.plano.datasVencimento);
+    if (dInicio && dFim && dFim <= dInicio) {
+      return NextResponse.json(
+        { error: "Data fim da locação deve ser depois da data início" },
+        { status: 400 }
       );
     }
 

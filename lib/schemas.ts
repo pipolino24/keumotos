@@ -410,10 +410,11 @@ export const contratoCreateSchema = z.object({
   plano: z.object({
     parcelas: z.number().int().min(1).max(120),
     valorEntrada: z.number().nonnegative().default(0),
-    valorParcela: z.number().nonnegative(),
-    planoEscolhido: z.string().max(60).default("Conquista"),
-    multaPercent: z.number().nonnegative().default(10),
-    jurosDiaPercent: z.number().nonnegative().default(2),
+    // valorParcela > 0 — contrato sem valor é inválido
+    valorParcela: z.number().positive("Valor da locação deve ser > 0"),
+    planoEscolhido: z.string().max(60).default("Locação"),
+    multaPercent: z.number().nonnegative().max(100).default(10),
+    jurosDiaPercent: z.number().nonnegative().max(100).default(2),
     datasVencimento: z.string().max(60).optional(),
     vencimentoPrimeira: z.string().max(40).optional(),
   }),
