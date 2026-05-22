@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useApi } from "@/lib/hooks/use-api";
 import { formatDate, formatPhone } from "@/lib/utils";
 
@@ -164,7 +165,7 @@ export default function ProprietariosPage() {
           </div>
         ) : filtered.length === 0 ? (
           proprietarios.length === 0 ? (
-            <EmptyState />
+            <EmptyStateProprietarios />
           ) : (
             <div className="p-16 text-center">
               <div className="bg-keu-gray-light w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -255,27 +256,24 @@ export default function ProprietariosPage() {
   );
 }
 
-function EmptyState() {
+function EmptyStateProprietarios() {
   return (
-    <div className="p-16 text-center">
-      <div className="bg-gradient-to-br from-keu-red to-keu-red-dark w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Users className="h-8 w-8 text-white" />
-      </div>
-      <h3 className="font-bold text-lg mb-1">Nenhuma pessoa cadastrada ainda</h3>
-      <p className="text-sm text-keu-black/60 mb-6 max-w-sm mx-auto">
-        Você pode cadastrar um proprietário direto, ou ele é criado
-        automaticamente quando você registra uma aquisição (compra/repasse).
-      </p>
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        <Link href="/dashboard/proprietarios/novo">
-          <Button>
-            <UserPlus className="h-4 w-4" /> Cadastre o primeiro
-          </Button>
-        </Link>
-        <Link href="/dashboard/aquisicoes/nova">
-          <Button variant="outline">Via aquisição</Button>
-        </Link>
-      </div>
-    </div>
+    <EmptyState
+      icon={<Users className="h-8 w-8" />}
+      title="Nenhuma pessoa cadastrada ainda"
+      description="Você pode cadastrar um proprietário direto, ou ele é criado automaticamente quando você registra uma aquisição (compra/repasse)."
+      action={
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <Link href="/dashboard/proprietarios/novo">
+            <Button>
+              <UserPlus className="h-4 w-4" /> Cadastre o primeiro
+            </Button>
+          </Link>
+          <Link href="/dashboard/aquisicoes/nova">
+            <Button variant="outline">Via aquisição</Button>
+          </Link>
+        </div>
+      }
+    />
   );
 }
