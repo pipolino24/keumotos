@@ -21,6 +21,7 @@ import {
   X,
   Heart,
   Banknote,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -47,6 +48,7 @@ const clienteNavItems = [
 // Aquisições não entra no menu — acessada via botão "Compra/Repasse" no /estoque
 const adminNavItems = [
   { href: "/dashboard/administracao", icon: Crown, label: "Administração" },
+  { href: "/dashboard/contratos", icon: FileText, label: "Contratos" },
   { href: "/dashboard/emprestimos", icon: Banknote, label: "Empréstimos" },
   { href: "/dashboard/proprietarios", icon: Users, label: "Fornecedores" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },

@@ -374,3 +374,51 @@ export type PagamentoInput = z.infer<typeof pagamentoSchema>;
 export type AvariaInput = z.infer<typeof avariaSchema>;
 export type AluguelDevolucaoInput = z.infer<typeof aluguelDevolucaoSchema>;
 export type RevisaoCreateInput = z.infer<typeof revisaoCreateSchema>;
+
+// === CONTRATO ===
+const pessoaSnapSchema = z.object({
+  nome: z.string().min(2).max(120),
+  sexo: z.string().max(20).optional(),
+  nascimento: z.string().max(20).optional(),
+  cnh: z.string().max(40).optional(),
+  natural: z.string().max(80).optional(),
+  profissao: z.string().max(80).optional(),
+  cpf: z.string().max(20).optional(),
+  rg: z.string().max(30).optional(),
+  endereco: z.string().max(200).optional(),
+  telefone: z.string().max(30).optional(),
+  email: z.string().max(120).optional().or(z.literal("")),
+});
+
+export const contratoCreateSchema = z.object({
+  aluguelId: z.string().optional(),
+  motoId: z.string(),
+  clienteId: z.string().optional(),
+  contratante: pessoaSnapSchema,
+  avalista: pessoaSnapSchema.optional(),
+  moto: z.object({
+    marca: z.string(),
+    modelo: z.string(),
+    anoModelo: z.number().int().optional(),
+    cor: z.string().optional(),
+    placa: z.string().optional(),
+    chassi: z.string().optional(),
+    renavam: z.string().optional(),
+    km: z.number().nonnegative().optional(),
+    obs: z.string().max(500).optional(),
+  }),
+  plano: z.object({
+    parcelas: z.number().int().min(1).max(120),
+    valorEntrada: z.number().nonnegative().default(0),
+    valorParcela: z.number().nonnegative(),
+    planoEscolhido: z.string().max(60).default("Conquista"),
+    multaPercent: z.number().nonnegative().default(10),
+    jurosDiaPercent: z.number().nonnegative().default(2),
+    datasVencimento: z.string().max(60).optional(),
+    vencimentoPrimeira: z.string().max(40).optional(),
+  }),
+  observacoes: z.string().max(1000).optional(),
+  dataContrato: z.string().optional(),
+});
+
+export type ContratoCreateInput = z.infer<typeof contratoCreateSchema>;

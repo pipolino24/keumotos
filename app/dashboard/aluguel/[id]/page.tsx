@@ -172,6 +172,11 @@ export default function AluguelDetalhePage() {
         }
         description={`Locação #${aluguel._id.slice(-6).toUpperCase()}`}
       >
+        <Link href={`/dashboard/aluguel/${aluguel._id}/contrato`}>
+          <Button variant="outline">
+            <FileText className="h-4 w-4" /> Gerar contrato
+          </Button>
+        </Link>
         <AluguelStatusBadge status={aluguel.status} />
       </PageHeader>
 
