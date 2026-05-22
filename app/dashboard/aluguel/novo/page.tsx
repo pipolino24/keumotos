@@ -890,7 +890,7 @@ export default function NovoAluguelPage() {
                   />
                 </div>
                 <p className="text-[11px] text-keu-black/50 mt-1">
-                  Quanto o cliente paga a cada ciclo{" "}
+                  Quanto o cliente paga em cada cobrança{" "}
                   {labelPeriodicidade(
                     form.periodicidade,
                     form.diasPersonalizado
