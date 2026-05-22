@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, tempoDia } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +53,19 @@ export default function UsuariosPage() {
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("todos");
 
   const { data, loading, error } = useApi<{ users: UserApi[] }>("/api/users");
+  // Enrichment SEPARADO: chama auth.admin.listUsers no backend dedicado pra
+  // pegar last_sign_in_at. Falha silenciosa — se /api/users/last-access
+  // demorar/errar, a tabela ainda renderiza sem a coluna preenchida.
+  const { data: accessData } = useApi<{
+    lastAccess: Record<string, string | null>;
+  }>("/api/users/last-access");
 
-  const users = data?.users ?? [];
+  const lastAccessMap = accessData?.lastAccess ?? {};
+  const usersRaw = data?.users ?? [];
+  const users = usersRaw.map((u) => ({
+    ...u,
+    ultimoAcesso: u.ultimoAcesso ?? lastAccessMap[u._id] ?? undefined,
+  }));
   const total = users.length;
   const admins = users.filter((u) => u.role === "admin").length;
   const vendedores = users.filter((u) => u.role === "vendedor").length;
@@ -391,8 +402,11 @@ export default function UsuariosPage() {
                     <td className="p-4 text-xs text-keu-black/60">
                       {formatDate(u.createdAt)}
                     </td>
-                    <td className="p-4 text-xs text-keu-black/60">
-                      {u.ultimoAcesso ? formatDate(u.ultimoAcesso) : "—"}
+                    <td
+                      className="p-4 text-xs text-keu-black/60"
+                      title={u.ultimoAcesso ? formatDate(u.ultimoAcesso) : ""}
+                    >
+                      {u.ultimoAcesso ? tempoDia(u.ultimoAcesso) : "nunca"}
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-1">
