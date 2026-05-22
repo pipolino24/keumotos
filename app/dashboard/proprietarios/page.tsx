@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { useApi } from "@/lib/hooks/use-api";
 import { formatDate, formatPhone } from "@/lib/utils";
 
@@ -251,31 +252,6 @@ export default function ProprietariosPage() {
         )}
       </Card>
     </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  subtitle,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtitle: string;
-  color: string;
-}) {
-  return (
-    <Card className={`p-6 bg-gradient-to-br ${color} text-white border-0`}>
-      <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
-        {icon}
-      </div>
-      <div className="text-2xl font-black">{value}</div>
-      <div className="text-sm text-white/90 font-semibold">{label}</div>
-      <div className="text-xs text-white/70 mt-0.5">{subtitle}</div>
-    </Card>
   );
 }
 

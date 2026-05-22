@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useApi } from "@/lib/hooks/use-api";
 
@@ -96,29 +97,29 @@ export default function EmprestimosPage() {
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
-        <KpiCard
-          gradient="from-keu-red to-keu-red-dark"
+        <StatCard
+          color="from-keu-red to-keu-red-dark"
           icon={<Banknote className="h-5 w-5" />}
           label="Total emprestado"
           value={formatCurrency(kpis.totalEmprestado)}
-          sub={`${kpis.ativos} ativos`}
+          subtitle={`${kpis.ativos} ativos`}
         />
-        <KpiCard
-          gradient="from-emerald-500 to-emerald-600"
+        <StatCard
+          color="from-emerald-500 to-emerald-600"
           icon={<TrendingUp className="h-5 w-5" />}
           label="Juros acumulados"
           value={formatCurrency(kpis.totalJuros)}
-          sub="lucro potencial"
+          subtitle="lucro potencial"
         />
-        <KpiCard
-          gradient="from-amber-500 to-amber-600"
+        <StatCard
+          color="from-amber-500 to-amber-600"
           icon={<DollarSign className="h-5 w-5" />}
           label="A receber"
           value={formatCurrency(kpis.aReceber)}
-          sub="parcelas em aberto"
+          subtitle="parcelas em aberto"
         />
-        <KpiCard
-          gradient={
+        <StatCard
+          color={
             kpis.emAtraso > 0
               ? "from-rose-500 to-rose-600"
               : "from-blue-500 to-blue-600"
@@ -126,7 +127,7 @@ export default function EmprestimosPage() {
           icon={<AlertCircle className="h-5 w-5" />}
           label="Em atraso"
           value={formatCurrency(kpis.emAtraso)}
-          sub={kpis.emAtraso > 0 ? "cobrar urgente" : "tudo em dia"}
+          subtitle={kpis.emAtraso > 0 ? "cobrar urgente" : "tudo em dia"}
         />
       </div>
 
@@ -398,29 +399,3 @@ function FilterPill({
   );
 }
 
-function KpiCard({
-  gradient,
-  icon,
-  label,
-  value,
-  sub,
-}: {
-  gradient: string;
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-}) {
-  return (
-    <Card className={`p-6 bg-gradient-to-br ${gradient} text-white border-0`}>
-      <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
-        {icon}
-      </div>
-      <div className="text-2xl font-black">{value}</div>
-      <div className="text-sm text-white/85">{label}</div>
-      <div className="text-[11px] uppercase tracking-wide text-white/60 mt-1.5">
-        {sub}
-      </div>
-    </Card>
-  );
-}
