@@ -79,15 +79,7 @@ type AluguelForm = {
 
   fotosInicio: string[];
   observacoesInicio: string;
-
-  // Plano Conquista — entrada + parcelas quinzenais (default da KEU)
-  tipoPlano: "conquista" | "venda-direta";
-  valorEntrada: number | "";
-  dataEntrada: string;
-  valorParcela: number | "";
-  numeroParcelas: number | "";
-  frequenciaParcela: "quinzenal" | "mensal";
-  proximaParcelaEm: string;
+  caucao: number | "";
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -113,13 +105,7 @@ const initial: AluguelForm = {
   observacoes: "",
   fotosInicio: [],
   observacoesInicio: "",
-  tipoPlano: "conquista",
-  valorEntrada: "",
-  dataEntrada: todayISO(),
-  valorParcela: "",
-  numeroParcelas: "",
-  frequenciaParcela: "quinzenal",
-  proximaParcelaEm: "",
+  caucao: "",
 };
 
 interface CalculoValor {
@@ -410,19 +396,11 @@ export default function NovoAluguelPage() {
         diasContratados: dias,
         valorTotal: Number(valorTotalExibido),
 
-        // Plano Conquista — entrada + parcelas quinzenais
-        tipoPlano: form.tipoPlano,
-        valorEntrada:
-          typeof form.valorEntrada === "number" ? form.valorEntrada : undefined,
-        dataEntrada: form.dataEntrada || undefined,
-        valorParcela:
-          typeof form.valorParcela === "number" ? form.valorParcela : undefined,
-        numeroParcelas:
-          typeof form.numeroParcelas === "number"
-            ? form.numeroParcelas
+        // Caução opcional — valor que pode ser devolvido ao cliente no fim
+        caucao:
+          typeof form.caucao === "number" && form.caucao > 0
+            ? form.caucao
             : undefined,
-        frequenciaParcela: form.frequenciaParcela,
-        proximaParcelaEm: form.proximaParcelaEm || undefined,
 
         km_inicial: Number(form.km_inicial),
 
@@ -848,138 +826,27 @@ export default function NovoAluguelPage() {
                 )}
               </div>
 
-              {/* Plano Conquista — entrada + parcelas quinzenais */}
+              {/* Aviso: Plano Conquista NÃO é aluguel */}
               <div className="col-span-2 border-t border-keu-black/5 pt-4 mt-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-keu-red bg-keu-red/5 px-2 py-1 rounded-md">
-                    Plano
-                  </span>
-                  <span className="text-xs text-keu-black/60">
-                    Entrada + parcelas quinzenais — moto fica com o cliente ao
-                    fim do contrato
-                  </span>
+                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <Info className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-900 leading-relaxed">
+                    <strong>Aluguel ≠ Plano Conquista.</strong> Aqui o cliente
+                    aluga a moto por um período e devolve depois. Pra venda
+                    parcelada com Plano Conquista (entrada + parcelas
+                    quinzenais, moto fica com o cliente), use{" "}
+                    <Link
+                      href="/dashboard/vendas/nova"
+                      className="font-bold underline hover:text-amber-700"
+                    >
+                      Vendas → Nova venda
+                    </Link>
+                    .
+                  </div>
                 </div>
               </div>
 
               <div>
-                <Label required>Tipo de plano</Label>
-                <Select
-                  value={form.tipoPlano}
-                  onChange={(e) =>
-                    set(
-                      "tipoPlano",
-                      e.target.value as "conquista" | "venda-direta"
-                    )
-                  }
-                >
-                  <option value="conquista">Conquista (parcelas)</option>
-                  <option value="venda-direta">Venda direta</option>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Frequência das parcelas</Label>
-                <Select
-                  value={form.frequenciaParcela}
-                  onChange={(e) =>
-                    set(
-                      "frequenciaParcela",
-                      e.target.value as "quinzenal" | "mensal"
-                    )
-                  }
-                >
-                  <option value="quinzenal">Quinzenal</option>
-                  <option value="mensal">Mensal</option>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Valor da entrada</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    className="pl-9"
-                    placeholder="0"
-                    value={form.valorEntrada}
-                    onChange={(e) =>
-                      set(
-                        "valorEntrada",
-                        e.target.value ? Number(e.target.value) : ""
-                      )
-                    }
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>Data da entrada</Label>
-                <Input
-                  type="date"
-                  value={form.dataEntrada}
-                  onChange={(e) => set("dataEntrada", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label>Valor de cada parcela</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
-                    R$
-                  </span>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="any"
-                    className="pl-9"
-                    placeholder="0"
-                    value={form.valorParcela}
-                    onChange={(e) =>
-                      set(
-                        "valorParcela",
-                        e.target.value ? Number(e.target.value) : ""
-                      )
-                    }
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>Quantidade de parcelas</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="120"
-                  step="1"
-                  placeholder="Ex: 24"
-                  value={form.numeroParcelas}
-                  onChange={(e) =>
-                    set(
-                      "numeroParcelas",
-                      e.target.value ? Number(e.target.value) : ""
-                    )
-                  }
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Vencimento da primeira parcela</Label>
-                <Input
-                  type="date"
-                  value={form.proximaParcelaEm}
-                  onChange={(e) => set("proximaParcelaEm", e.target.value)}
-                />
-                <p className="text-xs text-keu-black/50 mt-1">
-                  As próximas vencem a cada{" "}
-                  {form.frequenciaParcela === "quinzenal" ? "15 dias" : "30 dias"}.
-                </p>
-              </div>
-
-              <div className="col-span-2">
                 <Label required>KM inicial</Label>
                 <div className="relative">
                   <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-keu-black/40" />
@@ -997,6 +864,33 @@ export default function NovoAluguelPage() {
                     }
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label>Caução (opcional)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
+                    R$
+                  </span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="pl-9"
+                    placeholder="0"
+                    value={form.caucao}
+                    onChange={(e) =>
+                      set(
+                        "caucao",
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
+                  />
+                </div>
+                <p className="text-[11px] text-keu-black/50 mt-1">
+                  Valor recuperável no fim do contrato (descontado se houver
+                  avarias).
+                </p>
               </div>
 
               <div className="col-span-2">
@@ -1114,26 +1008,12 @@ export default function NovoAluguelPage() {
                     )}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-keu-black/60">Entrada:</span>
-                  <span>
-                    {formatCurrency(
-                      typeof form.valorEntrada === "number"
-                        ? form.valorEntrada
-                        : 0
-                    )}
-                  </span>
-                </div>
-                {typeof form.valorParcela === "number" &&
-                  typeof form.numeroParcelas === "number" && (
-                    <div className="flex justify-between">
-                      <span className="text-keu-black/60">Parcelas:</span>
-                      <span>
-                        {form.numeroParcelas}× {formatCurrency(form.valorParcela)}{" "}
-                        ({form.frequenciaParcela})
-                      </span>
-                    </div>
-                  )}
+                {typeof form.caucao === "number" && form.caucao > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-keu-black/60">Caução:</span>
+                    <span>{formatCurrency(form.caucao)}</span>
+                  </div>
+                )}
               </div>
             </Card>
           )}

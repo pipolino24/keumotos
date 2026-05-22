@@ -248,6 +248,19 @@ function periodicidade(datas?: string): string {
   return "mensais";
 }
 
+/**
+ * Distingue contrato de LOCAÇÃO simples (sem opção de quitação) vs CONQUISTA
+ * (entrada + parcelas + opção de quitação ao fim). Conquista tem `valorEntrada`
+ * preenchido E múltiplas parcelas — locação tradicional tem valorTotal único.
+ */
+function isConquista(plano: IPlanoSnap): boolean {
+  return (
+    (plano.valorEntrada ?? 0) > 0 &&
+    plano.parcelas > 1 &&
+    plano.valorParcela > 0
+  );
+}
+
 export interface ContratoPdfProps {
   numero?: string;
   contratante: IPessoaSnap;
@@ -562,22 +575,46 @@ export function ContratoPdf({
       <Page size="A4" style={styles.page}>
         <PageDecorations logoDataUrl={logoDataUrl} />
 
-        <Text style={styles.clauseTitle}>CLÁUSULA IV – OPÇÃO DE QUITAÇÃO</Text>
-        <Text style={styles.paragraph}>
-          Ao final das {plano.parcelas} parcelas {periodicidade(plano.datasVencimento)},
-          estando todos os pagamentos devidamente quitados, o LOCATÁRIO terá
-          direito à transferência do veículo para seu nome, ficando desde já
-          ciente de que todas as despesas relativas à transferência serão de
-          sua inteira responsabilidade, incluindo, mas não se limitando a:
-        </Text>
-        <View style={styles.list}>
-          <Text style={styles.listItem}>• Taxas de cartório</Text>
-          <Text style={styles.listItem}>• Taxas do DETRAN</Text>
-          <Text style={styles.listItem}>• Emolumentos</Text>
-          <Text style={styles.listItem}>
-            • Qualquer outro custo necessário para efetivação da transferência
-          </Text>
-        </View>
+        {isConquista(plano) ? (
+          <>
+            <Text style={styles.clauseTitle}>
+              CLÁUSULA IV – OPÇÃO DE QUITAÇÃO
+            </Text>
+            <Text style={styles.paragraph}>
+              Ao final das {plano.parcelas} parcelas{" "}
+              {periodicidade(plano.datasVencimento)}, estando todos os
+              pagamentos devidamente quitados, o LOCATÁRIO terá direito à
+              transferência do veículo para seu nome, ficando desde já ciente
+              de que todas as despesas relativas à transferência serão de sua
+              inteira responsabilidade, incluindo, mas não se limitando a:
+            </Text>
+            <View style={styles.list}>
+              <Text style={styles.listItem}>• Taxas de cartório</Text>
+              <Text style={styles.listItem}>• Taxas do DETRAN</Text>
+              <Text style={styles.listItem}>• Emolumentos</Text>
+              <Text style={styles.listItem}>
+                • Qualquer outro custo necessário para efetivação da transferência
+              </Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.clauseTitle}>
+              CLÁUSULA IV – DEVOLUÇÃO DO VEÍCULO
+            </Text>
+            <Text style={styles.paragraph}>
+              Ao final do período contratado, o LOCATÁRIO deverá devolver o
+              veículo nas mesmas condições em que foi entregue, ressalvado o
+              desgaste natural pelo uso adequado. A devolução deverá ser feita
+              na sede da LOCADORA em data e horário previamente acordados.
+            </Text>
+            <Text style={styles.paragraph}>
+              Em caso de avarias, faltas ou estado incompatível com o uso
+              normal, os valores correspondentes ao reparo serão descontados
+              da caução prestada pelo LOCATÁRIO ou cobrados em separado.
+            </Text>
+          </>
+        )}
 
         <Text style={styles.clauseTitle}>
           CLÁUSULA V – RESPONSABILIDADES DO LOCATÁRIO
