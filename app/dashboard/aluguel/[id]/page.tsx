@@ -46,6 +46,20 @@ interface AvariaApi {
   registradoEm?: string;
 }
 
+interface ParcelaApi {
+  _id?: string;
+  numero: number;
+  vencimento: string;
+  valor: number;
+  status: "pendente" | "paga" | "atrasada";
+  pagoEm?: string;
+  valorPago?: number;
+  multa?: number;
+  juros?: number;
+  formaPagamento?: string;
+  observacao?: string;
+}
+
 interface AluguelApi {
   _id: string;
   motoId: string;
@@ -69,18 +83,24 @@ interface AluguelApi {
   modalidadeAplicada?: "diaria" | "semanal" | "mensal";
   valorTotal: number;
 
-  // Plano Conquista
-  tipoPlano?: "conquista" | "venda-direta";
-  valorEntrada?: number;
-  dataEntrada?: string;
+  // Locação periódica
   valorParcela?: number;
   numeroParcelas?: number;
   parcelasPagas?: number;
-  frequenciaParcela?: "quinzenal" | "mensal";
+  frequenciaParcela?: "semanal" | "quinzenal" | "mensal" | "personalizada";
+  cicloDias?: number;
   proximaParcelaEm?: string;
+  parcelasLocacao?: ParcelaApi[];
+  multaPorAtrasoPercent?: number;
+  jurosDiaPercent?: number;
+  // Legados (Plano Conquista — só pra ler docs antigos)
+  tipoPlano?: "conquista" | "venda-direta";
+  valorEntrada?: number;
+  dataEntrada?: string;
 
   km_inicial: number;
   km_final?: number;
+  caucao?: number;
 
   fotosInicio: string[];
   fotosFim: string[];
@@ -428,6 +448,19 @@ export default function AluguelDetalhePage() {
               </div>
             )}
           </Card>
+
+          {/* PARCELAS DA LOCAÇÃO */}
+          {aluguel.parcelasLocacao && aluguel.parcelasLocacao.length > 0 && (
+            <ParcelasCard
+              aluguelId={aluguel._id}
+              parcelas={aluguel.parcelasLocacao}
+              multaPercent={aluguel.multaPorAtrasoPercent ?? 10}
+              jurosDiaPercent={aluguel.jurosDiaPercent ?? 2}
+              clienteTelefone={aluguel.clienteTelefone}
+              clienteNome={aluguel.clienteNome}
+              onChange={refetch}
+            />
+          )}
         </div>
 
         {/* SIDEBAR */}
@@ -459,9 +492,12 @@ export default function AluguelDetalhePage() {
                   <div className="flex justify-between">
                     <span className="text-keu-black/60">
                       Parcelas{" "}
-                      {aluguel.frequenciaParcela === "quinzenal"
-                        ? "(quinzenal)"
-                        : "(mensal)"}
+                      {aluguel.frequenciaParcela === "personalizada" &&
+                      aluguel.cicloDias
+                        ? `(a cada ${aluguel.cicloDias} dias)`
+                        : aluguel.frequenciaParcela
+                          ? `(${aluguel.frequenciaParcela})`
+                          : ""}
                     </span>
                     <span className="font-semibold">
                       {aluguel.parcelasPagas ?? 0}/{aluguel.numeroParcelas} ×{" "}
@@ -575,6 +611,308 @@ function InfoBox({
       </div>
       <div className="font-bold text-sm">{value}</div>
     </div>
+  );
+}
+
+// ============================================================================
+// PARCELAS DA LOCAÇÃO — lista + marcar paga + box de inadimplência
+// ============================================================================
+
+function ParcelasCard({
+  aluguelId,
+  parcelas,
+  multaPercent,
+  jurosDiaPercent,
+  clienteTelefone,
+  clienteNome,
+  onChange,
+}: {
+  aluguelId: string;
+  parcelas: ParcelaApi[];
+  multaPercent: number;
+  jurosDiaPercent: number;
+  clienteTelefone?: string;
+  clienteNome: string;
+  onChange: () => void;
+}) {
+  const [pagandoIdx, setPagandoIdx] = useState<number | null>(null);
+  const hoje = new Date();
+
+  // Status derivado: atrasada se vencimento < hoje && !paga
+  const parcelasComStatus = useMemo(() => {
+    return parcelas
+      .map((p) => {
+        const venc = new Date(p.vencimento);
+        const atrasada =
+          p.status !== "paga" && venc.getTime() < hoje.getTime();
+        // Calcula multa + juros pra parcela atrasada não paga
+        let multa = 0;
+        let juros = 0;
+        let diasAtraso = 0;
+        if (atrasada) {
+          const diasMs = hoje.getTime() - venc.getTime();
+          diasAtraso = Math.max(0, Math.floor(diasMs / (24 * 60 * 60 * 1000)));
+          multa = (p.valor * multaPercent) / 100;
+          juros = (p.valor * jurosDiaPercent * diasAtraso) / 100;
+        }
+        return {
+          ...p,
+          statusReal: (p.status === "paga"
+            ? "paga"
+            : atrasada
+              ? "atrasada"
+              : "pendente") as "paga" | "atrasada" | "pendente",
+          multaCalc: Math.round(multa * 100) / 100,
+          jurosCalc: Math.round(juros * 100) / 100,
+          diasAtraso,
+          totalDevido: Math.round((p.valor + multa + juros) * 100) / 100,
+          vencDate: venc,
+        };
+      })
+      .sort((a, b) => a.numero - b.numero);
+  }, [parcelas, multaPercent, jurosDiaPercent]);
+
+  const atrasadas = parcelasComStatus.filter((p) => p.statusReal === "atrasada");
+  const pendentes = parcelasComStatus.filter(
+    (p) => p.statusReal === "pendente"
+  );
+  const pagas = parcelasComStatus.filter((p) => p.status === "paga");
+  const totalDevido = atrasadas.reduce((s, p) => s + p.totalDevido, 0);
+  const totalMultas = atrasadas.reduce((s, p) => s + p.multaCalc, 0);
+  const totalJuros = atrasadas.reduce((s, p) => s + p.jurosCalc, 0);
+  const totalRecebido = pagas.reduce(
+    (s, p) => s + (p.valorPago ?? p.valor),
+    0
+  );
+
+  async function marcarPaga(numero: number) {
+    setPagandoIdx(numero);
+    try {
+      const res = await fetch(
+        `/api/alugueis/${aluguelId}/parcelas/${numero}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "paga" }),
+        }
+      );
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha ao marcar parcela");
+      }
+      toast.success(`Parcela ${numero} marcada como paga`);
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setPagandoIdx(null);
+    }
+  }
+
+  async function desfazerPagamento(numero: number) {
+    if (!(await confirmDialog({
+      title: "Desfazer pagamento",
+      message: `Voltar parcela ${numero} para pendente? Use só pra corrigir lançamento errado.`,
+      confirmText: "Desfazer",
+      variant: "destructive",
+    }))) return;
+    setPagandoIdx(numero);
+    try {
+      const res = await fetch(
+        `/api/alugueis/${aluguelId}/parcelas/${numero}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "pendente" }),
+        }
+      );
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error ?? "Falha ao desfazer");
+      }
+      toast.success(`Parcela ${numero} voltou para pendente`);
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro");
+    } finally {
+      setPagandoIdx(null);
+    }
+  }
+
+  function msgCobranca(): string {
+    if (atrasadas.length === 0) return "";
+    const partes = atrasadas
+      .map(
+        (p) =>
+          `• Parcela ${p.numero}: venceu ${formatDate(p.vencimento)} (${p.diasAtraso}d) → ${formatCurrency(p.totalDevido)}`
+      )
+      .join("\n");
+    return encodeURIComponent(
+      `Olá ${clienteNome}, sobre sua locação na KEU Motos:\n\n${partes}\n\nTotal a receber: ${formatCurrency(totalDevido)}\nPodemos combinar o pagamento?`
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-keu-black/5">
+        <div className="bg-emerald-500/10 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
+          <DollarSign className="h-5 w-5" />
+        </div>
+        <div className="flex-1">
+          <h2 className="font-bold">Parcelas da locação</h2>
+          <p className="text-sm text-keu-black/60">
+            {pagas.length}/{parcelasComStatus.length} pagas
+            {pendentes.length > 0 ? ` · ${pendentes.length} pendentes` : ""}
+            {atrasadas.length > 0 ? ` · ${atrasadas.length} atrasadas` : ""}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-keu-black/60 uppercase tracking-wide">
+            Recebido
+          </div>
+          <div className="font-bold text-emerald-600">
+            {formatCurrency(totalRecebido)}
+          </div>
+        </div>
+      </div>
+
+      {/* ALERTA DE INADIMPLÊNCIA */}
+      {atrasadas.length > 0 && (
+        <div className="mb-5 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-red-700 font-bold text-sm mb-2">
+                <AlertTriangle className="h-4 w-4" /> INADIMPLENTE
+              </div>
+              <div className="text-sm text-keu-black/80">
+                {atrasadas.length} parcela
+                {atrasadas.length > 1 ? "s" : ""} atrasada
+                {atrasadas.length > 1 ? "s" : ""} —{" "}
+                {Math.max(...atrasadas.map((p) => p.diasAtraso))} dia
+                {atrasadas.length > 1 ? "s" : ""} de atraso
+              </div>
+              <div className="mt-2 text-xs text-keu-black/60">
+                Multa: {formatCurrency(totalMultas)} · Juros:{" "}
+                {formatCurrency(totalJuros)}
+              </div>
+              <div className="mt-1 text-lg font-black text-red-700">
+                Total devido: {formatCurrency(totalDevido)}
+              </div>
+            </div>
+            {clienteTelefone && (
+              <a
+                href={`https://wa.me/55${onlyDigits(clienteTelefone)}?text=${msgCobranca()}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition flex-shrink-0"
+              >
+                <Phone className="h-4 w-4" /> Cobrar via WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="divide-y divide-keu-black/5">
+        {parcelasComStatus.map((p) => {
+          const isPaga = p.status === "paga";
+          const isAtrasada = p.statusReal === "atrasada";
+          return (
+            <div
+              key={p.numero}
+              className={`py-3 flex items-center justify-between gap-3 flex-wrap ${
+                isAtrasada ? "bg-red-50/40 -mx-2 px-2 rounded" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                    isPaga
+                      ? "bg-emerald-100 text-emerald-700"
+                      : isAtrasada
+                        ? "bg-red-100 text-red-700"
+                        : "bg-keu-gray-light text-keu-black/60"
+                  }`}
+                >
+                  {p.numero}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold">
+                      {formatCurrency(p.valor)}
+                    </span>
+                    {isPaga && (
+                      <Badge variant="success" className="text-[10px]">
+                        <CheckCircle2 className="h-3 w-3" /> Paga
+                      </Badge>
+                    )}
+                    {isAtrasada && (
+                      <Badge variant="danger" className="text-[10px]">
+                        <AlertCircle className="h-3 w-3" /> Atrasada{" "}
+                        {p.diasAtraso}d
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-keu-black/60 mt-0.5">
+                    {isPaga && p.pagoEm
+                      ? `Paga em ${formatDate(p.pagoEm)}`
+                      : `Vence em ${formatDate(p.vencimento)}`}
+                    {isAtrasada && (
+                      <>
+                        {" · "}
+                        <span className="text-red-700 font-semibold">
+                          +{formatCurrency(p.multaCalc + p.jurosCalc)} multa+juros
+                        </span>
+                      </>
+                    )}
+                    {isPaga &&
+                      p.valorPago !== undefined &&
+                      p.valorPago !== p.valor && (
+                        <span>
+                          {" "}
+                          (pagou {formatCurrency(p.valorPago)})
+                        </span>
+                      )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                {isPaga ? (
+                  <button
+                    type="button"
+                    onClick={() => desfazerPagamento(p.numero)}
+                    disabled={pagandoIdx === p.numero}
+                    className="text-[11px] text-keu-black/60 hover:text-keu-red transition"
+                    title="Desfazer (correção)"
+                  >
+                    {pagandoIdx === p.numero ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      "↺ desfazer"
+                    )}
+                  </button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isAtrasada ? "destructive" : "outline"}
+                    onClick={() => marcarPaga(p.numero)}
+                    disabled={pagandoIdx === p.numero}
+                  >
+                    {pagandoIdx === p.numero ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    Marcar paga
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

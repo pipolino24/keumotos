@@ -7,6 +7,7 @@ import { Notification } from "@/lib/models/notification";
 import { Interesse } from "@/lib/models/interesse";
 import { aluguelCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
+import { gerarParcelasLocacao } from "@/lib/aluguel/parcelas";
 
 export const dynamic = "force-dynamic";
 
@@ -113,9 +114,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // === Geração de parcelas ===
+    // Quando valorParcela + numeroParcelas + (cicloDias OU frequenciaParcela)
+    // chegam preenchidos, geramos automaticamente a lista detalhada de
+    // cobranças. Isso evita que o backend dependa do front pra calcular
+    // vencimentos (mais consistente + permite locação criada via API direta).
+    const dadosAluguel: Record<string, unknown> = { ...parsed.data };
+    const cicloDias =
+      parsed.data.cicloDias ??
+      (parsed.data.frequenciaParcela === "semanal"
+        ? 7
+        : parsed.data.frequenciaParcela === "quinzenal"
+          ? 15
+          : parsed.data.frequenciaParcela === "mensal"
+            ? 30
+            : undefined);
+
+    if (
+      typeof parsed.data.valorParcela === "number" &&
+      parsed.data.valorParcela > 0 &&
+      typeof parsed.data.numeroParcelas === "number" &&
+      parsed.data.numeroParcelas > 0 &&
+      cicloDias &&
+      cicloDias > 0
+    ) {
+      const inicio = new Date(parsed.data.dataInicio as string | Date);
+      if (!isNaN(inicio.getTime())) {
+        dadosAluguel.parcelasLocacao = gerarParcelasLocacao({
+          dataInicio: inicio,
+          numParcelas: parsed.data.numeroParcelas,
+          cicloDias,
+          valorParcela: parsed.data.valorParcela,
+        });
+        dadosAluguel.cicloDias = cicloDias;
+        // Próxima parcela = primeira gerada (vence em dataInicio + cicloDias)
+        const primeira = (dadosAluguel.parcelasLocacao as Array<{ vencimento: Date }>)[0];
+        if (primeira) {
+          dadosAluguel.proximaParcelaEm = primeira.vencimento;
+        }
+      }
+    }
+
     let aluguel;
     try {
-      aluguel = await Aluguel.create(parsed.data);
+      aluguel = await Aluguel.create(dadosAluguel);
     } catch (createErr) {
       // Reverte lock se a criação falhou — best-effort
       await Moto.updateOne(

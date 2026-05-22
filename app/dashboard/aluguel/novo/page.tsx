@@ -440,17 +440,12 @@ export default function NovoAluguelPage() {
         valorTotal: Number(valorTotalExibido),
 
         // === LOCAÇÃO PERIÓDICA — cliente paga a cada N dias ===
-        // Reusa os campos do schema legado de Conquista pra não migrar o
-        // model: valorParcela + frequenciaParcela + numeroParcelas. Sem
-        // valorEntrada (locação não tem) e sem opção de quitação.
+        // cicloDias é fonte de verdade (7/15/30/custom). frequenciaParcela
+        // é só label legível. Backend usa cicloDias pra gerar parcelas[].
         valorParcela: Number(form.valorParcela),
         numeroParcelas: numParcelas,
-        frequenciaParcela:
-          form.periodicidade === "quinzenal"
-            ? "quinzenal"
-            : form.periodicidade === "mensal"
-              ? "mensal"
-              : undefined, // semanal/personalizada → não setado (schema só aceita quinzenal/mensal)
+        frequenciaParcela: form.periodicidade,
+        cicloDias,
 
         // Caução opcional — valor que pode ser devolvido ao cliente no fim
         caucao:

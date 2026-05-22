@@ -271,16 +271,20 @@ export const aluguelCreateSchema = z
     modalidadeAplicada: z.enum(["diaria", "semanal", "mensal"]).optional(),
     diasContratados: z.number().int().min(1),
     valorTotal: z.number().min(0),
-    // Plano Conquista (entrada + parcelas quinzenais)
-    tipoPlano: z.enum(["conquista", "venda-direta"]).optional(),
-    valorEntrada: z.number().min(0).optional(),
-    dataEntrada: z.union([z.string(), z.date()]).optional(),
+    // Locação periódica — cliente paga em ciclos (semanal/quinzenal/mensal/personalizada).
+    // cicloDias é a fonte de verdade (7/15/30/custom); frequenciaParcela é o label legível.
     valorParcela: z.number().min(0).optional(),
     numeroParcelas: z.number().int().min(1).max(120).optional(),
     parcelasPagas: z.number().int().min(0).optional(),
-    frequenciaParcela: z.enum(["quinzenal", "mensal"]).optional(),
+    frequenciaParcela: z
+      .enum(["semanal", "quinzenal", "mensal", "personalizada"])
+      .optional(),
+    cicloDias: z.number().int().min(1).max(365).optional(),
     proximaParcelaEm: z.union([z.string(), z.date()]).optional(),
-    // Mantido por compat — KEU não trabalha com caução.
+    multaPorAtrasoPercent: z.number().min(0).max(100).optional(),
+    jurosDiaPercent: z.number().min(0).max(100).optional(),
+    // Caução opcional — KEU normalmente não trabalha com caução, mas mantido
+    // como opção pra contratos específicos.
     caucao: z.number().min(0).default(0).optional(),
 
     km_inicial: z.number().min(0),
