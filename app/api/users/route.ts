@@ -150,8 +150,16 @@ export async function POST(req: NextRequest) {
     if (data.cpf) extras.cpf = data.cpf;
     if (data.rg) extras.rg = data.rg;
     if (data.cnh) extras.cnh = data.cnh;
+    if (data.cnh_validade) extras.cnh_validade = data.cnh_validade;
     if (data.endereco) extras.endereco = data.endereco;
+    if (data.profissao) extras.profissao = data.profissao;
     if (data.pix) extras.pix = data.pix;
+    // === Campos pessoais usados no contrato (migration 0005) ===
+    // Se a coluna ainda não existe no banco, Supabase ignora o write
+    // silenciosamente (não dá throw) — comportamento OK.
+    if (data.sexo) extras.sexo = data.sexo;
+    if (data.nascimento) extras.nascimento = data.nascimento;
+    if (data.naturalidade) extras.naturalidade = data.naturalidade;
     // Documentos (RG/CNH frente+verso em base64) salvos no profile.documentos
     // (JSONB). Limita a 4 e ~8MB por imagem pra evitar payload absurdo.
     if (Array.isArray(data.documentos)) {

@@ -35,6 +35,17 @@ export default function NovoUsuarioPage() {
     email: "",
     telefone: "",
     cpf: "",
+    // Dados pessoais — usados no contrato (sexo, nascimento, naturalidade,
+    // RG, CNH, profissão, endereço). Coletando aqui evita preencher de
+    // novo na hora de gerar contrato.
+    sexo: "" as "" | "masculino" | "feminino" | "outro",
+    nascimento: "",
+    rg: "",
+    cnh: "",
+    cnh_validade: "",
+    naturalidade: "",
+    profissao: "",
+    endereco_texto: "",
     role: "vendedor" as Role,
     setor: "multimarcas",
     senha: "",
@@ -76,6 +87,18 @@ export default function NovoUsuarioPage() {
           email: form.email.trim().toLowerCase(),
           telefone: form.telefone || undefined,
           cpf: form.cpf || undefined,
+          // Dados pessoais (contrato)
+          sexo: form.sexo || undefined,
+          nascimento: form.nascimento || undefined,
+          rg: form.rg || undefined,
+          cnh: form.cnh || undefined,
+          cnh_validade: form.cnh_validade || undefined,
+          naturalidade: form.naturalidade || undefined,
+          profissao: form.profissao || undefined,
+          // endereco em JSONB { texto } — flexível pra futuro estruturar
+          endereco: form.endereco_texto
+            ? { texto: form.endereco_texto }
+            : undefined,
           role: form.role,
           setor: form.setor,
           senha: form.senha || undefined,
@@ -161,6 +184,14 @@ export default function NovoUsuarioPage() {
                   email: "",
                   telefone: "",
                   cpf: "",
+                  sexo: "",
+                  nascimento: "",
+                  rg: "",
+                  cnh: "",
+                  cnh_validade: "",
+                  naturalidade: "",
+                  profissao: "",
+                  endereco_texto: "",
                   role: "vendedor",
                   setor: "multimarcas",
                   senha: "",
@@ -274,6 +305,107 @@ export default function NovoUsuarioPage() {
                   maxLength={14}
                 />
               </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Dados pessoais — pra preencher contrato sem digitar de novo */}
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-keu-black/5">
+            <div className="bg-blue-500/10 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-bold">Dados pessoais (contrato)</h2>
+              <p className="text-sm text-keu-black/60">
+                Preenchendo aqui, contrato sai pronto na locação — sem
+                redigitar.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="sexo">Sexo</Label>
+              <Select
+                id="sexo"
+                value={form.sexo}
+                onChange={(e) =>
+                  update(
+                    "sexo",
+                    e.target.value as "" | "masculino" | "feminino" | "outro"
+                  )
+                }
+              >
+                <option value="">Selecione…</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+                <option value="outro">Outro</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="nascimento">Nascimento</Label>
+              <Input
+                id="nascimento"
+                type="date"
+                value={form.nascimento}
+                onChange={(e) => update("nascimento", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="rg">RG</Label>
+              <Input
+                id="rg"
+                value={form.rg}
+                onChange={(e) => update("rg", e.target.value)}
+                placeholder="00.000.000-0"
+              />
+            </div>
+            <div>
+              <Label htmlFor="naturalidade">Naturalidade</Label>
+              <Input
+                id="naturalidade"
+                value={form.naturalidade}
+                onChange={(e) => update("naturalidade", e.target.value)}
+                placeholder="Cidade onde nasceu"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cnh">CNH</Label>
+              <Input
+                id="cnh"
+                value={form.cnh}
+                onChange={(e) => update("cnh", e.target.value)}
+                placeholder="Nº da CNH"
+                inputMode="numeric"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cnh_validade">Validade da CNH</Label>
+              <Input
+                id="cnh_validade"
+                type="date"
+                value={form.cnh_validade}
+                onChange={(e) => update("cnh_validade", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="profissao">Profissão</Label>
+              <Input
+                id="profissao"
+                value={form.profissao}
+                onChange={(e) => update("profissao", e.target.value)}
+                placeholder="Ex: motorista, vendedor, autônomo"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="endereco_texto">Endereço completo</Label>
+              <Input
+                id="endereco_texto"
+                value={form.endereco_texto}
+                onChange={(e) => update("endereco_texto", e.target.value)}
+                placeholder="Rua, número, bairro, cidade - UF"
+              />
             </div>
           </div>
         </Card>

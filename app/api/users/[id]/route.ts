@@ -86,6 +86,11 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (data.pix !== undefined) update.pix = data.pix || null;
   if (data.banco !== undefined) update.banco = data.banco;
   if (data.avatar_url !== undefined) update.avatar_url = data.avatar_url || null;
+  if (data.profissao !== undefined) update.profissao = data.profissao || null;
+  // Campos pessoais usados no contrato (migration 0005)
+  if (data.sexo !== undefined) update.sexo = data.sexo || null;
+  if (data.nascimento !== undefined) update.nascimento = data.nascimento || null;
+  if (data.naturalidade !== undefined) update.naturalidade = data.naturalidade || null;
 
   // Apenas admin pode mexer em role, setor, status, permissoes
   if (auth.callerRole === "admin") {

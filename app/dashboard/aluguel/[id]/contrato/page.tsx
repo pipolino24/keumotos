@@ -73,22 +73,44 @@ interface ProfileApi {
   cpf?: string;
   rg?: string;
   cnh?: string;
-  endereco?: {
-    rua?: string;
-    numero?: string;
-    bairro?: string;
-    cidade?: string;
-    uf?: string;
-  };
+  cnh_validade?: string;
+  // Campos pessoais (migração 0005). Podem vir undefined se a migração
+  // ainda não rodou — fallback graceful pra string vazia.
+  sexo?: string;
+  nascimento?: string; // ISO date
+  naturalidade?: string;
+  profissao?: string;
+  // Endereço aceita 2 formatos: JSONB estruturado (legado) ou { texto }
+  // (novo, salvo pelo form de cliente). formatEndereco normaliza ambos.
+  endereco?:
+    | {
+        texto?: string;
+        rua?: string;
+        numero?: string;
+        bairro?: string;
+        cidade?: string;
+        uf?: string;
+      }
+    | null;
 }
 
 function formatEndereco(e?: ProfileApi["endereco"]): string {
   if (!e) return "";
+  if (e.texto) return e.texto;
   const parts: string[] = [];
   if (e.rua) parts.push(e.rua + (e.numero ? `, ${e.numero}` : ""));
   if (e.bairro) parts.push(e.bairro);
   if (e.cidade) parts.push(e.cidade + (e.uf ? ` - ${e.uf}` : ""));
   return parts.join(", ");
+}
+
+function formatBRDate(iso?: string): string {
+  if (!iso) return "";
+  // YYYY-MM-DD → DD/MM/YYYY (sem timezone shift do new Date)
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR");
 }
 
 export default function NovoContratoPage() {
@@ -189,6 +211,11 @@ export default function NovoContratoPage() {
         cpf: p.cpf || (profile.cpf ? formatCpfInput(profile.cpf) : ""),
         rg: p.rg || profile.rg || "",
         cnh: p.cnh || profile.cnh || "",
+        // Novos campos vindo do profile (migration 0005)
+        sexo: p.sexo || profile.sexo || "",
+        nascimento: p.nascimento || formatBRDate(profile.nascimento),
+        natural: p.natural || profile.naturalidade || "",
+        profissao: p.profissao || profile.profissao || "",
         telefone:
           p.telefone ||
           (profile.telefone ? formatPhoneInput(profile.telefone) : ""),
@@ -290,6 +317,41 @@ export default function NovoContratoPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Erro ao gerar contrato");
+
+      // Persiste no profile do cliente os campos pessoais que ele preencheu
+      // aqui — assim na próxima locação já vem tudo pré-preenchido sem
+      // precisar digitar de novo. Best-effort: se falhar não bloqueia o
+      // contrato (já foi criado com sucesso).
+      if (isUuid && aluguel?.clienteId) {
+        const profileUpdates: Record<string, string | object | null | undefined> = {};
+        // Só preenche o que ainda não existe no profile, pra não sobrescrever
+        // dados que admin editou direto no /usuarios/[id]
+        if (!profile?.sexo && form.sexo) profileUpdates.sexo = form.sexo;
+        if (!profile?.nascimento && form.nascimento) {
+          // form.nascimento pode vir como DD/MM/YYYY ou YYYY-MM-DD — normaliza
+          const br = form.nascimento.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          profileUpdates.nascimento = br
+            ? `${br[3]}-${br[2]}-${br[1]}`
+            : form.nascimento;
+        }
+        if (!profile?.naturalidade && form.natural)
+          profileUpdates.naturalidade = form.natural;
+        if (!profile?.profissao && form.profissao)
+          profileUpdates.profissao = form.profissao;
+        if (!profile?.rg && form.rg) profileUpdates.rg = form.rg;
+        if (!profile?.cnh && form.cnh) profileUpdates.cnh = form.cnh;
+        if (!profile?.endereco && form.endereco)
+          profileUpdates.endereco = { texto: form.endereco };
+        if (Object.keys(profileUpdates).length > 0) {
+          fetch(`/api/users/${aluguel.clienteId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(profileUpdates),
+          }).catch(() => {
+            /* best-effort, não bloqueia geração de contrato */
+          });
+        }
+      }
 
       const id = json.contrato?._id as string;
       const numero = id.slice(-6).toUpperCase();
