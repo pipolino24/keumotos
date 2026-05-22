@@ -58,31 +58,29 @@ export async function GET(req: NextRequest) {
         : query.or(`nome.ilike.%${qEsc}%,email.ilike.%${qEsc}%`);
     }
 
-    // Paralelo: profiles + auth.users (pra last_sign_in_at). Antes era serial,
-    // somando ~1s. Promise.all corta pela metade. Falha silenciosa em
-    // authList: profiles ainda saem com ultimoAcesso null e a página não trava.
-    const [profilesRes, authListRes] = await Promise.all([
-      query,
-      supabase.auth.admin
-        .listUsers({ page: 1, perPage: 200 })
-        .catch((e) => {
-          console.warn(
-            "[/api/users] auth.listUsers falhou:",
-            e instanceof Error ? e.message : e
-          );
-          return { data: { users: [] as { id: string; last_sign_in_at?: string | null }[] } };
-        }),
-    ]);
+    const { data, error } = await query;
+    if (error) throw error;
 
-    if (profilesRes.error) throw profilesRes.error;
-    const data = profilesRes.data;
-
-    const lastSignInById = new Map<string, string | null>(
-      (authListRes.data?.users ?? []).map((u) => [
-        u.id as string,
-        (u.last_sign_in_at as string | null | undefined) ?? null,
-      ])
-    );
+    // Enriquece com last_sign_in_at do auth.users (Supabase guarda timestamp
+    // do último login mas só na tabela auth, não em profiles). Listing é
+    // capped a 200 — pra organização KEU isso cobre 100% sem paginar.
+    // Falha silenciosa: se a listagem dá erro, profiles continuam funcionando
+    // mas sem o campo ultimoAcesso.
+    let lastSignInById: Map<string, string | null> = new Map();
+    try {
+      const { data: authList } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      lastSignInById = new Map(
+        (authList?.users ?? []).map((u) => [
+          u.id,
+          u.last_sign_in_at ?? null,
+        ])
+      );
+    } catch (e) {
+      console.warn("[/api/users] auth.listUsers falhou:", e instanceof Error ? e.message : e);
+    }
 
     // Para não-admin, removemos campos sensíveis no servidor antes de
     // devolver o payload (defesa em profundidade — a RLS já restringe).
