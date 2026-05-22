@@ -22,6 +22,7 @@ import {
   Heart,
   Banknote,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -34,6 +35,11 @@ const staffNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
   { href: "/dashboard/vendas", icon: ShoppingCart, label: "Vendas" },
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
+  {
+    href: "/dashboard/inadimplencia",
+    icon: AlertTriangle,
+    label: "Inadimplência",
+  },
   { href: "/dashboard/estoque", icon: Package, label: "Estoque" },
   { href: "/dashboard/contatos", icon: Phone, label: "Leads" },
   { href: "/dashboard/clientes", icon: Users, label: "Clientes" },
