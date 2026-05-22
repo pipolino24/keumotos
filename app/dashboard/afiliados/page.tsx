@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCurrency } from "@/lib/utils";
 
@@ -223,7 +224,7 @@ export default function AfiliadosPage() {
             </div>
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState />
+          <EmptyStateAfiliados />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -419,22 +420,19 @@ function StatusBadge({
   );
 }
 
-function EmptyState() {
+function EmptyStateAfiliados() {
   return (
-    <div className="p-16 text-center">
-      <div className="bg-gradient-to-br from-purple-500 to-keu-red w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Handshake className="h-8 w-8 text-white" />
-      </div>
-      <h3 className="font-bold text-lg mb-1">Nenhum afiliado cadastrado</h3>
-      <p className="text-sm text-keu-black/60 mb-6 max-w-sm mx-auto">
-        Cadastre pessoas que vão divulgar suas motos e definam o quanto cada
-        uma vai receber por venda fechada.
-      </p>
-      <Link href="/dashboard/afiliados/novo">
-        <Button>
-          <UserPlus className="h-4 w-4" /> Cadastrar primeiro afiliado
-        </Button>
-      </Link>
-    </div>
+    <EmptyState
+      icon={<Handshake className="h-8 w-8" />}
+      title="Nenhum afiliado cadastrado"
+      description="Cadastre pessoas que vão divulgar suas motos e definam o quanto cada uma vai receber por venda fechada."
+      action={
+        <Link href="/dashboard/afiliados/novo">
+          <Button>
+            <UserPlus className="h-4 w-4" /> Cadastrar primeiro afiliado
+          </Button>
+        </Link>
+      }
+    />
   );
 }

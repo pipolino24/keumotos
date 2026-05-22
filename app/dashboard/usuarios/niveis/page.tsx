@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { PERMISSION_MODULES } from "@/lib/permissions";
 import { toast } from "sonner";
 import { confirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface RoleItem {
   _id: string;
@@ -182,7 +183,7 @@ export default function NiveisPage() {
         ) : error ? (
           <div className="p-12 text-center text-red-600">{error}</div>
         ) : filtered.length === 0 ? (
-          <EmptyState />
+          <EmptyStateNiveis />
         ) : (
           <div className="divide-y divide-keu-black/5">
             {filtered.map((role) => (
@@ -199,24 +200,20 @@ export default function NiveisPage() {
   );
 }
 
-function EmptyState() {
+function EmptyStateNiveis() {
   return (
-    <div className="p-16 text-center">
-      <div className="bg-keu-gray-light w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Shield className="h-8 w-8 text-keu-black/30" />
-      </div>
-      <h3 className="font-bold text-lg mb-1">Nenhum cargo criado ainda</h3>
-      <p className="text-sm text-keu-black/60 mb-6 max-w-sm mx-auto">
-        Crie níveis personalizados para definir o que cada tipo de usuário pode
-        fazer no sistema. Por exemplo: Vendedor Júnior, Gerente de Loja,
-        Atendimento.
-      </p>
-      <Link href="/dashboard/usuarios/niveis/novo">
-        <Button>
-          <Plus className="h-4 w-4" /> Criar primeiro cargo
-        </Button>
-      </Link>
-    </div>
+    <EmptyState
+      icon={<Shield className="h-8 w-8" />}
+      title="Nenhum cargo criado ainda"
+      description="Crie níveis personalizados para definir o que cada tipo de usuário pode fazer no sistema. Por exemplo: Vendedor Júnior, Gerente de Loja, Atendimento."
+      action={
+        <Link href="/dashboard/usuarios/niveis/novo">
+          <Button>
+            <Plus className="h-4 w-4" /> Criar primeiro cargo
+          </Button>
+        </Link>
+      }
+    />
   );
 }
 
