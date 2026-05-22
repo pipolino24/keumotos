@@ -48,9 +48,11 @@ interface AluguelApi {
   clienteTelefone?: string;
   clienteEmail?: string;
   dataInicio?: string;
-  parcelas?: number;
-  valorParcela?: number;
-  valorEntrada?: number;
+  dataFim?: string;
+  diasContratados?: number;
+  valorTotal?: number;
+  caucao?: number;
+  modalidadeAplicada?: "diaria" | "semanal" | "mensal";
 }
 
 interface MotoApi {
@@ -144,13 +146,12 @@ export default function NovoContratoPage() {
     avEndereco: "",
     avTelefone: "",
     avEmail: "",
-    // plano
-    parcelas: 0,
-    valorEntrada: 0,
-    valorParcela: 0,
-    planoEscolhido: "Conquista",
-    datasVencimento: "",
-    vencimentoPrimeira: "",
+    // locação — valor + caução + período
+    valorTotal: 0,
+    caucao: 0,
+    modalidade: "" as "diaria" | "semanal" | "mensal" | "",
+    dataInicio: "",
+    dataFim: "",
     observacoes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -167,13 +168,18 @@ export default function NovoContratoPage() {
         cpf: p.cpf || aluguel.clienteCpf || "",
         telefone: p.telefone || aluguel.clienteTelefone || "",
         email: p.email || aluguel.clienteEmail || "",
-        parcelas: p.parcelas || aluguel.parcelas || 0,
-        valorEntrada: p.valorEntrada || aluguel.valorEntrada || 0,
-        valorParcela: p.valorParcela || aluguel.valorParcela || 0,
-        vencimentoPrimeira:
-          p.vencimentoPrimeira ||
+        valorTotal: p.valorTotal || aluguel.valorTotal || 0,
+        caucao: p.caucao || aluguel.caucao || 0,
+        modalidade: p.modalidade || aluguel.modalidadeAplicada || "",
+        dataInicio:
+          p.dataInicio ||
           (aluguel.dataInicio
             ? new Date(aluguel.dataInicio).toLocaleDateString("pt-BR")
+            : ""),
+        dataFim:
+          p.dataFim ||
+          (aluguel.dataFim
+            ? new Date(aluguel.dataFim).toLocaleDateString("pt-BR")
             : ""),
       }));
     }, 0);
@@ -221,8 +227,8 @@ export default function NovoContratoPage() {
       toast.error("CPF do avalista é inválido");
       return;
     }
-    if (!form.parcelas || !form.valorParcela) {
-      toast.error("Informe quantidade de parcelas e valor da parcela");
+    if (!form.valorTotal) {
+      toast.error("Informe o valor total da locação");
       return;
     }
 
@@ -270,15 +276,18 @@ export default function NovoContratoPage() {
           renavam: moto.renavam,
           km: moto.km,
         },
+        // Locação tradicional — pagamento único do valor total, sem
+        // parcelas/entrada. Caução = valor recuperável ao fim da locação.
+        // multaPercent/jurosDia ficam pra atraso na devolução ou pagamento.
         plano: {
-          parcelas: Number(form.parcelas),
-          valorEntrada: Number(form.valorEntrada),
-          valorParcela: Number(form.valorParcela),
-          planoEscolhido: form.planoEscolhido,
+          parcelas: 1,
+          valorEntrada: Number(form.caucao) || 0,
+          valorParcela: Number(form.valorTotal),
+          planoEscolhido: "Locação",
           multaPercent: 10,
           jurosDiaPercent: 2,
-          datasVencimento: form.datasVencimento,
-          vencimentoPrimeira: form.vencimentoPrimeira,
+          datasVencimento: form.dataFim || undefined,
+          vencimentoPrimeira: form.dataInicio || undefined,
         },
         observacoes: form.observacoes || undefined,
       };
@@ -678,90 +687,66 @@ export default function NovoContratoPage() {
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold">Plano e valores</h2>
+              <h2 className="font-bold">Período e valores da locação</h2>
               <p className="text-sm text-keu-black/60">
-                Multa 10% / juros 2% ao dia (padrão)
+                Pagamento único do valor total. Multa 10% / juros 2% ao dia
+                em caso de atraso na devolução
               </p>
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="parcelas" required>
-                Quantidade de parcelas
+              <Label htmlFor="valorTotal" required>
+                Valor total da locação (R$)
               </Label>
               <Input
-                id="parcelas"
-                type="number"
-                min={1}
-                required
-                value={form.parcelas || ""}
-                onChange={(e) =>
-                  set("parcelas", Number(e.target.value || 0))
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="planoEscolhido">Plano escolhido</Label>
-              <Input
-                id="planoEscolhido"
-                value={form.planoEscolhido}
-                onChange={(e) => set("planoEscolhido", e.target.value)}
-                placeholder="Conquista"
-              />
-            </div>
-            <div>
-              <Label htmlFor="valorEntrada">Valor da entrada (R$)</Label>
-              <Input
-                id="valorEntrada"
+                id="valorTotal"
                 type="number"
                 step="0.01"
-                value={form.valorEntrada || ""}
+                required
+                value={form.valorTotal || ""}
                 onChange={(e) =>
-                  set("valorEntrada", Number(e.target.value || 0))
+                  set("valorTotal", Number(e.target.value || 0))
                 }
               />
-              {form.valorEntrada > 0 && (
+              {form.valorTotal > 0 && (
                 <p className="text-[11px] text-keu-black/50 mt-1">
-                  {formatCurrency(form.valorEntrada)}
+                  {formatCurrency(form.valorTotal)}
                 </p>
               )}
             </div>
             <div>
-              <Label htmlFor="valorParcela" required>
-                Valor de cada parcela (R$)
-              </Label>
+              <Label htmlFor="caucao">Caução (R$, opcional)</Label>
               <Input
-                id="valorParcela"
+                id="caucao"
                 type="number"
                 step="0.01"
-                required
-                value={form.valorParcela || ""}
-                onChange={(e) =>
-                  set("valorParcela", Number(e.target.value || 0))
-                }
+                value={form.caucao || ""}
+                onChange={(e) => set("caucao", Number(e.target.value || 0))}
               />
-              {form.valorParcela > 0 && (
+              {form.caucao > 0 && (
                 <p className="text-[11px] text-keu-black/50 mt-1">
-                  {formatCurrency(form.valorParcela)}
+                  {formatCurrency(form.caucao)} — devolvido ao fim, descontado
+                  se houver avarias
                 </p>
               )}
             </div>
             <div>
-              <Label htmlFor="datasVencimento">Datas de vencimento</Label>
+              <Label htmlFor="dataInicio">Data início da locação</Label>
               <Input
-                id="datasVencimento"
-                placeholder="Ex: 06 e 21"
-                value={form.datasVencimento}
-                onChange={(e) => set("datasVencimento", e.target.value)}
+                id="dataInicio"
+                placeholder="Ex: 22/05/2026"
+                value={form.dataInicio}
+                onChange={(e) => set("dataInicio", e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="vencimentoPrimeira">Vencimento da 1ª</Label>
+              <Label htmlFor="dataFim">Data fim da locação</Label>
               <Input
-                id="vencimentoPrimeira"
-                placeholder="Ex: 06 DE MAIO DE 2026"
-                value={form.vencimentoPrimeira}
-                onChange={(e) => set("vencimentoPrimeira", e.target.value)}
+                id="dataFim"
+                placeholder="Ex: 22/06/2026"
+                value={form.dataFim}
+                onChange={(e) => set("dataFim", e.target.value)}
               />
             </div>
             <div className="sm:col-span-2">
@@ -769,6 +754,7 @@ export default function NovoContratoPage() {
               <Textarea
                 id="observacoes"
                 rows={2}
+                placeholder="Condições especiais, acessórios entregues, estado da moto..."
                 value={form.observacoes}
                 onChange={(e) => set("observacoes", e.target.value)}
               />

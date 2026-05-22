@@ -240,26 +240,6 @@ function fmtDate(d: Date | string | undefined) {
   return `${dia} DE ${mes} DE ${ano}`;
 }
 
-function periodicidade(datas?: string): string {
-  if (!datas) return "mensais";
-  const numbers = datas.match(/\d+/g) || [];
-  if (numbers.length >= 2) return "quinzenais";
-  if (/semana/i.test(datas)) return "semanais";
-  return "mensais";
-}
-
-/**
- * Distingue contrato de LOCAÇÃO simples (sem opção de quitação) vs CONQUISTA
- * (entrada + parcelas + opção de quitação ao fim). Conquista tem `valorEntrada`
- * preenchido E múltiplas parcelas — locação tradicional tem valorTotal único.
- */
-function isConquista(plano: IPlanoSnap): boolean {
-  return (
-    (plano.valorEntrada ?? 0) > 0 &&
-    plano.parcelas > 1 &&
-    plano.valorParcela > 0
-  );
-}
 
 export interface ContratoPdfProps {
   numero?: string;
@@ -514,59 +494,47 @@ export function ContratoPdf({
         </View>
 
         <Text style={styles.sectionTitle}>
-          III – DO VALOR DA CONTRATAÇÃO, CONDIÇÕES DO PLANO E ENCARGOS:
+          III – DO VALOR DA LOCAÇÃO, PERÍODO E ENCARGOS:
         </Text>
         <View style={styles.table}>
           <DoubleField
             left={{
-              label: "PARCELAS",
-              value: `${plano.parcelas} PARCELAS`,
-              labelWidth: 75,
+              label: "VALOR TOTAL",
+              value: fmtMoney(plano.valorParcela),
+              labelWidth: 85,
             }}
             right={{
-              label: "ENTRADA",
-              value: fmtMoney(plano.valorEntrada),
-              labelWidth: 65,
+              label: "CAUÇÃO",
+              value: (plano.valorEntrada ?? 0) > 0 ? fmtMoney(plano.valorEntrada) : "—",
+              labelWidth: 60,
             }}
           />
           <DoubleField
             left={{
-              label: "VALOR PARCELA",
-              value: fmtMoney(plano.valorParcela),
-              labelWidth: 90,
+              label: "INÍCIO",
+              value: plano.vencimentoPrimeira,
+              labelWidth: 85,
             }}
             right={{
-              label: "PLANO",
-              value: plano.planoEscolhido,
-              labelWidth: 65,
+              label: "TÉRMINO",
+              value: plano.datasVencimento,
+              labelWidth: 60,
             }}
           />
           <DoubleField
             left={{
               label: "MULTA ATRASO",
               value: `${plano.multaPercent}%`,
-              labelWidth: 90,
+              labelWidth: 85,
             }}
             right={{
-              label: "VENCIMENTOS",
-              value: plano.datasVencimento,
-              labelWidth: 80,
-            }}
-          />
-          <DoubleField
-            left={{
               label: "JUROS/DIA",
               value: `${plano.jurosDiaPercent}% ao dia`,
-              labelWidth: 90,
-            }}
-            right={{
-              label: "1º VENCTO",
-              value: plano.vencimentoPrimeira,
-              labelWidth: 65,
+              labelWidth: 60,
             }}
           />
           {observacoes ? (
-            <FullField label="OBSERVAÇÕES" value={observacoes} labelWidth={90} />
+            <FullField label="OBSERVAÇÕES" value={observacoes} labelWidth={85} />
           ) : null}
         </View>
       </Page>
@@ -575,46 +543,20 @@ export function ContratoPdf({
       <Page size="A4" style={styles.page}>
         <PageDecorations logoDataUrl={logoDataUrl} />
 
-        {isConquista(plano) ? (
-          <>
-            <Text style={styles.clauseTitle}>
-              CLÁUSULA IV – OPÇÃO DE QUITAÇÃO
-            </Text>
-            <Text style={styles.paragraph}>
-              Ao final das {plano.parcelas} parcelas{" "}
-              {periodicidade(plano.datasVencimento)}, estando todos os
-              pagamentos devidamente quitados, o LOCATÁRIO terá direito à
-              transferência do veículo para seu nome, ficando desde já ciente
-              de que todas as despesas relativas à transferência serão de sua
-              inteira responsabilidade, incluindo, mas não se limitando a:
-            </Text>
-            <View style={styles.list}>
-              <Text style={styles.listItem}>• Taxas de cartório</Text>
-              <Text style={styles.listItem}>• Taxas do DETRAN</Text>
-              <Text style={styles.listItem}>• Emolumentos</Text>
-              <Text style={styles.listItem}>
-                • Qualquer outro custo necessário para efetivação da transferência
-              </Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <Text style={styles.clauseTitle}>
-              CLÁUSULA IV – DEVOLUÇÃO DO VEÍCULO
-            </Text>
-            <Text style={styles.paragraph}>
-              Ao final do período contratado, o LOCATÁRIO deverá devolver o
-              veículo nas mesmas condições em que foi entregue, ressalvado o
-              desgaste natural pelo uso adequado. A devolução deverá ser feita
-              na sede da LOCADORA em data e horário previamente acordados.
-            </Text>
-            <Text style={styles.paragraph}>
-              Em caso de avarias, faltas ou estado incompatível com o uso
-              normal, os valores correspondentes ao reparo serão descontados
-              da caução prestada pelo LOCATÁRIO ou cobrados em separado.
-            </Text>
-          </>
-        )}
+        <Text style={styles.clauseTitle}>
+          CLÁUSULA IV – DEVOLUÇÃO DO VEÍCULO
+        </Text>
+        <Text style={styles.paragraph}>
+          Ao final do período contratado, o LOCATÁRIO deverá devolver o
+          veículo nas mesmas condições em que foi entregue, ressalvado o
+          desgaste natural pelo uso adequado. A devolução deverá ser feita na
+          sede da LOCADORA em data e horário previamente acordados.
+        </Text>
+        <Text style={styles.paragraph}>
+          Em caso de avarias, faltas ou estado incompatível com o uso normal,
+          os valores correspondentes ao reparo serão descontados da caução
+          prestada pelo LOCATÁRIO ou cobrados em separado.
+        </Text>
 
         <Text style={styles.clauseTitle}>
           CLÁUSULA V – RESPONSABILIDADES DO LOCATÁRIO
