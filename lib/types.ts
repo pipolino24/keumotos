@@ -65,10 +65,11 @@ export interface Profile {
 
 export type MotoStatus =
   | "disponivel"
+  | "lavagem" // no lava-jato, estado temporário curto
   | "reservada"
   | "vendida"
   | "alugada"
-  | "manutencao"
+  | "manutencao" // em oficina pra revisão/conserto
   | "devolvida"; // repasse devolvido ao dono
 
 export type MotoTipo = "venda" | "aluguel" | "ambos";

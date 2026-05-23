@@ -357,14 +357,18 @@ export default function AluguelPage() {
                           ? "success"
                           : m.status === "alugada"
                             ? "info"
-                            : "warning"
+                            : m.status === "lavagem"
+                              ? "info"
+                              : "warning"
                       }
                     >
                       {m.status === "disponivel"
                         ? "Disponível"
                         : m.status === "alugada"
                           ? "Alugada"
-                          : "Manutenção"}
+                          : m.status === "lavagem"
+                            ? "Lavagem"
+                            : "Manutenção"}
                     </Badge>
                   </div>
                   <div className="absolute top-2 right-2 bg-white/95 rounded-md px-2 py-0.5 text-xs font-bold">
