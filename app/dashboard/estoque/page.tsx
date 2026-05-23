@@ -184,6 +184,11 @@ export default function EstoquePage() {
               onClick={() => setFiltroStatus("reservada")}
             />
             <Pill
+              label="Lavagem"
+              active={filtroStatus === "lavagem"}
+              onClick={() => setFiltroStatus("lavagem")}
+            />
+            <Pill
               label="Manutenção"
               active={filtroStatus === "manutencao"}
               onClick={() => setFiltroStatus("manutencao")}
@@ -297,6 +302,7 @@ function StatusMotoBadge({ status }: { status: string }) {
     { v: "success" | "warning" | "danger" | "info" | "secondary"; l: string }
   > = {
     disponivel: { v: "success", l: "Disponível" },
+    lavagem: { v: "info", l: "Lavagem" },
     reservada: { v: "warning", l: "Reservada" },
     vendida: { v: "danger", l: "Vendida" },
     alugada: { v: "info", l: "Alugada" },

@@ -29,6 +29,7 @@ export interface IMotoDoc {
   tipo: "venda" | "aluguel" | "ambos";
   status:
     | "disponivel"
+    | "lavagem"
     | "reservada"
     | "vendida"
     | "alugada"
@@ -122,6 +123,7 @@ const MotoSchema = new Schema<IMotoDoc>(
       type: String,
       enum: [
         "disponivel",
+        "lavagem",
         "reservada",
         "vendida",
         "alugada",

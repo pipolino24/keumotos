@@ -839,6 +839,7 @@ function StatusMotoBadge({ status }: { status: string }) {
     { v: "success" | "warning" | "danger" | "info" | "secondary"; l: string }
   > = {
     disponivel: { v: "success", l: "Disponível" },
+    lavagem: { v: "info", l: "No lava-jato" },
     reservada: { v: "warning", l: "Reservada" },
     vendida: { v: "danger", l: "Vendida" },
     alugada: { v: "info", l: "Alugada" },

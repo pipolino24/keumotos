@@ -53,7 +53,7 @@ type MotoForm = {
   valorMensal: number | "";
   caucao: number | "";
   tipo: "venda" | "aluguel" | "ambos";
-  status: "disponivel" | "reservada" | "vendida" | "alugada" | "manutencao";
+  status: "disponivel" | "lavagem" | "reservada" | "vendida" | "alugada" | "manutencao";
   setor: "multimarcas" | "loca" | "pecas";
   destaque: boolean;
   descricao: string;
@@ -755,6 +755,7 @@ export default function EditarMotoPage() {
                   }
                 >
                   <option value="disponivel">Disponível</option>
+                  <option value="lavagem">No lava-jato</option>
                   <option value="reservada">Reservada</option>
                   <option value="vendida">Vendida</option>
                   <option value="alugada">Alugada</option>

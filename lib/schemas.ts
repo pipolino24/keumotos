@@ -41,7 +41,7 @@ export const motoCreateSchema = z.object({
   caucao: z.number().min(0).optional(),
   tipo: z.enum(["venda", "aluguel", "ambos"]),
   status: z
-    .enum(["disponivel", "reservada", "vendida", "alugada", "manutencao", "devolvida"])
+    .enum(["disponivel", "lavagem", "reservada", "vendida", "alugada", "manutencao", "devolvida"])
     .optional(),
   destaque: z.boolean().optional(),
   // Cada foto pode ser URL ou base64. Limita 8MB por foto + 20 fotos
