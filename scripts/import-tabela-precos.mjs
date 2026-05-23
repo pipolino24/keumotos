@@ -347,7 +347,8 @@ async function main() {
 
     const doc = {
       motoId,
-      motoModelo: `${l.moto.marca} ${l.moto.modelo} ${l.moto.anoMod}`,
+      // motoModelo NÃO repete a marca (UI faz `motoMarca + ' ' + motoModelo`)
+      motoModelo: `${l.moto.modelo} ${l.moto.anoMod}`,
       motoMarca: l.moto.marca,
       motoAno: l.moto.anoMod,
       clienteId,
