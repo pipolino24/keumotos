@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="geometricPrecision">
+  <!-- Favicon KEU: fundo preto com "KEU" em vermelho (cores do branding) -->
+  <rect width="64" height="64" rx="12" fill="#0A0A0A"/>
+  <text
+    x="32"
+    y="44"
+    font-family="Arial Black, Helvetica, sans-serif"
+    font-size="26"
+    font-weight="900"
+    fill="#DC1F1F"
+    text-anchor="middle"
+    letter-spacing="-1"
+  >KEU</text>
+</svg>
