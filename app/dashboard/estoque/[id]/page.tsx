@@ -538,7 +538,7 @@ export default function VisualizarMotoPage() {
                     }
                   />
                   <Field
-                    label="Caução"
+                    label="Entrada"
                     value={
                       moto.caucao != null
                         ? formatCurrency(moto.caucao)

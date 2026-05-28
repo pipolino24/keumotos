@@ -798,7 +798,7 @@ export default function NovoMotoPage() {
                 <div>
                   <h2 className="font-bold">Valores de aluguel</h2>
                   <p className="text-sm text-keu-black/60">
-                    Diária, semanal, mensal e caução
+                    Diária, semanal, mensal e entrada
                   </p>
                 </div>
               </div>

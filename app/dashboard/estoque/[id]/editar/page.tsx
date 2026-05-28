@@ -759,7 +759,7 @@ export default function EditarMotoPage() {
                 <div>
                   <h2 className="font-bold">Valores de aluguel</h2>
                   <p className="text-sm text-keu-black/60">
-                    Diária, semanal, mensal e caução
+                    Diária, semanal, mensal e entrada
                   </p>
                 </div>
               </div>
@@ -785,7 +785,7 @@ export default function EditarMotoPage() {
                 />
                 <ValueInput
                   id="caucao"
-                  label="Caução"
+                  label="Entrada"
                   value={form.caucao}
                   onChange={(v) => set("caucao", v)}
                 />

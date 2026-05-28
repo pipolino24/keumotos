@@ -1065,7 +1065,7 @@ function AvariasCard({
                       )}
                       {av.cobradoCaucao && (
                         <Badge variant="warning" className="text-[10px]">
-                          Cobrado caução
+                          Descontado da entrada
                         </Badge>
                       )}
                     </div>
@@ -1306,7 +1306,7 @@ function RegistrarAvariaModal({
                   onChange={(e) => setCobradoCaucao(e.target.checked)}
                   className="rounded"
                 />
-                Cobrado do caução
+                Descontar da entrada
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -1704,7 +1704,7 @@ function DevolucaoModal({
                               }
                               className="h-4 w-4 rounded text-keu-red"
                             />
-                            <span>Descontar da caução</span>
+                            <span>Descontar da entrada</span>
                           </label>
                         </div>
                       </div>

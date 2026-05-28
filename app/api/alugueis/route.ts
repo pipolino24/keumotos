@@ -170,13 +170,14 @@ export async function POST(req: NextRequest) {
     // Notifica o cliente que tem aluguel ativo
     if (aluguel.clienteId) {
       const fim = new Date(aluguel.dataFim).toLocaleDateString("pt-BR");
-      // Caução é opcional (Plano Conquista normalmente é zero). Só mostra
-      // a linha se >0 pra não exibir "Caução: R$ 0" no app/email do cliente.
+      // Entrada é opcional. Só mostra a linha se >0 pra não exibir
+      // "Entrada: R$ 0" no app/email do cliente. Campo `caucao` no DB é
+      // o nome legado — semanticamente vira "entrada" pra cliente.
       const caucaoNum =
         typeof aluguel.caucao === "number" ? aluguel.caucao : 0;
       const linhaCaucao =
         caucaoNum > 0
-          ? ` Caução: ${caucaoNum.toLocaleString("pt-BR", {
+          ? ` Entrada: ${caucaoNum.toLocaleString("pt-BR", {
               style: "currency",
               currency: "BRL",
             })}.`

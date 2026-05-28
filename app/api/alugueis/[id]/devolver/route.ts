@@ -134,8 +134,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       const fmtBRL = (n: number) =>
         n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const descricao = custoTotalAvarias > 0
-        ? `Avarias: ${fmtBRL(custoTotalAvarias)}. Caução a devolver: ${fmtBRL(valorRetorno)}.`
-        : `Sem avarias. Caução integral a devolver: ${fmtBRL(valorRetorno)}.`;
+        ? `Avarias: ${fmtBRL(custoTotalAvarias)}. Entrada a devolver: ${fmtBRL(valorRetorno)}.`
+        : `Sem avarias. Entrada integral a devolver: ${fmtBRL(valorRetorno)}.`;
       Notification.create({
         destinatarioId: aluguel.clienteId,
         tipo: "aluguel",

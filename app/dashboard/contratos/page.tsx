@@ -210,7 +210,7 @@ export default function ContratosPage() {
                         ? `${c.plano.parcelas}× de ${formatCurrency(c.plano.valorParcela)}`
                         : formatCurrency(c.plano.valorParcela)}
                       {c.plano.valorEntrada > 0
-                        ? ` · caução ${formatCurrency(c.plano.valorEntrada)}`
+                        ? ` · entrada ${formatCurrency(c.plano.valorEntrada)}`
                         : ""}
                       {c.geradoPorNome ? ` · por ${c.geradoPorNome}` : ""}
                     </div>
