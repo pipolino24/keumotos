@@ -57,6 +57,7 @@ interface MotoApi {
   potencia?: string;
   valorFipe: number;
   valorCompra: number;
+  manutencoesIniciais?: { descricao: string; valor: number; data?: string }[];
   valorAnunciado: number;
   valorMinimo: number;
   comissao?: number;
@@ -458,6 +459,30 @@ export default function VisualizarMotoPage() {
                   highlight
                 />
               )}
+              {verFinanceiro &&
+                moto.manutencoesIniciais &&
+                moto.manutencoesIniciais.length > 0 &&
+                (() => {
+                  const total = moto.manutencoesIniciais!.reduce(
+                    (s, m) => s + (m.valor ?? 0),
+                    0
+                  );
+                  const custoTotal = moto.valorCompra + total;
+                  return (
+                    <Field
+                      label={
+                        <span className="flex items-center gap-1">
+                          <Lock className="h-3 w-3" /> Custo total
+                          <span className="text-[10px] text-keu-black/40">
+                            (compra + manutenção)
+                          </span>
+                        </span>
+                      }
+                      value={formatCurrency(custoTotal)}
+                      highlight
+                    />
+                  );
+                })()}
               <Field
                 label="Valor anunciado"
                 value={formatCurrency(moto.valorAnunciado)}

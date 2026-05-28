@@ -47,6 +47,8 @@ type MotoForm = {
   valorFipe: number | "";
   valorAnunciado: number | "";
   valorMinimo: number | "";
+  // Manutenções iniciais — soma no custo total da moto
+  manutencoesIniciais: { descricao: string; valor: number | "" }[];
   comissao: number | "";
   valorDiaria: number | "";
   valorSemanal: number | "";
@@ -65,7 +67,7 @@ type MotoForm = {
 interface MotoApi extends Omit<MotoForm,
   | "anoFabricacao" | "anoModelo" | "cilindrada" | "km" | "valorFipe"
   | "valorAnunciado" | "valorMinimo" | "comissao" | "valorDiaria"
-  | "valorSemanal" | "valorMensal" | "caucao"> {
+  | "valorSemanal" | "valorMensal" | "caucao" | "manutencoesIniciais"> {
   _id: string;
   anoFabricacao: number;
   anoModelo: number;
@@ -81,6 +83,7 @@ interface MotoApi extends Omit<MotoForm,
   caucao?: number;
   // só admin recebe esse — usado pra mostrar resumo, não edita aqui
   valorCompra?: number;
+  manutencoesIniciais?: { descricao: string; valor: number; data?: string }[];
 }
 
 function n(v: number | undefined | null): number | "" {
@@ -108,6 +111,10 @@ function motoToForm(m: MotoApi): MotoForm {
     valorFipe: m.valorFipe,
     valorAnunciado: m.valorAnunciado,
     valorMinimo: m.valorMinimo,
+    manutencoesIniciais: (m.manutencoesIniciais ?? []).map((mt) => ({
+      descricao: mt.descricao,
+      valor: mt.valor,
+    })),
     comissao: n(m.comissao),
     valorDiaria: n(m.valorDiaria),
     valorSemanal: n(m.valorSemanal),
@@ -187,6 +194,13 @@ export default function EditarMotoPage() {
       for (const [k, v] of Object.entries(form)) {
         payload[k] = v === "" ? undefined : v;
       }
+      // Filtra manutenções vazias e converte valor "" → 0 antes de enviar
+      payload.manutencoesIniciais = form.manutencoesIniciais
+        .filter((m) => m.descricao.trim().length > 0)
+        .map((m) => ({
+          descricao: m.descricao.trim(),
+          valor: typeof m.valor === "number" ? m.valor : 0,
+        }));
       const res = await fetch(`/api/motos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -597,6 +611,106 @@ export default function EditarMotoPage() {
                 value={form.comissao}
                 onChange={(v) => set("comissao", v)}
               />
+            </div>
+
+            {/* MANUTENÇÕES INICIAIS — somam no custo total */}
+            <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="font-semibold text-sm flex items-center gap-2">
+                    🔧 Manutenções / reformas
+                  </div>
+                  <div className="text-xs text-keu-black/60">
+                    Investimentos feitos na moto (peças, pintura, retífica…)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    set("manutencoesIniciais", [
+                      ...form.manutencoesIniciais,
+                      { descricao: "", valor: "" },
+                    ])
+                  }
+                  className="text-xs px-3 py-1.5 rounded-lg bg-keu-red text-white font-semibold hover:bg-keu-red-dark transition"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              {form.manutencoesIniciais.length === 0 ? (
+                <div className="text-xs text-keu-black/50 italic">
+                  Sem manutenções registradas pra essa moto.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {form.manutencoesIniciais.map((m, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_140px_36px] gap-2">
+                      <input
+                        type="text"
+                        className="h-10 px-3 rounded-lg border border-keu-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-keu-red"
+                        placeholder="O que foi feito"
+                        value={m.descricao}
+                        onChange={(e) => {
+                          const copy = [...form.manutencoesIniciais];
+                          copy[idx] = { ...copy[idx], descricao: e.target.value };
+                          set("manutencoesIniciais", copy);
+                        }}
+                      />
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-keu-black/40">
+                          R$
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          inputMode="decimal"
+                          className="h-10 pl-8 pr-2 w-full rounded-lg border border-keu-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-keu-red"
+                          placeholder="0,00"
+                          value={m.valor}
+                          onChange={(e) => {
+                            const copy = [...form.manutencoesIniciais];
+                            copy[idx] = {
+                              ...copy[idx],
+                              valor: e.target.value ? Number(e.target.value) : "",
+                            };
+                            set("manutencoesIniciais", copy);
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const copy = form.manutencoesIniciais.filter(
+                            (_, i) => i !== idx
+                          );
+                          set("manutencoesIniciais", copy);
+                        }}
+                        className="h-10 w-9 rounded-lg border border-keu-black/10 text-keu-black/50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                        aria-label="Remover"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {(() => {
+                    const total = form.manutencoesIniciais.reduce(
+                      (s, m) => s + (typeof m.valor === "number" ? m.valor : 0),
+                      0
+                    );
+                    return total > 0 ? (
+                      <div className="flex justify-between pt-2 border-t border-amber-200 text-xs">
+                        <span className="text-keu-black/60">
+                          Total manutenções
+                        </span>
+                        <span className="font-bold text-amber-700">
+                          R$ {total.toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </div>
 
             {valorAnunciadoN > 0 && valorFipeN > 0 && (

@@ -87,8 +87,9 @@ const CAMPOS_EDITAVEIS = [
   "setor",
 ] as const;
 
-// Campos que SÓ admin pode editar (preço de compra, comissão repasse)
-const CAMPOS_ADMIN = ["valorCompra"] as const;
+// Campos que SÓ admin pode editar (preço de compra, comissão repasse,
+// manutenções iniciais — pois afetam custo total/margem).
+const CAMPOS_ADMIN = ["valorCompra", "manutencoesIniciais"] as const;
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const auth = await requireRole(["admin", "vendedor"], req);

@@ -32,6 +32,19 @@ export const motoCreateSchema = z.object({
   potencia: z.string().optional(),
   valorFipe: z.number().min(0),
   valorCompra: z.number().min(0),
+  // Manutenções/reformas feitas antes de colocar à venda (cada item soma
+  // no custo total). Limite de 20 itens pra evitar payload absurdo.
+  manutencoesIniciais: z
+    .array(
+      z.object({
+        descricao: z.string().min(1, "Descreva a manutenção"),
+        valor: z.number().min(0),
+        data: z.union([z.string(), z.date()]).optional(),
+      })
+    )
+    .max(20, "Máximo 20 manutenções")
+    .optional()
+    .default([]),
   valorAnunciado: z.number().min(0),
   valorMinimo: z.number().min(0),
   comissao: z.number().min(0).optional(),

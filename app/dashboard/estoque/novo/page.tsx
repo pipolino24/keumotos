@@ -45,6 +45,8 @@ type MotoForm = {
   partida: "" | "eletrica" | "pedal" | "ambas";
   valorFipe: number | "";
   valorCompra: number | "";
+  // Cada manutenção tem descrição + valor; soma no custo total da moto
+  manutencoesIniciais: { descricao: string; valor: number | "" }[];
   valorAnunciado: number | "";
   valorMinimo: number | "";
   comissao: number | "";
@@ -82,6 +84,7 @@ const initial: MotoForm = {
   partida: "",
   valorFipe: "",
   valorCompra: "",
+  manutencoesIniciais: [],
   valorAnunciado: "",
   valorMinimo: "",
   comissao: "",
@@ -132,9 +135,16 @@ export default function NovoMotoPage() {
     typeof form.valorAnunciado === "number" ? form.valorAnunciado : 0;
   const valorMinimoN = typeof form.valorMinimo === "number" ? form.valorMinimo : 0;
   const valorFipeN = typeof form.valorFipe === "number" ? form.valorFipe : 0;
+  // Soma manutenções iniciais — pular itens com valor vazio
+  const totalManutencoes = form.manutencoesIniciais.reduce(
+    (s, m) => s + (typeof m.valor === "number" ? m.valor : 0),
+    0
+  );
+  // Custo total = compra + manutenções (usado pra calcular margem real)
+  const custoTotalN = valorCompraN + totalManutencoes;
 
-  const margemBruta = valorAnunciadoN - valorCompraN;
-  const margemMinima = valorMinimoN - valorCompraN;
+  const margemBruta = valorAnunciadoN - custoTotalN;
+  const margemMinima = valorMinimoN - custoTotalN;
   const percentualFipe = valorFipeN
     ? ((valorAnunciadoN / valorFipeN - 1) * 100).toFixed(1)
     : "0";
@@ -206,6 +216,14 @@ export default function NovoMotoPage() {
       for (const [k, v] of Object.entries(form)) {
         payload[k] = v === "" ? undefined : v;
       }
+      // Limpa manutenções vazias (linha em branco) e converte valor "" → 0.
+      // Schema rejeita descricao curta, então só envia se tiver texto real.
+      payload.manutencoesIniciais = form.manutencoesIniciais
+        .filter((m) => m.descricao.trim().length > 0)
+        .map((m) => ({
+          descricao: m.descricao.trim(),
+          valor: typeof m.valor === "number" ? m.valor : 0,
+        }));
       // Este form não coleta proprietário nem dados de compra/repasse —
       // marca como "propria" pra não cair como "comprada" órfã (sem NF,
       // sem valorPago) em /aquisicoes.
@@ -588,7 +606,7 @@ export default function NovoMotoPage() {
               <ValueInput
                 id="valorCompra"
                 label="Valor de compra"
-                hint="(custo)"
+                hint="(custo da moto)"
                 required
                 value={form.valorCompra}
                 onChange={(v) => set("valorCompra", v)}
@@ -616,6 +634,110 @@ export default function NovoMotoPage() {
                 value={form.comissao}
                 onChange={(v) => set("comissao", v)}
               />
+            </div>
+
+            {/* MANUTENÇÕES INICIAIS — somam no custo total */}
+            <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="font-semibold text-sm flex items-center gap-2">
+                    🔧 Manutenções / reformas iniciais
+                  </div>
+                  <div className="text-xs text-keu-black/60">
+                    Soma no custo total da moto (peças, pintura, retífica…)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    set("manutencoesIniciais", [
+                      ...form.manutencoesIniciais,
+                      { descricao: "", valor: "" },
+                    ])
+                  }
+                  className="text-xs px-3 py-1.5 rounded-lg bg-keu-red text-white font-semibold hover:bg-keu-red-dark transition"
+                >
+                  + Adicionar
+                </button>
+              </div>
+              {form.manutencoesIniciais.length === 0 ? (
+                <div className="text-xs text-keu-black/50 italic">
+                  Sem manutenções. Se a moto entrou pronta pra venda, deixe vazio.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {form.manutencoesIniciais.map((m, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_140px_36px] gap-2">
+                      <input
+                        type="text"
+                        className="h-10 px-3 rounded-lg border border-keu-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-keu-red"
+                        placeholder="O que foi feito (ex: troca pneu, pintura tanque)"
+                        value={m.descricao}
+                        onChange={(e) => {
+                          const copy = [...form.manutencoesIniciais];
+                          copy[idx] = { ...copy[idx], descricao: e.target.value };
+                          set("manutencoesIniciais", copy);
+                        }}
+                      />
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-keu-black/40">
+                          R$
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          inputMode="decimal"
+                          className="h-10 pl-8 pr-2 w-full rounded-lg border border-keu-black/10 text-sm focus:outline-none focus:ring-2 focus:ring-keu-red"
+                          placeholder="0,00"
+                          value={m.valor}
+                          onChange={(e) => {
+                            const copy = [...form.manutencoesIniciais];
+                            copy[idx] = {
+                              ...copy[idx],
+                              valor: e.target.value ? Number(e.target.value) : "",
+                            };
+                            set("manutencoesIniciais", copy);
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const copy = form.manutencoesIniciais.filter(
+                            (_, i) => i !== idx
+                          );
+                          set("manutencoesIniciais", copy);
+                        }}
+                        className="h-10 w-9 rounded-lg border border-keu-black/10 text-keu-black/50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                        aria-label="Remover manutenção"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {totalManutencoes > 0 && (
+                    <div className="flex justify-between pt-2 border-t border-amber-200 text-xs">
+                      <span className="text-keu-black/60">
+                        Total manutenções
+                      </span>
+                      <span className="font-bold text-amber-700">
+                        R$ {totalManutencoes.toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  )}
+                  {totalManutencoes > 0 && valorCompraN > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-keu-black/60">
+                        Custo total da moto
+                      </span>
+                      <span className="font-bold text-keu-black">
+                        R$ {custoTotalN.toLocaleString("pt-BR")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {(valorCompraN > 0 || valorAnunciadoN > 0) && (

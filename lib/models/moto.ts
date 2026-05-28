@@ -19,6 +19,11 @@ export interface IMotoDoc {
   potencia?: string;
   valorFipe: number;
   valorCompra: number;
+  // Manutenções/reformas feitas pela KEU antes de colocar à venda
+  // (troca de peça, pintura, retífica, etc). Cada item soma no custo
+  // total (valorCompra + Σ manutencoesIniciais.valor). Usado pra calcular
+  // margem real e dar visibilidade do que foi investido na moto.
+  manutencoesIniciais?: { descricao: string; valor: number; data?: Date }[];
   valorAnunciado: number;
   valorMinimo: number;
   comissao?: number;
@@ -106,6 +111,16 @@ const MotoSchema = new Schema<IMotoDoc>(
     potencia: String,
     valorFipe: { type: Number, required: true, min: 0 },
     valorCompra: { type: Number, required: true, min: 0 },
+    manutencoesIniciais: {
+      type: [
+        {
+          descricao: { type: String, required: true },
+          valor: { type: Number, required: true, min: 0 },
+          data: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
     valorAnunciado: { type: Number, required: true, min: 0 },
     valorMinimo: { type: Number, required: true, min: 0 },
     comissao: { type: Number, min: 0 },

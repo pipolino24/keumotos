@@ -447,7 +447,8 @@ export default function NovoAluguelPage() {
         frequenciaParcela: form.periodicidade,
         cicloDias,
 
-        // Caução opcional — valor que pode ser devolvido ao cliente no fim
+        // Entrada opcional — valor pago adiantado pelo cliente no início.
+        // Continua salvando no campo `caucao` do schema legado (sem migration).
         caucao:
           typeof form.caucao === "number" && form.caucao > 0
             ? form.caucao
@@ -985,7 +986,7 @@ export default function NovoAluguelPage() {
               </div>
 
               <div>
-                <Label>Caução (opcional)</Label>
+                <Label>Entrada (opcional)</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-keu-black/40">
                     R$
@@ -1006,8 +1007,7 @@ export default function NovoAluguelPage() {
                   />
                 </div>
                 <p className="text-[11px] text-keu-black/50 mt-1">
-                  Valor recuperável no fim do contrato (descontado se houver
-                  avarias).
+                  Valor pago adiantado pelo cliente no início da locação.
                 </p>
               </div>
 
@@ -1128,7 +1128,7 @@ export default function NovoAluguelPage() {
                 </div>
                 {typeof form.caucao === "number" && form.caucao > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-keu-black/60">Caução:</span>
+                    <span className="text-keu-black/60">Entrada:</span>
                     <span>{formatCurrency(form.caucao)}</span>
                   </div>
                 )}
