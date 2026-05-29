@@ -167,7 +167,11 @@ EmprestimoSchema.index({ "parcelas.vencimento": 1, "parcelas.status": 1 });
 export function recalcularStatus(doc: IEmprestimoDoc): StatusEmprestimo {
   if (doc.status === "cancelado") return "cancelado";
   const todasPagas = doc.parcelas.every((p) => p.status === "paga");
-  if (todasPagas) return "quitado";
+  // Em modo "só juros", pagar todas as parcelas = juros quitados, mas o
+  // PRINCIPAL continua devendo. Não marcamos como "quitado" automaticamente —
+  // mantém "ativo" até admin marcar manualmente quando o cliente devolver
+  // o principal em separado (via PATCH /api/emprestimos/[id] body.status).
+  if (todasPagas && doc.modalidade !== "so-juros") return "quitado";
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const temAtrasada = doc.parcelas.some((p) => {

@@ -55,6 +55,8 @@ interface EmprestimoApi {
   valorTotal: number;
   juros: number;
   taxa: number;
+  modalidade?: "principal-juros" | "so-juros";
+  jurosPorParcela?: number;
   dataEmprestimo: string;
   dataPrimeiraParcela: string;
   totalParcelas: number;
@@ -302,16 +304,37 @@ export default function EmprestimoDetailPage() {
             </div>
           )}
 
+          {/* Badge de modalidade */}
+          {e.modalidade === "so-juros" && (
+            <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-amber-800">Modalidade: Só juros.</strong>{" "}
+                Cliente paga{" "}
+                {e.jurosPorParcela
+                  ? formatCurrency(e.jurosPorParcela)
+                  : formatCurrency(e.juros / Math.max(1, e.totalParcelas))}{" "}
+                por parcela só de juros. O principal de{" "}
+                <strong>{formatCurrency(e.valorEmprestado)}</strong> continua
+                devendo e é devolvido em separado.
+              </div>
+            </div>
+          )}
+
           {/* Detalhes financeiros */}
           <div className="grid sm:grid-cols-2 gap-4 text-sm">
             <FinanceRow
               icon={<Banknote className="h-4 w-4" />}
-              label="Emprestado"
+              label={e.modalidade === "so-juros" ? "Principal (a devolver)" : "Emprestado"}
               value={formatCurrency(e.valorEmprestado)}
             />
             <FinanceRow
               icon={<DollarSign className="h-4 w-4" />}
-              label="Total a receber"
+              label={
+                e.modalidade === "so-juros"
+                  ? "Total de juros a receber"
+                  : "Total a receber"
+              }
               value={formatCurrency(e.valorTotal)}
               accent={
                 kpis && kpis.totalAcrescimos > 0 ? "text-amber-700" : undefined
@@ -327,7 +350,7 @@ export default function EmprestimoDetailPage() {
             )}
             <FinanceRow
               icon={<TrendingUp className="h-4 w-4 text-emerald-600" />}
-              label="Juros"
+              label={e.modalidade === "so-juros" ? "Juros (= total)" : "Juros"}
               value={formatCurrency(e.juros)}
               accent="text-emerald-700"
             />

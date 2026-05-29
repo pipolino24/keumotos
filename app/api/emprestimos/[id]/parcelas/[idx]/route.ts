@@ -167,7 +167,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const novoTotal =
       Math.round(doc.parcelas.reduce((acc, p) => acc + p.valor, 0) * 100) / 100;
     doc.valorTotal = novoTotal;
-    doc.juros = Math.round((novoTotal - doc.valorEmprestado) * 100) / 100;
+    // Modo só-juros: valorTotal JÁ é o juros total recebido (não inclui
+    // principal). Modo principal-juros: juros = total - principal.
+    doc.juros =
+      doc.modalidade === "so-juros"
+        ? novoTotal
+        : Math.round((novoTotal - doc.valorEmprestado) * 100) / 100;
     doc.taxa =
       doc.valorEmprestado > 0
         ? Math.round((doc.juros / doc.valorEmprestado) * 10000) / 100

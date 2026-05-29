@@ -35,6 +35,7 @@ interface EmprestimoApi {
   clienteCpf?: string;
   valorEmprestado: number;
   valorTotal: number;
+  modalidade?: "principal-juros" | "so-juros";
   juros: number;
   taxa: number;
   totalParcelas: number;
@@ -309,8 +310,13 @@ function EmprestimoRow({ e }: { e: EmprestimoApi }) {
           </div>
 
           <div className="text-right flex-shrink-0">
-            <div className="text-xs text-keu-black/50 uppercase tracking-wide">
-              total a receber
+            <div className="text-xs text-keu-black/50 uppercase tracking-wide flex items-center gap-1 justify-end">
+              {e.modalidade === "so-juros" ? "juros a receber" : "total a receber"}
+              {e.modalidade === "so-juros" && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold tracking-normal normal-case">
+                  só juros
+                </span>
+              )}
             </div>
             <div className="font-bold text-keu-red">
               {formatCurrency(e.valorTotal)}
