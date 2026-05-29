@@ -98,14 +98,32 @@ export async function POST(req: NextRequest) {
       );
     }
     const valorEmprestado = Number(body.valorEmprestado);
-    const valorTotal = Number(body.valorTotal);
+    // Modalidade — "principal-juros" (default, amortiza) ou "so-juros"
+    // (cliente paga só os juros mensais, principal continua devendo).
+    const modalidade: "principal-juros" | "so-juros" =
+      body.modalidade === "so-juros" ? "so-juros" : "principal-juros";
     if (!Number.isFinite(valorEmprestado) || valorEmprestado <= 0) {
       return NextResponse.json(
         { error: "Valor emprestado inválido" },
         { status: 400 }
       );
     }
-    if (!Number.isFinite(valorTotal) || valorTotal < valorEmprestado) {
+    let valorTotal = Number(body.valorTotal);
+    let jurosPorParcela: number | undefined;
+    if (modalidade === "so-juros") {
+      // No modo só-juros, o frontend manda `jurosPorParcela` (valor que
+      // o cliente paga TODO mês). valorTotal = jurosPorParcela × N (não
+      // inclui principal — principal continua devendo, é devolvido em
+      // separado quando o cliente quiser quitar).
+      jurosPorParcela = Number(body.jurosPorParcela);
+      if (!Number.isFinite(jurosPorParcela!) || jurosPorParcela! <= 0) {
+        return NextResponse.json(
+          { error: "Juros por parcela inválido (modo só juros)" },
+          { status: 400 }
+        );
+      }
+      valorTotal = Math.round(jurosPorParcela! * Number(body.totalParcelas) * 100) / 100;
+    } else if (!Number.isFinite(valorTotal) || valorTotal < valorEmprestado) {
       return NextResponse.json(
         { error: "Valor total deve ser >= valor emprestado" },
         { status: 400 }
@@ -142,23 +160,38 @@ export async function POST(req: NextRequest) {
       : new Date();
 
     // Cálculos derivados
-    const juros = Math.round((valorTotal - valorEmprestado) * 100) / 100;
+    // Modo só-juros: "juros" = total de juros que receberá ao longo das N
+    // parcelas (não soma principal). Taxa = % por parcela do principal.
+    // Modo principal-juros: juros = valorTotal - valorEmprestado (lucro);
+    // taxa = juros / principal × 100 (taxa total da operação).
+    const juros =
+      modalidade === "so-juros"
+        ? valorTotal // total de juros recebidos ao longo das parcelas
+        : Math.round((valorTotal - valorEmprestado) * 100) / 100;
     const taxa =
       valorEmprestado > 0
         ? Math.round((juros / valorEmprestado) * 10000) / 100
         : 0;
-    const valorParcela = Math.round((valorTotal / totalParcelas) * 100) / 100;
+    // Modo só-juros: cada parcela = jurosPorParcela fixo
+    // Modo principal-juros: cada parcela = valorTotal / N (arredondando)
+    const valorParcela =
+      modalidade === "so-juros"
+        ? jurosPorParcela!
+        : Math.round((valorTotal / totalParcelas) * 100) / 100;
 
     // Gera array de parcelas
     const parcelas: IParcelaDoc[] = [];
     let venc = new Date(dataPrimeira);
     let acumulado = 0;
     for (let i = 1; i <= totalParcelas; i++) {
-      // Última parcela absorve o erro de arredondamento
+      // Modo principal-juros: última parcela absorve erro de arredondamento.
+      // Modo só-juros: todas as parcelas valem exatamente jurosPorParcela.
       const v =
-        i === totalParcelas
-          ? Math.round((valorTotal - acumulado) * 100) / 100
-          : valorParcela;
+        modalidade === "so-juros"
+          ? valorParcela
+          : i === totalParcelas
+            ? Math.round((valorTotal - acumulado) * 100) / 100
+            : valorParcela;
       acumulado += v;
       parcelas.push({
         numero: i,
@@ -179,6 +212,8 @@ export async function POST(req: NextRequest) {
       valorTotal,
       juros,
       taxa,
+      modalidade,
+      jurosPorParcela,
       dataEmprestimo,
       dataPrimeiraParcela: dataPrimeira,
       totalParcelas,

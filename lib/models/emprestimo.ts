@@ -54,6 +54,15 @@ export interface IEmprestimoDoc {
   juros: number; // valorTotal - valorEmprestado (denormalizado)
   taxa: number; // % do principal (juros / valorEmprestado * 100)
 
+  // MODALIDADE de pagamento
+  //  - "principal-juros" (default): parcela amortiza principal+juros (sistema atual)
+  //  - "so-juros": parcela = juros mensal fixo, principal continua devendo
+  //                (cliente paga só pra rolar a dívida — devolve principal no fim)
+  modalidade?: "principal-juros" | "so-juros";
+  // Quando modalidade=so-juros, este é o juros pago em cada parcela.
+  // Útil pra mostrar de forma clara na UI sem ter que recalcular.
+  jurosPorParcela?: number;
+
   // CRONOGRAMA
   dataEmprestimo: Date; // quando o dinheiro saiu
   dataPrimeiraParcela: Date;
@@ -109,6 +118,12 @@ const EmprestimoSchema = new Schema<IEmprestimoDoc>(
     valorTotal: { type: Number, required: true, min: 0 },
     juros: { type: Number, required: true, min: 0 },
     taxa: { type: Number, required: true, min: 0 },
+    modalidade: {
+      type: String,
+      enum: ["principal-juros", "so-juros"],
+      default: "principal-juros",
+    },
+    jurosPorParcela: { type: Number, min: 0 },
 
     dataEmprestimo: { type: Date, required: true, default: () => new Date() },
     dataPrimeiraParcela: { type: Date, required: true },

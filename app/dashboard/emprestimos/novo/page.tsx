@@ -70,8 +70,12 @@ export default function NovoEmprestimoPage() {
     clienteTelefone: "",
     clienteEmail: "",
     clienteCpf: "",
+    // Modalidade: principal-juros (amortiza, padrão) ou só-juros (cliente
+    // paga juros mensal, principal continua devendo)
+    modalidade: "principal-juros" as "principal-juros" | "so-juros",
     valorEmprestado: "",
-    valorTotal: "",
+    valorTotal: "", // usado em modo principal-juros
+    jurosPorParcela: "", // usado em modo só-juros
     dataEmprestimo: isoToday(),
     dataPrimeiraParcela: isoPlusDays(30),
     totalParcelas: "1",
@@ -104,11 +108,24 @@ export default function NovoEmprestimoPage() {
 
   // Cálculos derivados em tempo real
   const valorEmp = parseFloat(form.valorEmprestado) || 0;
-  const valorTot = parseFloat(form.valorTotal) || 0;
   const totalParc = parseInt(form.totalParcelas, 10) || 1;
-  const juros = Math.max(0, valorTot - valorEmp);
+  const jurosParc = parseFloat(form.jurosPorParcela) || 0;
+  // Modo so-juros: valorTotal = jurosPorParcela × N parcelas
+  // Modo principal-juros: valorTotal vem do input direto
+  const valorTot =
+    form.modalidade === "so-juros"
+      ? jurosParc * totalParc
+      : parseFloat(form.valorTotal) || 0;
+  // Juros total (só pra mostrar): em "so-juros" é o próprio valorTot
+  const juros =
+    form.modalidade === "so-juros" ? valorTot : Math.max(0, valorTot - valorEmp);
   const taxa = valorEmp > 0 ? (juros / valorEmp) * 100 : 0;
-  const valorParcela = totalParc > 0 ? valorTot / totalParc : 0;
+  const valorParcela =
+    form.modalidade === "so-juros"
+      ? jurosParc
+      : totalParc > 0
+        ? valorTot / totalParc
+        : 0;
 
   function selectCliente(c: ClienteApi) {
     setClienteSelecionado(c);
@@ -144,7 +161,12 @@ export default function NovoEmprestimoPage() {
       setError("Valor emprestado deve ser maior que 0");
       return;
     }
-    if (valorTot < valorEmp) {
+    if (form.modalidade === "so-juros") {
+      if (jurosParc <= 0) {
+        setError("Informe o valor do juros que o cliente vai pagar por mês");
+        return;
+      }
+    } else if (valorTot < valorEmp) {
       setError("Valor total deve ser maior ou igual ao emprestado");
       return;
     }
@@ -170,8 +192,10 @@ export default function NovoEmprestimoPage() {
           clienteTelefone: form.clienteTelefone || undefined,
           clienteEmail: form.clienteEmail || undefined,
           clienteCpf: form.clienteCpf || undefined,
+          modalidade: form.modalidade,
           valorEmprestado: valorEmp,
           valorTotal: valorTot,
+          jurosPorParcela: form.modalidade === "so-juros" ? jurosParc : undefined,
           dataEmprestimo: form.dataEmprestimo,
           dataPrimeiraParcela: form.dataPrimeiraParcela,
           totalParcelas: totalParc,
@@ -399,10 +423,45 @@ export default function NovoEmprestimoPage() {
               <div>
                 <h2 className="font-bold">Valores</h2>
                 <p className="text-xs text-keu-black/60">
-                  Quanto saiu do caixa e quanto vai voltar
+                  Quanto saiu do caixa e como o cliente vai pagar
                 </p>
               </div>
             </div>
+
+            {/* TOGGLE DE MODALIDADE */}
+            <div className="grid sm:grid-cols-2 gap-3 mb-5">
+              <button
+                type="button"
+                onClick={() => set("modalidade", "principal-juros")}
+                className={`p-3 rounded-lg border-2 text-left transition ${
+                  form.modalidade === "principal-juros"
+                    ? "border-keu-red bg-keu-red/5"
+                    : "border-keu-black/10 hover:border-keu-black/30"
+                }`}
+              >
+                <div className="font-bold text-sm">
+                  Principal + juros (parcelado)
+                </div>
+                <div className="text-[11px] text-keu-black/60 mt-0.5">
+                  Cliente paga R$ X por mês e quita tudo no fim das parcelas
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => set("modalidade", "so-juros")}
+                className={`p-3 rounded-lg border-2 text-left transition ${
+                  form.modalidade === "so-juros"
+                    ? "border-keu-red bg-keu-red/5"
+                    : "border-keu-black/10 hover:border-keu-black/30"
+                }`}
+              >
+                <div className="font-bold text-sm">Só juros (rolando)</div>
+                <div className="text-[11px] text-keu-black/60 mt-0.5">
+                  Cliente paga só os juros por mês — principal continua devendo
+                </div>
+              </button>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="emp" required>
@@ -422,25 +481,73 @@ export default function NovoEmprestimoPage() {
                   Principal que sai do caixa hoje
                 </div>
               </div>
-              <div>
-                <Label htmlFor="tot" required>
-                  Valor total a receber (R$)
-                </Label>
-                <Input
-                  id="tot"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                  value={form.valorTotal}
-                  onChange={(e) => set("valorTotal", e.target.value)}
-                  placeholder="1100.00"
-                />
-                <div className="text-xs text-keu-black/60 mt-1">
-                  Principal + juros
+              {form.modalidade === "principal-juros" ? (
+                <div>
+                  <Label htmlFor="tot" required>
+                    Valor total a receber (R$)
+                  </Label>
+                  <Input
+                    id="tot"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={form.valorTotal}
+                    onChange={(e) => set("valorTotal", e.target.value)}
+                    placeholder="1100.00"
+                  />
+                  <div className="text-xs text-keu-black/60 mt-1">
+                    Principal + juros
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="jp" required>
+                    Juros por parcela (R$)
+                  </Label>
+                  <Input
+                    id="jp"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={form.jurosPorParcela}
+                    onChange={(e) =>
+                      set("jurosPorParcela", e.target.value)
+                    }
+                    placeholder="100.00"
+                  />
+                  <div className="text-xs text-keu-black/60 mt-1">
+                    Quanto o cliente paga em cada parcela só de juros
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {form.modalidade === "so-juros" && valorEmp > 0 && jurosParc > 0 && totalParc > 0 && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+                <div className="font-semibold text-amber-800 mb-1">
+                  ⚠️ Sobre &quot;Só juros&quot;
+                </div>
+                <div className="text-keu-black/80 space-y-0.5">
+                  <div>
+                    • Cliente paga{" "}
+                    <strong>R$ {jurosParc.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>{" "}
+                    por parcela × {totalParc} parcelas ={" "}
+                    <strong>
+                      R$ {(jurosParc * totalParc).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </strong>{" "}
+                    de juros total
+                  </div>
+                  <div>
+                    • Principal (
+                    <strong>R$ {valorEmp.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+                    ) <strong>continua devendo</strong> — cliente devolve em separado
+                    quando quitar
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </Card>
 
           {/* CRONOGRAMA */}
