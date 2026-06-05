@@ -197,7 +197,7 @@ export default function AluguelDetalhePage() {
       </PageHeader>
 
       {isAtivo && (
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap gap-2">
           <Button
             type="button"
             variant="destructive"
@@ -206,6 +206,42 @@ export default function AluguelDetalhePage() {
             onClick={() => setModalOpen(true)}
           >
             <KeyRound className="h-5 w-5" /> Concluir contrato
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="xl"
+            className="w-full md:w-auto"
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: "Cancelar locação?",
+                message:
+                  "Use só pra correção de cadastro errado ou desistência ANTES da entrega da moto. Pra cliente que devolveu a moto, use 'Concluir contrato'. Esta ação libera a moto pra disponível e notifica o cliente.",
+                confirmText: "Cancelar locação",
+                variant: "destructive",
+              });
+              if (!ok) return;
+              try {
+                const res = await fetch(`/api/alugueis/${aluguel._id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "cancelado" }),
+                });
+                if (!res.ok) {
+                  const j = await res.json().catch(() => ({}));
+                  throw new Error(j.error ?? "Falha ao cancelar");
+                }
+                toast.success("Locação cancelada. Moto liberada pra disponível.");
+                refetch();
+                router.refresh();
+              } catch (err) {
+                toast.error(
+                  err instanceof Error ? err.message : "Erro ao cancelar"
+                );
+              }
+            }}
+          >
+            <X className="h-5 w-5" /> Cancelar locação
           </Button>
         </div>
       )}

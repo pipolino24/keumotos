@@ -170,6 +170,36 @@ export default function VisualizarMotoPage() {
       const res = await fetch(`/api/motos/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
+        // Caso especial: moto tem aluguel ativo. Em vez de só mostrar
+        // erro, oferece link direto pro aluguel pra usuário encerrar.
+        if (res.status === 409 && json.aluguelId) {
+          toast.error(
+            `${json.error}${json.clienteNome ? ` (cliente ${json.clienteNome})` : ""}`,
+            {
+              action: {
+                label: "Ver aluguel",
+                onClick: () =>
+                  router.push(`/dashboard/aluguel/${json.aluguelId}`),
+              },
+              duration: 10000,
+            }
+          );
+          return;
+        }
+        if (res.status === 409 && json.vendaId) {
+          toast.error(
+            `${json.error}${json.clienteNome ? ` (cliente ${json.clienteNome})` : ""}`,
+            {
+              action: {
+                label: "Ver venda",
+                onClick: () =>
+                  router.push(`/dashboard/vendas/${json.vendaId}`),
+              },
+              duration: 10000,
+            }
+          );
+          return;
+        }
         throw new Error(json.error || "Falha ao excluir");
       }
       toast.success("Moto excluída com sucesso");

@@ -191,22 +191,36 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       import("@/lib/models/aluguel"),
       import("@/lib/models/venda"),
     ]);
-    const [temAluguel, temVenda] = await Promise.all([
-      Aluguel.exists({
+    const [aluguelAtivo, vendaConcluida] = await Promise.all([
+      // Em vez de só exists, pegamos o _id pra mandar ao front e ele
+      // oferecer um link rápido "Ver aluguel ativo" no erro.
+      Aluguel.findOne({
         motoId: id,
         status: { $in: ["ativo", "atrasado"] },
-      }),
-      Venda.exists({ motoId: id, status: "concluida" }),
+      })
+        .select("_id clienteNome")
+        .lean(),
+      Venda.findOne({ motoId: id, status: "concluida" })
+        .select("_id clienteNome")
+        .lean(),
     ]);
-    if (temAluguel) {
+    if (aluguelAtivo) {
       return NextResponse.json(
-        { error: "Moto tem aluguel ativo — encerre antes de deletar" },
+        {
+          error: "Moto tem aluguel ativo — encerre antes de deletar",
+          aluguelId: String(aluguelAtivo._id),
+          clienteNome: aluguelAtivo.clienteNome ?? null,
+        },
         { status: 409 }
       );
     }
-    if (temVenda) {
+    if (vendaConcluida) {
       return NextResponse.json(
-        { error: "Moto tem venda concluída registrada — não pode ser deletada" },
+        {
+          error: "Moto tem venda concluída registrada — não pode ser deletada",
+          vendaId: String(vendaConcluida._id),
+          clienteNome: vendaConcluida.clienteNome ?? null,
+        },
         { status: 409 }
       );
     }
