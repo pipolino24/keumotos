@@ -76,10 +76,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         ? valorPagoRaw
         : parcela.valor;
       // Pagamento parcial é OK (valorPago < valor), pagamento extra também
-      // (cliente pagou juros de mora), mas valor <= 0 é erro de input.
-      if (!Number.isFinite(valorPago) || valorPago < 0) {
+      // (cliente pagou juros de mora), mas valor <= 0 é erro de input —
+      // marcar parcela como paga sem nenhum valor real não faz sentido.
+      // Pra "perdoar" uma parcela, use o estorno/cancelamento, não pagar 0.
+      if (!Number.isFinite(valorPago) || valorPago <= 0) {
         return NextResponse.json(
-          { error: "Valor pago deve ser >= 0" },
+          { error: "Valor pago deve ser maior que zero" },
           { status: 400 }
         );
       }

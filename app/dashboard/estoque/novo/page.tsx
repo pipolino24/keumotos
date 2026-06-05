@@ -1003,7 +1003,12 @@ export default function NovoMotoPage() {
       </div>
 
       <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-keu-black/5">
-        <Button type="button" variant="outline" disabled={saving}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saving}
+          onClick={() => router.push("/dashboard/estoque")}
+        >
           Cancelar
         </Button>
         <Button type="submit" size="lg" disabled={saving}>

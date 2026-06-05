@@ -151,8 +151,14 @@ export default function AdministracaoPage() {
   const receitaAluguel = alugueis.reduce((s, a) => s + a.valorTotal, 0);
 
   // RESULTADO LÍQUIDO
+  // Comissão só incide em venda (vendedor ganha % do que vendeu). Aluguel
+  // entra direto no caixa sem desconto. Antes a fórmula era
+  //   (faturamento + aluguel) - comissões
+  // matematicamente igual mas semanticamente confusa — parecia que comissão
+  // descontava do aluguel também.
+  const resultadoLiquidoVendas = faturamentoTotal - comissoesPagas;
   const resultadoBruto = faturamentoTotal + receitaAluguel;
-  const resultadoLiquido = resultadoBruto - comissoesPagas;
+  const resultadoLiquido = resultadoLiquidoVendas + receitaAluguel;
 
   // VENDEDORES
   const rankingVendedores = [...vendedores].sort(
@@ -173,10 +179,12 @@ export default function AdministracaoPage() {
     (s, m) => s + (m.compra?.valorPago ?? m.valorCompra),
     0
   );
-  const compromissoRepasse = motosRepasse.reduce(
-    (s, m) => s + (m.repasse?.valorCombinadoDono ?? 0),
-    0
-  );
+  // compromissoRepasse = o que ainda devemos ao dono. Se a moto já foi
+  // vendida (ou devolvida ao dono), esse compromisso foi resolvido — não
+  // entra mais. Antes contava TODA moto de repasse mesmo se vendida.
+  const compromissoRepasse = motosRepasse
+    .filter((m) => m.status !== "vendida" && m.status !== "devolvida")
+    .reduce((s, m) => s + (m.repasse?.valorCombinadoDono ?? 0), 0);
 
   // CONVERSÃO LEADS
   const totalLeads = contatos.length;

@@ -33,15 +33,30 @@ async function fetchFipe<T>(
   path: string,
   options?: { revalidate?: number }
 ): Promise<T> {
-  const res = await fetch(`${FIPE_BASE}${path}`, {
-    next: { revalidate: options?.revalidate ?? 60 * 60 * 24 },
-  });
-  if (!res.ok) {
-    throw new Error(
-      `FIPE API error: ${res.status} ${res.statusText} (${path})`
-    );
+  // Timeout de 5s — se Parallelum cair, antes a request travava até a
+  // Vercel matar a função (até 5min). Agora retorna erro rápido e o
+  // catálogo segue (componentes upstream tratam o erro).
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${FIPE_BASE}${path}`, {
+      next: { revalidate: options?.revalidate ?? 60 * 60 * 24 },
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      throw new Error(
+        `FIPE API error: ${res.status} ${res.statusText} (${path})`
+      );
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`FIPE API timeout (5s) — ${path}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return (await res.json()) as T;
 }
 
 export function fipeBrands(
