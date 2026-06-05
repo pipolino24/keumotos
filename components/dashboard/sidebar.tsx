@@ -33,7 +33,7 @@ import { AvatarMenu } from "@/components/dashboard/avatar-menu";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 
 const staffNavItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Meu painel" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Operação" },
   { href: "/dashboard/vendas", icon: ShoppingCart, label: "Vendas" },
   { href: "/dashboard/aluguel", icon: KeyRound, label: "Aluguel" },
   {

@@ -4,15 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  TrendingUp,
   Bike,
-  Target,
   Phone,
   ArrowRight,
   CheckCircle2,
   Clock,
-  Trophy,
-  Flame,
   Loader2,
   ShoppingBag,
   KeyRound,
@@ -27,11 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { InteressesWidget } from "@/components/dashboard/interesses-widget";
-import { ConversaoWidget } from "@/components/dashboard/conversao-widget";
 import { TopMotosWidget } from "@/components/dashboard/top-motos-widget";
-import { LeadsQuentesWidget } from "@/components/dashboard/leads-quentes-widget";
-import { ColdLeadsWidget } from "@/components/dashboard/cold-leads-widget";
 import { ProximasAcoesWidget } from "@/components/dashboard/proximas-acoes-widget";
 import { MeuVendedorWidget } from "@/components/dashboard/meu-vendedor-widget";
 import { InadimplenciaWidget } from "@/components/dashboard/inadimplencia-widget";
@@ -40,7 +32,6 @@ import { formatCurrency } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
-import { KEU_CONFIG } from "@/lib/config";
 
 export default function DashboardPage() {
   const me = useCurrentUser();
@@ -945,82 +936,12 @@ function StaffDashboard() {
   );
 
   const motos = motosData?.motos ?? [];
-  const contatos = contData?.contatos ?? [];
   const todasVendas = vendasData?.vendas ?? [];
   const todosAlugueis = alugData?.alugueis ?? [];
-
-  const motosDisponiveis = motos.filter((m) => m.status === "disponivel").length;
-  // Pool compartilhado: todos os contatos são da equipe — sem filtro
-  // por vendedor responsável.
-  const meusLeadsAtivos = contatos.filter(
-    (c) => c.status === "novo" || c.status === "em-atendimento"
-  );
-  const meusLeads = contatos;
-
-  // Vendas: admin vê todas, vendedor vê só as próprias (a API já filtra,
-  // mas como vendedorId no shape pode vir vazio, mantemos só ordenação).
-  const minhasVendas = todasVendas
-    .filter((v) => v.status !== "cancelada")
-    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-
-  // Comissão do mês corrente + mês anterior (pra trend indicator)
-  const agora = new Date();
-  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
-  const inicioMesAnt = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
-  const fimMesAnt = new Date(agora.getFullYear(), agora.getMonth(), 0);
-  const minhaComissao = minhasVendas
-    .filter((v) => new Date(v.data) >= inicioMes)
-    .reduce((sum, v) => sum + (v.comissao || 0), 0);
-  const comissaoMesAnt = minhasVendas
-    .filter((v) => {
-      const d = new Date(v.data);
-      return d >= inicioMesAnt && d <= fimMesAnt;
-    })
-    .reduce((sum, v) => sum + (v.comissao || 0), 0);
-  const vendasMes = minhasVendas.filter(
-    (v) => new Date(v.data) >= inicioMes
-  ).length;
-  const vendasMesAnt = minhasVendas.filter((v) => {
-    const d = new Date(v.data);
-    return d >= inicioMesAnt && d <= fimMesAnt;
-  }).length;
-  // Trends — direção e % delta
-  const trendVendas =
-    vendasMesAnt === 0
-      ? vendasMes > 0
-        ? { dir: "up" as const, val: "novo" }
-        : null
-      : vendasMes > vendasMesAnt
-      ? {
-          dir: "up" as const,
-          val: `+${Math.round(((vendasMes - vendasMesAnt) / vendasMesAnt) * 100)}%`,
-        }
-      : vendasMes < vendasMesAnt
-      ? {
-          dir: "down" as const,
-          val: `-${Math.round(((vendasMesAnt - vendasMes) / vendasMesAnt) * 100)}%`,
-        }
-      : { dir: "flat" as const, val: "estável" };
-  const trendComissao =
-    comissaoMesAnt === 0
-      ? minhaComissao > 0
-        ? { dir: "up" as const, val: "novo" }
-        : null
-      : minhaComissao > comissaoMesAnt
-      ? {
-          dir: "up" as const,
-          val: `+${Math.round(
-            ((minhaComissao - comissaoMesAnt) / comissaoMesAnt) * 100
-          )}%`,
-        }
-      : minhaComissao < comissaoMesAnt
-      ? {
-          dir: "down" as const,
-          val: `-${Math.round(
-            ((comissaoMesAnt - minhaComissao) / comissaoMesAnt) * 100
-          )}%`,
-        }
-      : { dir: "flat" as const, val: "estável" };
+  // Mantemos referência pra `contatos` só pra não quebrar o useApi (loading
+  // entra no useApi global). Não tem mais consumo direto na UI desde que
+  // tiramos os cards de leads quentes/esfriados/funil.
+  void contData;
 
   // Próximas devoluções de aluguel (ativo/atrasado, ordenado por dataFim)
   const hoje = new Date();
@@ -1096,7 +1017,7 @@ function StaffDashboard() {
     <div>
       <PageHeader
         title={`Olá, ${me.nome.split(" ")[0]}! 👋`}
-        description="Seu painel pessoal — vendas, leads e estoque do dia"
+        description="Visão da operação — frota, locações ativas e próximas devoluções"
       >
         <Link href="/dashboard/estoque/novo">
           <Button>
@@ -1105,158 +1026,61 @@ function StaffDashboard() {
         </Link>
       </PageHeader>
 
+      {/* Status da frota — quantidades por estado, sem valor monetário */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 stagger-children">
         <StatCard
-          icon={<Trophy className="h-5 w-5" />}
-          label="Vendas do mês"
-          value={vendasMes.toString()}
-          trend={`${minhasVendas.length} no histórico`}
-          color="bg-emerald-500"
-          trendDirection={trendVendas?.dir}
-          trendValue={trendVendas?.val}
-        />
-        <StatCard
-          icon={<TrendingUp className="h-5 w-5" />}
-          label="Comissão do mês"
-          value={formatCurrency(minhaComissao)}
-          trend="acumulado no mês corrente"
-          color="bg-keu-red"
-          trendDirection={trendComissao?.dir}
-          trendValue={trendComissao?.val}
-        />
-        <StatCard
-          icon={<Phone className="h-5 w-5" />}
-          label="Leads ativos"
-          value={meusLeadsAtivos.length.toString()}
-          trend={`${meusLeads.length} no total`}
+          icon={<KeyRound className="h-5 w-5" />}
+          label="Aluguéis ativos"
+          value={todosAlugueis
+            .filter((a) => a.status === "ativo" || a.status === "atrasado")
+            .length.toString()}
+          trend={
+            todosAlugueis.filter((a) => a.status === "atrasado").length > 0
+              ? `${todosAlugueis.filter((a) => a.status === "atrasado").length} em atraso`
+              : "todos em dia"
+          }
           color="bg-blue-500"
         />
         <StatCard
           icon={<Bike className="h-5 w-5" />}
-          label="Motos no estoque"
-          value={motosDisponiveis.toString()}
-          trend="disponíveis para venda"
+          label="Frota disponível"
+          value={motos.filter((m) => m.status === "disponivel").length.toString()}
+          trend="pronta pra locar ou vender"
+          color="bg-emerald-500"
+        />
+        <StatCard
+          icon={<Calendar className="h-5 w-5" />}
+          label="Devoluções em 7 dias"
+          value={proximasDevolucoes
+            .filter((a) => {
+              const dias = Math.ceil(
+                (a.dataFimDt.getTime() - hoje.getTime()) / 86400000
+              );
+              return dias <= 7;
+            })
+            .length.toString()}
+          trend="agendar coleta/devolução"
           color="bg-amber-500"
+        />
+        <StatCard
+          icon={<AlertCircle className="h-5 w-5" />}
+          label="Em manutenção/lavagem"
+          value={motos
+            .filter((m) => m.status === "manutencao" || m.status === "lavagem")
+            .length.toString()}
+          trend="indisponíveis temporariamente"
+          color="bg-rose-500"
         />
       </div>
 
+      {/* Top motos — quais motos têm mais interesse no catálogo público */}
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 mb-6">
-        <InteressesWidget limit={6} />
-        <div className="space-y-6">
-          <ConversaoWidget />
-          <TopMotosWidget limit={5} />
-        </div>
+        <TopMotosWidget limit={8} />
+        <InadimplenciaWidget />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-6">
-        <LeadsQuentesWidget limit={6} />
-        <ColdLeadsWidget limit={6} />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-lg">Vendas recentes</h2>
-              <p className="text-sm text-keu-black/60">
-                Últimas transações concluídas
-              </p>
-            </div>
-            <Link
-              href="/dashboard/vendas"
-              className="text-sm text-keu-red font-semibold hover:underline flex items-center gap-1"
-            >
-              Ver todas <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-          {loading ? (
-            <div className="p-12 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
-            </div>
-          ) : minhasVendas.length === 0 ? (
-            <div className="p-12 text-center">
-              <Target className="h-10 w-10 text-keu-black/20 mx-auto mb-3" />
-              <p className="text-sm text-keu-black/60">
-                Nenhuma venda registrada ainda.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-keu-black/5">
-              {minhasVendas.slice(0, 5).map((v) => (
-                <div
-                  key={v._id}
-                  className="p-4 px-6 flex items-center gap-4 hover:bg-keu-gray-light transition"
-                >
-                  <div className="bg-emerald-500/10 text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center">
-                    <ShoppingBag className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate">
-                      {v.motoMarca ? `${v.motoMarca} ` : ""}
-                      {v.motoModelo}
-                    </div>
-                    <div className="text-xs text-keu-black/60 flex flex-wrap items-center gap-2">
-                      <span>{v.clienteNome}</span>
-                      <span>•</span>
-                      <span>
-                        {new Date(v.data).toLocaleDateString("pt-BR")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">
-                      {formatCurrency(v.valorVendido)}
-                    </div>
-                    {v.comissao > 0 && (
-                      <div className="text-xs text-emerald-600">
-                        comissão {formatCurrency(v.comissao)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="p-6 bg-gradient-to-br from-keu-red to-keu-red-dark text-white border-0 overflow-hidden relative">
-            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative">
-              <div className="bg-white/20 backdrop-blur w-12 h-12 rounded-xl flex items-center justify-center mb-4">
-                <Flame className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg mb-1">Meta do mês</h3>
-              <p className="text-sm text-white/80 mb-4">
-                Acompanhe seu progresso pessoal
-              </p>
-              <div className="mb-2">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-white/80">
-                    {vendasMes} de {KEU_CONFIG.metaVendasMensal} vendas
-                  </span>
-                  <span className="font-bold">
-                    {Math.round((vendasMes / KEU_CONFIG.metaVendasMensal) * 100)}%
-                  </span>
-                </div>
-                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white transition-all"
-                    style={{
-                      width: `${Math.min(100, (vendasMes / KEU_CONFIG.metaVendasMensal) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-white/70 mt-3">
-                {vendasMes >= KEU_CONFIG.metaVendasMensal
-                  ? "🎉 Meta batida! Parabéns!"
-                  : `Faltam ${KEU_CONFIG.metaVendasMensal - vendasMes} vendas pra bater a meta`}
-              </p>
-            </div>
-          </Card>
-
-          <Card className="p-6">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg">Próximas conclusões</h3>
               {proximasDevolucoes.length > 0 && (
@@ -1331,8 +1155,6 @@ function StaffDashboard() {
               </div>
             )}
           </Card>
-
-          <InadimplenciaWidget />
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -1424,72 +1246,6 @@ function StaffDashboard() {
               </div>
             )}
           </Card>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <Card>
-          <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-lg">Meus leads ativos</h2>
-              <p className="text-sm text-keu-black/60">
-                Contatos para você atender
-              </p>
-            </div>
-            <Link
-              href="/dashboard/contatos"
-              className="text-sm text-keu-red font-semibold hover:underline flex items-center gap-1"
-            >
-              Ver todos <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-          {loading ? (
-            <div className="p-12 text-center">
-              <Loader2 className="h-6 w-6 animate-spin text-keu-red mx-auto" />
-            </div>
-          ) : meusLeadsAtivos.length === 0 ? (
-            <div className="p-12 text-center">
-              <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-              <p className="text-sm text-keu-black/60">
-                Nenhum lead pendente — bom trabalho!
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-keu-black/5">
-              {meusLeadsAtivos.slice(0, 5).map((c) => (
-                <div
-                  key={c._id}
-                  className="p-4 px-6 flex items-center gap-4 hover:bg-keu-gray-light transition"
-                >
-                  <div className="bg-keu-red text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
-                    {c.nome.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold">{c.nome}</div>
-                    <div className="text-xs text-keu-black/60 flex items-center gap-2 flex-wrap">
-                      <span>{c.telefone}</span>
-                      {c.motoInteresse && (
-                        <>
-                          <span>•</span>
-                          <span>interessado em {c.motoInteresse}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <Badge
-                    variant={c.status === "novo" ? "info" : "warning"}
-                    className="text-[10px]"
-                  >
-                    {c.status === "novo" ? (
-                      <Clock className="h-3 w-3" />
-                    ) : null}
-                    {c.status === "novo" ? "Novo" : "Em atendimento"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
       </div>
     </div>
   );
