@@ -99,7 +99,7 @@ export default function NotificacoesPage() {
     <div>
       <PageHeader
         title="Notificações"
-        description="Histórico completo de alertas, eventos e atividades"
+        description="Alertas pra você — parcelas vencendo, devoluções e mensagens"
       >
         {unreadCount > 0 && (
           <Button variant="outline" onClick={() => patch("ler_todas")}>

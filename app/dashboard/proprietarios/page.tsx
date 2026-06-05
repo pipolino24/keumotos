@@ -86,12 +86,12 @@ export default function ProprietariosPage() {
       </Link>
 
       <PageHeader
-        title="Pessoas"
-        description="Donos de motos consignadas, vendedores externos e clientes de aluguel"
+        title="Fornecedores"
+        description="Donos de motos em consignação — quem entrega moto pra KEU revender"
       >
         <Link href="/dashboard/proprietarios/novo">
           <Button>
-            <UserPlus className="h-4 w-4" /> Nova pessoa
+            <UserPlus className="h-4 w-4" /> Novo fornecedor
           </Button>
         </Link>
       </PageHeader>

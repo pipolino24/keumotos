@@ -93,28 +93,8 @@ export default function ContratosPage() {
         description="Histórico de contratos de locação gerados pela loja"
       />
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-5 bg-gradient-to-br from-keu-red to-keu-red-dark text-white border-0">
-          <FileText className="h-5 w-5 mb-2" />
-          <div className="text-2xl font-black">{total}</div>
-          <div className="text-xs uppercase opacity-90">Total de contratos</div>
-        </Card>
-        <Card className="p-5 bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
-          <Clock className="h-5 w-5 mb-2" />
-          <div className="text-2xl font-black">{ativos}</div>
-          <div className="text-xs uppercase opacity-90">Ativos</div>
-        </Card>
-        <Card className="p-5 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0">
-          <CheckCircle2 className="h-5 w-5 mb-2" />
-          <div className="text-2xl font-black">{assinados}</div>
-          <div className="text-xs uppercase opacity-90">Assinados</div>
-        </Card>
-        <Card className="p-5 bg-gradient-to-br from-rose-500 to-rose-600 text-white border-0">
-          <XCircle className="h-5 w-5 mb-2" />
-          <div className="text-2xl font-black">{rescindidos}</div>
-          <div className="text-xs uppercase opacity-90">Rescindidos</div>
-        </Card>
-      </div>
+      {/* Sem stat cards no topo — as tabs Todos/Ativos/Assinados/Rescindidos
+          embaixo já mostram os mesmos contadores sem duplicar. */}
 
       <Card>
         <div className="p-5 border-b border-keu-black/5">

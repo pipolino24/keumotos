@@ -175,9 +175,7 @@ export default function AquisicoesPage() {
           </div>
           <div className="text-3xl font-black">{totalCompras.length}</div>
           <div className="text-sm text-white/90">Motos compradas</div>
-          <div className="text-xs text-white/70 mt-1">
-            {formatCurrency(investidoTotal)} investidos
-          </div>
+          <div className="text-xs text-white/70 mt-1">capital próprio</div>
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-purple-500 to-purple-700 text-white border-0">
@@ -186,22 +184,7 @@ export default function AquisicoesPage() {
           </div>
           <div className="text-3xl font-black">{totalRepasses.length}</div>
           <div className="text-sm text-white/90">Em repasse</div>
-          <div className="text-xs text-white/70 mt-1">
-            {formatCurrency(compromissoRepasse)} a devolver aos donos
-          </div>
-        </Card>
-
-        <Card className="p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0">
-          <div className="bg-white/20 backdrop-blur w-10 h-10 rounded-lg flex items-center justify-center mb-3">
-            <TrendingUp className="h-5 w-5" />
-          </div>
-          <div className="text-3xl font-black">
-            {formatCurrency(lucroPotencialRepasse)}
-          </div>
-          <div className="text-sm text-white/90">Lucro potencial repasse</div>
-          <div className="text-xs text-white/70 mt-1">
-            se tudo vender pelo anunciado
-          </div>
+          <div className="text-xs text-white/70 mt-1">consignadas de donos</div>
         </Card>
 
         <Card className="p-6 bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
@@ -209,7 +192,7 @@ export default function AquisicoesPage() {
             <User className="h-5 w-5" />
           </div>
           <div className="text-3xl font-black">{proprietarios.length}</div>
-          <div className="text-sm text-white/90">Proprietários</div>
+          <div className="text-sm text-white/90">Fornecedores</div>
           <div className="text-xs text-white/70 mt-1">cadastrados</div>
         </Card>
       </div>
