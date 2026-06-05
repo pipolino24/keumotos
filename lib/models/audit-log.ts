@@ -29,7 +29,9 @@ export type AcaoAudit =
   | "emprestimo.cancel"
   | "emprestimo.parcela.pagar"
   | "emprestimo.parcela.estornar"
-  | "emprestimo.parcela.postergar";
+  | "emprestimo.parcela.postergar"
+  | "contrato.update"
+  | "contrato.delete";
 
 export interface IAuditLogDoc {
   acao: AcaoAudit;
@@ -46,7 +48,8 @@ export interface IAuditLogDoc {
     | "contato"
     | "afiliado"
     | "interesse"
-    | "emprestimo";
+    | "emprestimo"
+    | "contrato";
   alvoId: string; // id do recurso afetado
   alvoLabel?: string; // descrição humana ("João Silva", "Honda CB 300")
 

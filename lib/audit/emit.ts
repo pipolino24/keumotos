@@ -15,7 +15,8 @@ interface EmitAuditParams {
     | "contato"
     | "afiliado"
     | "interesse"
-    | "emprestimo";
+    | "emprestimo"
+    | "contrato";
   alvoId: string;
   alvoLabel?: string;
   estadoAnterior?: Record<string, unknown>;

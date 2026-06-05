@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "@/lib/mongodb";
 import { Contrato } from "@/lib/models/contrato";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +63,35 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const update: Record<string, unknown> = {};
     if (body.status) update.status = body.status;
     if (body.observacoes !== undefined) update.observacoes = body.observacoes;
+    // Pega o snapshot antes pra registrar no audit log o estado anterior
+    // — antes essa rota não auditava nada, ficava impossível rastrear quem
+    // rescindiu/concluiu uma locação.
+    const anterior = await Contrato.findById(id)
+      .select("status observacoes contratante moto")
+      .lean();
     const contrato = await Contrato.findByIdAndUpdate(id, update, { new: true }).lean();
     if (!contrato) {
       return NextResponse.json({ error: "Contrato não encontrado" }, { status: 404 });
+    }
+    if (anterior) {
+      const nomeContratante = anterior.contratante?.nome;
+      const motoLabel = anterior.moto
+        ? `${anterior.moto.marca ?? ""} ${anterior.moto.modelo ?? ""}`.trim()
+        : "";
+      emitAuditLog({
+        acao: "contrato.update",
+        ator: auth.userId,
+        atorRole: auth.role,
+        alvoTipo: "contrato",
+        alvoId: id,
+        alvoLabel:
+          (nomeContratante ? `${nomeContratante} · ` : "") + (motoLabel || id),
+        estadoAnterior: {
+          status: anterior.status,
+          observacoes: anterior.observacoes,
+        },
+        estadoNovo: update,
+      });
     }
     return NextResponse.json({ contrato });
   } catch (err) {

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
 import { toast } from "sonner";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -18,14 +17,25 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        {
+      // Chama nosso endpoint /api/forgot-password (rate-limited) em vez de
+      // bater no Supabase direto do browser. Backend faz a proteção contra
+      // enumeração e spam.
+      const res = await fetch("/api/forgot-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
           redirectTo: `${window.location.origin}/auth/reset-password`,
-        }
-      );
-      if (error) throw error;
+        }),
+      });
+      if (res.status === 429) {
+        toast.error("Muitas tentativas. Aguarde alguns minutos e tente de novo.");
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Erro ao enviar e-mail");
+      }
       setSent(true);
       toast.success("Se o e-mail existir, você receberá instruções em instantes");
     } catch (err) {
