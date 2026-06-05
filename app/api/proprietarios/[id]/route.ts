@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongodb";
 import { Proprietario } from "@/lib/models/proprietario";
 import { requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       if (data[k] !== undefined) update[k] = data[k];
     }
 
+    const antes = await Proprietario.findById(id)
+      .select("nome cpf telefone email")
+      .lean();
     const proprietario = await Proprietario.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
@@ -92,6 +96,18 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         { status: 404 }
       );
     }
+    emitAuditLog({
+      acao: "proprietario.update",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "proprietario",
+      alvoId: String(id),
+      alvoLabel: proprietario.nome ?? proprietario.cpf ?? String(id),
+      estadoAnterior: antes
+        ? (JSON.parse(JSON.stringify(antes)) as Record<string, unknown>)
+        : undefined,
+      estadoNovo: update,
+    });
     return NextResponse.json({ proprietario });
   } catch (err) {
     const message =
@@ -139,6 +155,18 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
         { status: 404 }
       );
     }
+    emitAuditLog({
+      acao: "proprietario.delete",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "proprietario",
+      alvoId: String(id),
+      alvoLabel: proprietario.nome ?? proprietario.cpf ?? String(id),
+      estadoAnterior: {
+        nome: proprietario.nome,
+        cpf: proprietario.cpf,
+      },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao deletar";

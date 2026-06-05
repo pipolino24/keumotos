@@ -55,14 +55,22 @@ function LoginPageInner() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const emailNorm = email.trim().toLowerCase();
     try {
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: emailNorm,
         password,
       });
       if (error) throw error;
       if (!data.user) throw new Error("Sessão inválida");
+
+      // Audit log de login bem-sucedido (best-effort, não bloqueia o redirect)
+      void fetch("/api/auth/login-track", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ success: true, email: emailNorm }),
+      }).catch(() => {});
 
       toast.success("Login realizado!");
 
@@ -75,6 +83,13 @@ function LoginPageInner() {
       // renderizaria o dashboard com role errado.
       window.location.replace(target);
     } catch (err) {
+      // Audit log da tentativa falha — pra detectar brute-force / suspicious
+      void fetch("/api/auth/login-track", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ success: false, email: emailNorm }),
+      }).catch(() => {});
+
       const msg =
         err instanceof Error ? traduzirErro(err.message) : "Erro ao entrar";
       setError(msg);

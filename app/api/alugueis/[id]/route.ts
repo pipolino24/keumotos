@@ -4,6 +4,7 @@ import { Aluguel } from "@/lib/models/aluguel";
 import { Moto } from "@/lib/models/moto";
 import { Notification } from "@/lib/models/notification";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,23 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       }
     }
 
+    // Audit log: registra mudança no aluguel pra rastreabilidade.
+    // Quando status mudou (concluído/cancelado/devolvido), as ações
+    // específicas (cancelar/devolver/reativar) já têm seus próprios endpoints
+    // dedicados — esse PATCH é o "outros editar" e fica como aluguel.update.
+    emitAuditLog({
+      acao: "aluguel.update",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "aluguel",
+      alvoId: String(id),
+      alvoLabel: `${aluguel.clienteNome ?? "?"} · ${aluguel.motoMarca ?? ""} ${aluguel.motoModelo ?? ""}`.trim(),
+      estadoAnterior: {
+        status: antes.status,
+        observacoes: antes.observacoes,
+      },
+      estadoNovo: update,
+    });
     return NextResponse.json({ aluguel });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao atualizar";
@@ -169,6 +187,21 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       ).catch(() => {});
     }
 
+    // Delete-físico de aluguel é raro — usamos o mesmo audit type
+    // "aluguel.cancelar" porque semanticamente é um cancelamento extremo.
+    emitAuditLog({
+      acao: "aluguel.cancelar",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "aluguel",
+      alvoId: String(id),
+      alvoLabel: `${aluguel.clienteNome ?? "?"} · ${aluguel.motoMarca ?? ""} ${aluguel.motoModelo ?? ""}`.trim(),
+      motivo: "delete físico (raro — admin removeu do banco)",
+      estadoAnterior: {
+        status: aluguel.status,
+        valorTotal: aluguel.valorTotal,
+      },
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao deletar";
