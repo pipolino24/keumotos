@@ -25,10 +25,12 @@ export async function GET(req: NextRequest) {
       query.acao = acao;
     }
     const alvoTipo = searchParams.get("alvoTipo");
-    if (
-      alvoTipo &&
-      ["user", "moto", "aluguel", "venda", "role", "contato", "afiliado", "interesse"].includes(alvoTipo)
-    ) {
+    const ALVO_TIPOS_VALIDOS = [
+      "user", "moto", "aluguel", "venda", "role", "contato",
+      "afiliado", "interesse", "emprestimo", "contrato",
+      "cliente", "proprietario", "page", "form", "sistema",
+    ];
+    if (alvoTipo && ALVO_TIPOS_VALIDOS.includes(alvoTipo)) {
       query.alvoTipo = alvoTipo;
     }
     const alvoId = searchParams.get("alvoId");

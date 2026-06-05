@@ -8,6 +8,7 @@ import { Interesse } from "@/lib/models/interesse";
 import { aluguelCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
 import { gerarParcelasLocacao } from "@/lib/aluguel/parcelas";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -212,6 +213,22 @@ export async function POST(req: NextRequest) {
       ).catch(() => {});
     }
 
+    emitAuditLog({
+      acao: "aluguel.create",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "aluguel",
+      alvoId: String(aluguel._id),
+      alvoLabel: `${aluguel.clienteNome ?? "?"} · ${aluguel.motoMarca ?? ""} ${
+        aluguel.motoModelo ?? ""
+      }`.trim(),
+      estadoNovo: {
+        status: aluguel.status,
+        valorTotal: aluguel.valorTotal,
+        dataInicio: aluguel.dataInicio,
+        dataFim: aluguel.dataFim,
+      },
+    });
     return NextResponse.json({ aluguel }, { status: 201 });
   } catch (err) {
     const message =

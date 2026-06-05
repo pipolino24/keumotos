@@ -4,6 +4,7 @@ import { Proprietario } from "@/lib/models/proprietario";
 import { proprietarioCreateSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
 import { rateLimit } from "@/lib/rate-limit";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,15 @@ export async function POST(req: NextRequest) {
       );
     }
     const proprietario = await Proprietario.create(parsed.data);
+    emitAuditLog({
+      acao: "proprietario.create",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "proprietario",
+      alvoId: String(proprietario._id),
+      alvoLabel: proprietario.nome ?? proprietario.cpf ?? String(proprietario._id),
+      estadoNovo: { nome: proprietario.nome, cpf: proprietario.cpf },
+    });
     return NextResponse.json({ proprietario }, { status: 201 });
   } catch (err) {
     const message =

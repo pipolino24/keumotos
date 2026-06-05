@@ -4,6 +4,7 @@ import { Moto } from "@/lib/models/moto";
 import { motoCreateSchema } from "@/lib/schemas";
 import { requireRole } from "@/lib/auth/api-guards";
 import { requireAuth } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -229,6 +230,22 @@ export async function POST(req: NextRequest) {
     if (renavam) dataPraSalvar.renavam = renavam;
 
     const moto = await Moto.create(dataPraSalvar);
+    emitAuditLog({
+      acao: "moto.create",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "moto",
+      alvoId: String(moto._id),
+      alvoLabel: `${moto.marca ?? ""} ${moto.modelo ?? ""} ${
+        moto.placa ?? ""
+      }`.trim(),
+      estadoNovo: {
+        status: moto.status,
+        tipo: moto.tipo,
+        valorCompra: moto.valorCompra,
+        valorAnunciado: moto.valorAnunciado,
+      },
+    });
     return NextResponse.json({ moto }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao salvar moto";

@@ -23,6 +23,7 @@ import {
   Banknote,
   FileText,
   AlertTriangle,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KeuLogo } from "@/components/keu-logo";
@@ -59,6 +60,7 @@ const adminNavItems = [
   { href: "/dashboard/emprestimos", icon: Banknote, label: "Empréstimos" },
   { href: "/dashboard/proprietarios", icon: Users, label: "Fornecedores" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
+  { href: "/dashboard/logs", icon: History, label: "Logs" },
   // OCULTADO 2026-06-05 a pedido do dono — código preservado pra reativar
   // depois. Pra reativar: descomentar a linha + os redirects em
   // /afiliado/layout, /m/[codigo]/page e /dashboard/afiliados/page.

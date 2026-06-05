@@ -7,6 +7,7 @@ import { Notification } from "@/lib/models/notification";
 import { Interesse } from "@/lib/models/interesse";
 import { vendaCreateSchema } from "@/lib/schemas";
 import { requireAuth, requireRole } from "@/lib/auth/api-guards";
+import { emitAuditLog } from "@/lib/audit/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,21 @@ export async function POST(req: NextRequest) {
       ).catch(() => {});
     }
 
+    emitAuditLog({
+      acao: "venda.create",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "venda",
+      alvoId: String(venda._id),
+      alvoLabel: `${venda.clienteNome ?? "?"} · ${venda.motoMarca ?? ""} ${
+        venda.motoModelo ?? ""
+      }`.trim(),
+      estadoNovo: {
+        status: venda.status,
+        valorVendido: venda.valorVendido,
+        comissao: venda.comissao,
+      },
+    });
     return NextResponse.json({ venda }, { status: 201 });
   } catch (err) {
     // Erros não-validation são internos (DB, network, etc.) → 500.
