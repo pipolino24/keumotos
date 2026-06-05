@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { whatsappLink } from "@/lib/keu-units";
 
 interface Props {
   valorMoto: number;
@@ -75,6 +76,8 @@ export function FinancingSimulator({ valorMoto, modeloNome, motoId }: Props) {
       }).catch(() => {});
     }
 
+    // Financing pra venda — roteia pra Multimarcas (mesmo na ausência de
+    // contexto de moto, é onde se simula financiamento)
     const linhas = [
       `Olá! Quero enviar uma proposta de financiamento${modeloNome ? ` para a ${modeloNome}` : ""}.`,
       "",
@@ -89,8 +92,7 @@ export function FinancingSimulator({ valorMoto, modeloNome, motoId }: Props) {
       "",
       "Podemos seguir com a proposta?",
     ];
-    const texto = encodeURIComponent(linhas.join("\n"));
-    const url = `https://wa.me/5588998505859?text=${texto}`;
+    const url = whatsappLink("multimarcas", linhas.join("\n"));
     if (typeof window !== "undefined") {
       window.open(url, "_blank", "noopener");
     }

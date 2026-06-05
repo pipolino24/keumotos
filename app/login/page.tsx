@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { whatsappLink } from "@/lib/keu-units";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import Image from "next/image";
@@ -203,7 +204,7 @@ function LoginPageInner() {
               <p className="text-center text-sm text-keu-black/60">
                 Não tem conta?{" "}
                 <a
-                  href="https://wa.me/5588998505859?text=Quero%20conhecer%20a%20KEU"
+                  href={whatsappLink("multimarcas", "Quero conhecer a KEU")}
                   target="_blank"
                   rel="noopener"
                   className="font-semibold text-keu-red hover:underline"

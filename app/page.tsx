@@ -18,6 +18,7 @@ import { Instagram } from "@/components/icons";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { whatsappLink } from "@/lib/keu-units";
 import {
   KeuLogo,
   KeuMotoPecas,
@@ -173,7 +174,7 @@ export default async function HomePage() {
                   Ver Motos Disponíveis
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-                <a href="https://wa.me/5588998505859" target="_blank" rel="noopener">
+                <a href={whatsappLink("multimarcas")} target="_blank" rel="noopener">
                   <Button variant="dark" size="lg">
                     <Phone className="h-4 w-4" />
                     Fale Conosco
@@ -317,7 +318,7 @@ export default async function HomePage() {
               Ver motos disponíveis <ArrowRight className="h-4 w-4" />
             </Link>
             <a
-              href="https://wa.me/5588998505859?text=Quero%20saber%20mais%20sobre%20o%20Plano%20Conquista"
+              href={whatsappLink("loca", "Quero saber mais sobre o Plano Conquista")}
               target="_blank"
               rel="noopener"
               className={cn(
@@ -571,7 +572,7 @@ export default async function HomePage() {
               </div>
             </a>
             <a
-              href="https://wa.me/5588998505859"
+              href={whatsappLink("multimarcas")}
               target="_blank"
               rel="noopener"
               className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all text-left"

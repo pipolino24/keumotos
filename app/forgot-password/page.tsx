@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
 import { toast } from "sonner";
+import { whatsappLink } from "@/lib/keu-units";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -129,7 +130,7 @@ export default function ForgotPasswordPage() {
               <p className="text-xs text-keu-black/50 text-center">
                 Não tem conta?{" "}
                 <a
-                  href="https://wa.me/5588998505859?text=Quero%20conhecer%20a%20KEU"
+                  href={whatsappLink("multimarcas", "Quero conhecer a KEU")}
                   target="_blank"
                   rel="noopener"
                   className="font-semibold text-keu-red hover:underline"

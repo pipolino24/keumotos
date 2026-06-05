@@ -29,6 +29,7 @@ import { MeuVendedorWidget } from "@/components/dashboard/meu-vendedor-widget";
 import { InadimplenciaWidget } from "@/components/dashboard/inadimplencia-widget";
 import { SkeletonListRow } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
+import { whatsappLink } from "@/lib/keu-units";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { useApi } from "@/lib/hooks/use-api";
 import { cn } from "@/lib/utils";
@@ -186,7 +187,7 @@ function ClienteDashboard() {
                 Ver motos disponíveis <ArrowRight className="h-4 w-4" />
               </Link>
               <a
-                href="https://wa.me/5588998505859"
+                href={whatsappLink("multimarcas")}
                 target="_blank"
                 rel="noopener"
                 className={cn(

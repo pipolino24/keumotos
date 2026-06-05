@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Info, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { KeuLogo } from "@/components/keu-logo";
+import { whatsappLink } from "@/lib/keu-units";
 
 export const metadata = {
   title: "Cadastro fechado — KEU Motos",
@@ -44,7 +45,7 @@ export default function RegisterPage() {
 
           <div className="space-y-3">
             <a
-              href="https://wa.me/5588998505859?text=Quero%20conhecer%20uma%20moto"
+              href={whatsappLink("multimarcas", "Quero conhecer uma moto")}
               target="_blank"
               rel="noopener"
               className="block"

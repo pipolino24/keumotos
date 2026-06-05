@@ -16,6 +16,7 @@ import { Input, Select } from "@/components/ui/input";
 import { KeuLogo } from "@/components/keu-logo";
 import { HeaderUserButton } from "@/components/motos/header-user-button";
 import { formatCurrency, formatKm } from "@/lib/utils";
+import { whatsappLink } from "@/lib/keu-units";
 import { connectMongo } from "@/lib/mongodb";
 import { Moto as MotoModel } from "@/lib/models/moto";
 
@@ -245,7 +246,7 @@ export default async function MotosPage({
           <div className="flex items-center gap-2">
             <HeaderUserButton />
             <a
-              href="https://wa.me/5588998505859?text=Quero%20vender%20minha%20moto"
+              href={whatsappLink("multimarcas", "Quero vender minha moto")}
               target="_blank"
               rel="noopener"
             >
@@ -456,7 +457,7 @@ export default async function MotosPage({
                         <Button>Limpar filtros</Button>
                       </Link>
                       <a
-                        href="https://wa.me/5588998505859?text=Procuro%20uma%20moto%20espec%C3%ADfica"
+                        href={whatsappLink("multimarcas", "Procuro uma moto específica")}
                         target="_blank"
                         rel="noopener"
                         className="inline-flex"
@@ -524,7 +525,7 @@ export default async function MotosPage({
             semana.
           </p>
           <a
-            href="https://wa.me/5588998505859"
+            href={whatsappLink("multimarcas")}
             target="_blank"
             rel="noopener"
             className="inline-block"

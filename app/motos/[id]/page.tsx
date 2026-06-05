@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { KeuLogo } from "@/components/keu-logo";
 import { formatCurrency, formatKm } from "@/lib/utils";
+import { whatsappLink, unidadePorTipo } from "@/lib/keu-units";
 import { MotoDetailActions } from "./moto-detail-actions";
 import { MotoPhotoGallery } from "./moto-photo-gallery";
 // OCULTADO 2026-06-05: AffiliateTracker desativado junto com sistema de
@@ -173,7 +174,9 @@ export default async function MotoDetailPage({
   const isAmbos = moto.tipo === "ambos";
   const tituloModelo = `${moto.marca} ${moto.modelo}${moto.versao ? ` ${moto.versao}` : ""}`;
   const whatsappTexto = `Tenho interesse na ${tituloModelo} ${moto.anoModelo}`;
-  const whatsappUrl = `https://wa.me/5588998505859?text=${encodeURIComponent(whatsappTexto)}`;
+  // Roteia pro WhatsApp da unidade correta — locação vai pra Loca Motos,
+  // venda/ambos vai pra Multimarcas. Antes ia tudo pra Multimarcas.
+  const whatsappUrl = whatsappLink(unidadePorTipo(moto.tipo), whatsappTexto);
 
   return (
     <div className="min-h-screen flex flex-col bg-keu-gray-light pb-20 md:pb-0">
@@ -199,7 +202,7 @@ export default async function MotoDetailPage({
               </Button>
             </Link>
             <a
-              href="https://wa.me/5588998505859?text=Quero%20vender%20minha%20moto"
+              href={whatsappLink("multimarcas", "Quero vender minha moto")}
               target="_blank"
               rel="noopener"
             >
