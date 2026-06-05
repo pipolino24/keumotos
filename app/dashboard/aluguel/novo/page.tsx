@@ -248,11 +248,15 @@ export default function NovoAluguelPage() {
     const all = clientesData?.clientes ?? [];
     if (!clienteSearch.trim()) return all;
     const q = clienteSearch.toLowerCase();
+    // Clientes importados do KEU LOCA podem vir com nome/email/telefone
+    // null (caso do "rony vajem" que só tem nome curto + nada mais). Sem
+    // o fallback `?? ""` o .toLowerCase()/.includes() crashava a página
+    // inteira ("Algo deu errado") quando o admin digitava qualquer letra.
     return all.filter(
       (c) =>
-        c.nome.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.telefone.includes(q) ||
+        (c.nome ?? "").toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.telefone ?? "").includes(q) ||
         (c.cpf ?? "").includes(q)
     );
   }, [clientesData, clienteSearch]);

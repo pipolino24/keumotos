@@ -72,9 +72,16 @@ export default function VendasPage() {
 
   // Inclui motos com tipo "ambos" também (catálogo de venda).
   const allMotos = data?.motos ?? [];
-  const motosVenda = allMotos.filter(
-    (m) => m.tipo === "venda" || m.tipo === "ambos"
-  );
+  const motosVenda = allMotos
+    .filter((m) => m.tipo === "venda" || m.tipo === "ambos")
+    // Vendidas vão pro fim — admin foca primeiro nas que ainda dá pra vender.
+    // Disponíveis > Reservadas/Lavagem > Vendidas. Sort estável dentro de
+    // cada grupo preserva ordem que veio do backend (mais recente primeiro).
+    .sort((a, b) => {
+      const peso = (s: string) =>
+        s === "vendida" ? 2 : s === "reservada" || s === "lavagem" ? 1 : 0;
+      return peso(a.status) - peso(b.status);
+    });
 
   // Vendas reais: backend já faz o scope (admin vê todas, vendedor só as
   // próprias). Não precisamos repetir aqui.
