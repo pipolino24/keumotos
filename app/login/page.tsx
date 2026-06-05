@@ -64,13 +64,12 @@ function LoginPageInner() {
       if (error) throw error;
       if (!data.user) throw new Error("Sessão inválida");
 
-      const role = (data.user.user_metadata?.role as string) || "cliente";
       toast.success("Login realizado!");
 
-      const target =
-        role === "afiliado" && nextPath === "/dashboard"
-          ? "/afiliado"
-          : nextPath;
+      // Sistema de afiliados está oculto desde 2026-06-05. Antes mandava
+      // role="afiliado" pra /afiliado; agora todos staff vão pro mesmo
+      // /dashboard (que esconde tudo de afiliado).
+      const target = nextPath;
       // Hard reload garante que o SSR do destino rode com o cookie fresco,
       // sem cache RSC herdado de uma sessão anterior (admin/vendedor) que
       // renderizaria o dashboard com role errado.

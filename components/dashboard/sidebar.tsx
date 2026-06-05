@@ -59,7 +59,10 @@ const adminNavItems = [
   { href: "/dashboard/emprestimos", icon: Banknote, label: "Empréstimos" },
   { href: "/dashboard/proprietarios", icon: Users, label: "Fornecedores" },
   { href: "/dashboard/usuarios", icon: Users, label: "Usuários" },
-  { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
+  // OCULTADO 2026-06-05 a pedido do dono — código preservado pra reativar
+  // depois. Pra reativar: descomentar a linha + os redirects em
+  // /afiliado/layout, /m/[codigo]/page e /dashboard/afiliados/page.
+  // { href: "/dashboard/afiliados", icon: Handshake, label: "Afiliados" },
 ];
 
 /**

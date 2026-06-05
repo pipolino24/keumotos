@@ -26,7 +26,9 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { formatCpfInput, formatPhoneInput } from "@/lib/utils";
 
-type Role = "cliente" | "vendedor" | "afiliado";
+// "afiliado" continua existindo como role no backend mas não é mais
+// criável via UI (sistema oculto 2026-06-05).
+type Role = "cliente" | "vendedor";
 
 export default function NovoUsuarioPage() {
   const router = useRouter();
@@ -218,7 +220,7 @@ export default function NovoUsuarioPage() {
 
       <PageHeader
         title="Novo usuário"
-        description="Cadastre clientes, vendedores ou afiliados. Promoção para admin é feita depois pelo PATCH."
+        description="Cadastre clientes ou vendedores. Promoção para admin é feita depois pelo PATCH."
       />
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
@@ -434,7 +436,6 @@ export default function NovoUsuarioPage() {
                 onChange={(e) => update("role", e.target.value as Role)}
               >
                 <option value="vendedor">Vendedor</option>
-                <option value="afiliado">Afiliado</option>
                 <option value="cliente">Cliente</option>
               </Select>
               <p className="text-[11px] text-keu-black/50 mt-1">

@@ -25,7 +25,9 @@ import { KeuLogo } from "@/components/keu-logo";
 import { formatCurrency, formatKm } from "@/lib/utils";
 import { MotoDetailActions } from "./moto-detail-actions";
 import { MotoPhotoGallery } from "./moto-photo-gallery";
-import { AffiliateTracker } from "./affiliate-tracker";
+// OCULTADO 2026-06-05: AffiliateTracker desativado junto com sistema de
+// afiliados. Pra reativar, descomentar import + uso lá embaixo.
+// import { AffiliateTracker } from "./affiliate-tracker";
 import { VendedorCard } from "./vendedor-card";
 import { InterestTracker } from "@/components/motos/interest-tracker";
 
@@ -175,7 +177,7 @@ export default async function MotoDetailPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-keu-gray-light pb-20 md:pb-0">
-      <AffiliateTracker motoId={moto._id} />
+      {/* <AffiliateTracker motoId={moto._id} /> — oculto, ver topo do arquivo */}
       <InterestTracker motoId={moto._id} />
 
       {/* HEADER */}

@@ -280,7 +280,7 @@ export default function AdministracaoPage() {
           icon={<Receipt />}
           label="Comissões pagas"
           value={formatCurrency(comissoesPagas)}
-          subtitle={`vendedores + afiliados`}
+          subtitle={`vendedores`}
           color="from-amber-500 to-amber-600"
         />
         <StatCard
