@@ -162,7 +162,15 @@ export default function LogsPage() {
       <PageHeader
         title="Logs de Auditoria"
         description="Tudo que aconteceu no sistema — quem fez, o que fez, quando."
-      />
+      >
+        <a
+          href={`/api/admin/audit-log/export?${params.toString()}`}
+          download
+          className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-2 rounded-lg border border-keu-black/10 hover:bg-keu-gray-light transition"
+        >
+          📥 Exportar CSV
+        </a>
+      </PageHeader>
 
       {/* FILTROS */}
       <Card className="mb-6 p-4">

@@ -214,6 +214,15 @@ const AuditLogSchema = new Schema<IAuditLogDoc>(
 AuditLogSchema.index({ createdAt: -1 });
 AuditLogSchema.index({ alvoTipo: 1, alvoId: 1, createdAt: -1 });
 
+// TTL de 365 dias — Mongo deleta documentos automaticamente quando
+// `createdAt + 365d < now`. Compliance: a maioria das leis (LGPD/GDPR)
+// permite reter logs de auditoria por até 1 ano sem justificativa formal.
+// Pra reter mais, suba esse número OU exporte os logs antes do limite.
+AuditLogSchema.index(
+  { createdAt: 1 },
+  { expireAfterSeconds: 365 * 24 * 60 * 60 }
+);
+
 export const AuditLog: Model<IAuditLogDoc> =
   mongoose.models.AuditLog ||
   mongoose.model<IAuditLogDoc>("AuditLog", AuditLogSchema);
