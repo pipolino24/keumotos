@@ -5,6 +5,8 @@ import { Moto } from "@/lib/models/moto";
 import { requireRole, requireAuth } from "@/lib/auth/api-guards";
 import { emitAuditLog } from "@/lib/audit/emit";
 
+// CAMPOS a snapshot pra audit log no PATCH — só os relevantes (não fotos)
+
 export const dynamic = "force-dynamic";
 
 interface RouteContext {
@@ -161,6 +163,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (chassi) update.chassi = chassi;
     if (renavam) update.renavam = renavam;
 
+    // Snapshot dos campos que costumam mudar — pro audit log mostrar antes/
+    // depois sem ter que serializar a moto inteira (tem fotos base64 grandes).
+    const anterior = await Moto.findById(id)
+      .select("status valorAnunciado valorCompra valorMinimo placa setor tipo")
+      .lean();
     const moto = await Moto.findByIdAndUpdate(id, update, {
       new: true,
       runValidators: true,
@@ -168,6 +175,33 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     if (!moto) {
       return NextResponse.json({ error: "Moto não encontrada" }, { status: 404 });
     }
+    emitAuditLog({
+      acao: "moto.update",
+      ator: auth.userId,
+      atorRole: auth.role,
+      alvoTipo: "moto",
+      alvoId: id,
+      alvoLabel: `${moto.marca ?? ""} ${moto.modelo ?? ""} ${
+        moto.placa ?? ""
+      }`.trim(),
+      estadoAnterior: anterior
+        ? (JSON.parse(JSON.stringify(anterior)) as Record<string, unknown>)
+        : undefined,
+      estadoNovo: Object.fromEntries(
+        // só os campos que realmente mudaram (intersect com snapshot)
+        Object.entries(update).filter(([k]) =>
+          [
+            "status",
+            "valorAnunciado",
+            "valorCompra",
+            "valorMinimo",
+            "placa",
+            "setor",
+            "tipo",
+          ].includes(k)
+        )
+      ),
+    });
     return NextResponse.json({ moto });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro ao atualizar";
