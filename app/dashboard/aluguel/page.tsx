@@ -34,6 +34,9 @@ interface MotoApi {
   valorDiaria?: number;
   valorSemanal?: number;
   valorMensal?: number;
+  // GET /api/motos retorna fotos via projection { $slice: 1 } — só a capa
+  // pra economizar payload. Aqui é o que renderizamos no card.
+  fotos?: string[];
 }
 
 interface AluguelApi {
@@ -341,15 +344,31 @@ export default function AluguelPage() {
           </div>
         ) : (
           <div className="p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {motosAluguel.map((m) => (
+            {motosAluguel.map((m) => {
+              // Mesma lógica do /dashboard/estoque: m.fotos[0] é a capa.
+              // Se vier vazio, mostra ícone.
+              const fotoCapa =
+                Array.isArray(m.fotos) && m.fotos.length > 0
+                  ? m.fotos[0]
+                  : undefined;
+              return (
               <Card
                 key={m._id}
                 className="overflow-hidden hover:shadow-xl transition-all"
               >
                 <div className="aspect-video bg-gradient-to-br from-keu-gray-light via-white to-keu-red/10 relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Bike className="h-16 w-16 text-keu-red/30" />
-                  </div>
+                  {fotoCapa ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={fotoCapa}
+                      alt={`${m.marca} ${m.modelo}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Bike className="h-16 w-16 text-keu-red/30" />
+                    </div>
+                  )}
                   <div className="absolute top-2 left-2">
                     <Badge
                       variant={
@@ -421,7 +440,8 @@ export default function AluguelPage() {
                   )}
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </Card>
