@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -80,23 +80,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Service role pra disparar email do lado server (sem expor key pro browser)
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll: () => [],
-        setAll: () => {},
-      },
-    }
-  );
-
-  // resetPasswordForEmail é idempotente do lado Supabase — se email não
-  // existe, retorna ok mesmo. Não revela se a conta existe pro chamador.
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
-  });
+  // Service role pra disparar email do lado server (sem expor key pro browser).
+  // Helper já valida que NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SECRET_KEY estão
+  // setados — em produção essas são as env vars corretas.
+  try {
+    const supabase = createSupabaseAdminClient();
+    // resetPasswordForEmail é idempotente do lado Supabase — se email não
+    // existe, retorna ok mesmo. Não revela se a conta existe pro chamador.
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+  } catch (err) {
+    // Loga mas devolve resposta neutra — não vaza detalhe de config pro user
+    console.error("[forgot-password] erro ao disparar reset:", err);
+    return NextResponse.json(
+      { error: "Erro interno — tente novamente em instantes" },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }
