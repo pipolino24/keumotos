@@ -286,14 +286,29 @@ export default function VendasPage() {
                         Detalhes
                       </Button>
                     </Link>
-                    <Link
-                      href={`/dashboard/vendas/nova?moto=${m._id}`}
-                      className="flex-1"
-                    >
-                      <Button size="sm" className="w-full">
-                        Vender <ArrowRight className="h-3 w-3" />
+                    {m.status === "vendida" ? (
+                      // Moto já foi vendida — não permite vender de novo.
+                      // Mostra "Vendida" disabled em vez de esconder, pra que
+                      // o staff veja que a moto continua na lista mas como
+                      // histórico de catálogo.
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        disabled
+                      >
+                        Vendida
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link
+                        href={`/dashboard/vendas/nova?moto=${m._id}`}
+                        className="flex-1"
+                      >
+                        <Button size="sm" className="w-full">
+                          Vender <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </Card>

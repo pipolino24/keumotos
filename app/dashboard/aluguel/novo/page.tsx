@@ -599,7 +599,12 @@ export default function NovoAluguelPage() {
                     cliente&quot;.
                   </div>
                 ) : (
-                  <div className="max-h-64 overflow-y-auto rounded-lg border border-keu-black/10 divide-y divide-keu-black/5">
+                  {/* Quando havia muitos clientes (>5) e overflow-y-auto com
+                       max-h-64, o scroll do mouse ficava preso aqui em vez
+                       de descer pra próxima seção (Moto, etc.). Aumentado pra
+                       max-h-[480px] + overscroll-contain pra deixar o body
+                       scrollar quando o user chega no fim da lista interna. */}
+                  <div className="max-h-[480px] overflow-y-auto overscroll-contain rounded-lg border border-keu-black/10 divide-y divide-keu-black/5">
                     {clientesFiltrados.slice(0, 50).map((c) => (
                       <button
                         type="button"
