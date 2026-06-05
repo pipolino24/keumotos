@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,32 @@ import { Select } from "@/components/ui/input";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useApi } from "@/lib/hooks/use-api";
 import { formatLogEvent, type FormattedLog } from "@/lib/audit/format";
+
+/**
+ * Mapeia alvoTipo → URL de detalhe quando existe. Quando retorna null,
+ * o alvo não é clicável (page/form/sistema/role etc).
+ */
+function rotaDoAlvo(alvoTipo: string, alvoId: string): string | null {
+  if (!/^[0-9a-f]{24}$/i.test(alvoId)) return null; // só ObjectId Mongo
+  switch (alvoTipo) {
+    case "moto":
+      return `/dashboard/estoque/${alvoId}`;
+    case "aluguel":
+      return `/dashboard/aluguel/${alvoId}`;
+    case "venda":
+      return `/dashboard/vendas/${alvoId}`;
+    case "emprestimo":
+      return `/dashboard/emprestimos/${alvoId}`;
+    case "cliente":
+      return `/dashboard/clientes/${alvoId}`;
+    case "proprietario":
+      return `/dashboard/proprietarios/${alvoId}`;
+    case "user":
+      return `/dashboard/usuarios/${alvoId}`;
+    default:
+      return null;
+  }
+}
 
 interface AuditEvent {
   _id: string;
@@ -101,6 +128,35 @@ export default function LogsPage() {
     return Array.from(set).sort();
   }, [data]);
 
+  // Contadores por categoria — admin vê de relance "X pagamentos, Y deletes"
+  const stats = useMemo(() => {
+    const acc = { total: 0, pagamento: 0, create: 0, update: 0, delete: 0, acesso: 0 };
+    for (const e of eventos) {
+      acc.total++;
+      const c = formatLogEvent(e).categoria;
+      if (c === "pagamento") acc.pagamento++;
+      else if (c === "create") acc.create++;
+      else if (c === "delete") acc.delete++;
+      else if (c === "acesso") acc.acesso++;
+      else acc.update++;
+    }
+    return acc;
+  }, [eventos]);
+
+  // Agrupar eventos por dia humano (Hoje / Ontem / dd/mm/yyyy)
+  const grupos = useMemo(() => {
+    const map = new Map<string, AuditEvent[]>();
+    for (const e of eventos) {
+      const k = labelDoDia(new Date(e.createdAt));
+      const lista = map.get(k) ?? [];
+      lista.push(e);
+      map.set(k, lista);
+    }
+    // Map preserva ordem de inserção — como eventos vêm decrescentes,
+    // grupos saem em ordem cronológica decrescente também
+    return Array.from(map.entries());
+  }, [eventos]);
+
   return (
     <div>
       <PageHeader
@@ -183,20 +239,39 @@ export default function LogsPage() {
 
       {/* LISTA */}
       <Card>
-        <div className="p-6 border-b border-keu-black/5 flex items-center justify-between">
-          <div>
-            <h2 className="font-bold text-lg flex items-center gap-2">
-              <History className="h-5 w-5 text-keu-red" />
-              Atividade recente
-            </h2>
-            <p className="text-sm text-keu-black/60">
-              {loading
-                ? "Carregando..."
-                : `${eventos.length} evento${eventos.length === 1 ? "" : "s"} ${
-                    searchAtor ? "filtrado(s)" : ""
-                  }`}
-            </p>
+        <div className="p-6 border-b border-keu-black/5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <History className="h-5 w-5 text-keu-red" />
+                Atividade recente
+              </h2>
+              <p className="text-sm text-keu-black/60">
+                {loading
+                  ? "Carregando..."
+                  : `${eventos.length} evento${eventos.length === 1 ? "" : "s"} ${
+                      searchAtor ? "filtrado(s)" : ""
+                    }`}
+              </p>
+            </div>
           </div>
+          {!loading && eventos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <StatPill label="Total" value={stats.total} color="slate" />
+              <StatPill
+                label="Pagamentos"
+                value={stats.pagamento}
+                color="emerald"
+              />
+              <StatPill label="Cadastros" value={stats.create} color="emerald" />
+              <StatPill
+                label="Atualizações"
+                value={stats.update}
+                color="amber"
+              />
+              <StatPill label="Exclusões" value={stats.delete} color="rose" />
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -218,15 +293,72 @@ export default function LogsPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-keu-black/5">
-            {eventos.map((e) => (
-              <LogRow key={e._id} ev={e} />
+          <div>
+            {grupos.map(([dia, lista]) => (
+              <div key={dia}>
+                <div className="px-6 py-2 bg-keu-gray-light/50 border-y border-keu-black/5 flex items-center gap-2 text-xs font-bold text-keu-black/60 uppercase tracking-wide">
+                  <Calendar className="h-3 w-3" />
+                  {dia}
+                  <span className="ml-auto text-keu-black/40">
+                    {lista.length} evento{lista.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="divide-y divide-keu-black/5">
+                  {lista.map((e) => (
+                    <LogRow key={e._id} ev={e} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
       </Card>
     </div>
   );
+}
+
+// ============== CONTADORES TOPO ==============
+function StatPill({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: "emerald" | "amber" | "rose" | "blue" | "slate";
+}) {
+  const map = {
+    emerald: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    amber: "bg-amber-50 border-amber-200 text-amber-700",
+    rose: "bg-rose-50 border-rose-200 text-rose-700",
+    blue: "bg-blue-50 border-blue-200 text-blue-700",
+    slate: "bg-slate-50 border-slate-200 text-slate-700",
+  };
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${map[color]}`}>
+      <div className="text-2xl font-black leading-none">{value}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wide mt-1">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function labelDoDia(d: Date): string {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(d);
+  alvo.setHours(0, 0, 0, 0);
+  const diffDias = Math.round(
+    (hoje.getTime() - alvo.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  if (diffDias === 0) return "Hoje";
+  if (diffDias === 1) return "Ontem";
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function LogRow({ ev }: { ev: AuditEvent }) {
@@ -268,6 +400,20 @@ function LogRow({ ev }: { ev: AuditEvent }) {
             {fmt.subtitulo}
           </div>
         )}
+        {(() => {
+          const rota = rotaDoAlvo(ev.alvoTipo, ev.alvoId);
+          if (rota && ev.alvoLabel) {
+            return (
+              <Link
+                href={rota}
+                className="inline-block text-xs text-keu-red hover:underline mt-1.5 font-medium"
+              >
+                → Ver {ev.alvoTipo}: {ev.alvoLabel}
+              </Link>
+            );
+          }
+          return null;
+        })()}
         <div className="text-xs text-keu-black/50 mt-1.5">
           Por{" "}
           <span className="font-semibold text-keu-black/70">
